@@ -1,3 +1,8 @@
+from typing import Optional
+from datetime import datetime
+import uuid, base64, asyncio
+import google.genai
+from routers.common import require_admin_roles, logger, BOT_AVAILABLE
 from fastapi import APIRouter, Request, Form, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -25,7 +30,7 @@ def get_pending_count() -> int:
 # ==============================================================================
 # JALUR RENDER HALAMAN HTML
 # ==============================================================================
-@router.get("/orders", response_class=HTMLResponse, response_class=HTMLResponse, tags=["Admin CRM"], dependencies=[require_admin_roles("super_admin", "oprasional")])
+@router.get("/orders", response_class=HTMLResponse, tags=["Admin CRM"], dependencies=[require_admin_roles("super_admin", "oprasional")])
 async def admin_orders(request: Request):
     pesanan = []
     pending_count = 0
@@ -214,4 +219,3 @@ async def delete_order(order_id: str):
         print(f"❌ [ERROR HAPUS PESANAN]: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/orders/delete/{order_id}")

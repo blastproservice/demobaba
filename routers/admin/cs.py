@@ -1,7 +1,13 @@
-from fastapi import APIRouter, Request, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime
+import uuid, base64, asyncio
+import google.genai
+from fastapi import APIRouter, Request, Depends, HTTPException, status, Form
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+
+from routers.common import supabase, api_success, api_error, logger, require_admin_roles, render_admin_template, BOT_AVAILABLE
+from routers.schemas import AdminManualChatPayload
+
 
 # 1. Import Brankas Supabase
 try:
@@ -41,10 +47,7 @@ def get_pending_count() -> int:
 # ==============================================================================
 @router.get("/admin/cs", response_class=HTMLResponse)
 async def admin_cs_dashboard(request: Request):
-    return templates.TemplateResponse("admin/cs_management.html", {
-        "request": request,
-        "pending_count": get_pending_count()
-    })
+    return render_admin_template(request, "admin/cs_management.html", pending_count=get_pending_count())
 
 # ==============================================================================
 # JALUR API JSON (Penyedot Data untuk Alpine.js)

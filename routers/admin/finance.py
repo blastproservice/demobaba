@@ -1,7 +1,13 @@
-from fastapi import APIRouter, Request, Form, HTTPException, status, calendar
+from typing import Optional
+from datetime import datetime
+import calendar
+import uuid, base64, asyncio
+import google.genai
+from fastapi import APIRouter, Request, Depends, HTTPException, status, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 
+from routers.common import supabase, logger, render_admin_template, require_admin_roles, api_success, api_error
+from routers.schemas import ManualTransactionPayload, TransferPayload
 # Import koneksi Supabase murni dari root
 try:
     from database import supabase
@@ -28,7 +34,7 @@ def get_pending_count() -> int:
 # ==============================================================================
 # JALUR HALAMAN HTML
 # ==============================================================================
-@router.get("/aset", response_class=HTMLResponse, response_class=HTMLResponse, tags=["Admin Finance"], dependencies=[require_admin_roles("super_admin", "oprasional")])
+@router.get("/aset", response_class=HTMLResponse, tags=["Admin Finance"], dependencies=[require_admin_roles("super_admin", "oprasional")])
 async def admin_finance_aset(request: Request):
     """Menampilkan Dashboard Aset & Dompet (Mobile Banking Style)"""
     accounts = []
@@ -76,7 +82,7 @@ async def admin_finance_aset(request: Request):
         categories_out=categories_out
     )
 
-@router.get("/mutasi", response_class=HTMLResponse, response_class=HTMLResponse, tags=["Admin Finance"], dependencies=[require_admin_roles("super_admin", "oprasional")])
+@router.get("/mutasi", response_class=HTMLResponse, tags=["Admin Finance"], dependencies=[require_admin_roles("super_admin", "oprasional")])
 async def admin_finance_mutasi(request: Request):
     """Menampilkan Ledger / Riwayat Buku Besar Keseluruhan"""
     mutations = []
@@ -98,7 +104,7 @@ async def admin_finance_mutasi(request: Request):
         mutations=mutations, accounts=accounts
     )
 
-@router.get("/report", response_class=HTMLResponse, response_class=HTMLResponse, tags=["Admin Finance"], dependencies=[require_admin_roles("super_admin")])
+@router.get("/report", response_class=HTMLResponse, tags=["Admin Finance"], dependencies=[require_admin_roles("super_admin")])
 async def admin_finance_report(request: Request, month: Optional[str] = None, year: Optional[str] = None):
     """
     Generate Profit & Loss (P&L) Statement Terlengkap.
@@ -210,7 +216,7 @@ async def admin_finance_report(request: Request, month: Optional[str] = None, ye
         period_text=f"{target_month:02d}/{target_year}"
     )
 
-@router.get("/api/v1/finance/transaction", response_class=HTMLResponse, response_class=HTMLResponse, tags=["Admin Finance"], dependencies=[require_admin_roles("super_admin", "oprasional")])
+@router.get("/api/v1/finance/transaction", response_class=HTMLResponse, tags=["Admin Finance"], dependencies=[require_admin_roles("super_admin", "oprasional")])
 async def api_manual_transaction(request: Request, payload: ManualTransactionPayload):
     """Mencatat Pemasukan/Pengeluaran manual (Suntikan modal, bayar listrik, dll)"""
     if not supabase: return api_error("Database offline", 503)
@@ -254,7 +260,7 @@ async def api_manual_transaction(request: Request, payload: ManualTransactionPay
         logger.error(f"❌ [API TRX ERROR]: {e}")
         return api_error("Gagal mencatat transaksi", 500)
 
-@router.get("/api/v1/finance/transfer", response_class=HTMLResponse, response_class=HTMLResponse, tags=["Admin Finance"], dependencies=[require_admin_roles("super_admin", "oprasional")])
+@router.get("/api/v1/finance/transfer", response_class=HTMLResponse, tags=["Admin Finance"], dependencies=[require_admin_roles("super_admin", "oprasional")])
 async def api_transfer_transaction(request: Request, payload: TransferPayload):
     """Mencatat Pindah Kas / Switch Money Antar Rekening (Mendukung Beda Mata Uang)"""
     if not supabase: return api_error("Database offline", 503)
@@ -324,7 +330,7 @@ async def api_transfer_transaction(request: Request, payload: TransferPayload):
         logger.error(f"❌ [API TRANSFER ERROR]: {e}")
         return api_error("Gagal memproses pindah kas", 500)
 
-@router.get("/finance/report", response_class=HTMLResponse, response_class=HTMLResponse, tags=["Admin Finance"], dependencies=[require_admin_roles("super_admin")])
+@router.get("/report-legacy", response_class=HTMLResponse, tags=["Admin Finance"], dependencies=[require_admin_roles("super_admin")])
 async def admin_finance_report(request: Request, month: Optional[str] = None, year: Optional[str] = None):
     """
     Generate Profit & Loss (P&L) Statement Terlengkap.

@@ -1,15 +1,13 @@
+from typing import Optional
 from datetime import datetime
-from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+import uuid, base64, asyncio
+import google.genai
+from fastapi import APIRouter, Request, Depends, HTTPException, status, Form
+from fastapi.responses import HTMLResponse, RedirectResponse
 
-try:
-    from database import supabase
-except ImportError:
-    supabase = None
+from routers.common import supabase, safe_array, logger, render_admin_template, verify_admin, format_currency
 
-router = APIRouter(prefix="/admin", tags=["Admin Core"])
-templates = Jinja2Templates(directory="templates")
+router = APIRouter(prefix="/admin", tags=["Admin Core"], )
 
 # ==============================================================================
 # JINJA2 FILTERS (Sihir Format Uang & Waktu)
@@ -29,8 +27,7 @@ def format_datetime(value: str) -> str:
         return value
 
 # Daftarkan sihirnya ke templates
-templates.env.filters["currency"] = format_currency
-templates.env.filters["datetime"] = format_datetime
+
 
 # ==============================================================================
 # HELPER FUNCTIONS
@@ -46,8 +43,8 @@ def get_pending_count() -> int:
 # ==============================================================================
 # JALUR RENDER DASHBOARD UTAMA
 # ==============================================================================
-@router.get("", response_class=HTMLResponse, tags=["Admin Core"], dependencies=[Depends(verify_admin)])
-@router.get("/", response_class=HTMLResponse, tags=["Admin Core"], dependencies=[Depends(verify_admin)])
+@router.get("", response_class=HTMLResponse, tags=["Admin Core"], )
+@router.get("/", response_class=HTMLResponse, tags=["Admin Core"], )
 async def admin_dashboard(request: Request):
     """Pusat Komando: Kalkulasi metrik omset, jumlah order, dan pelanggan"""
     metrics = {
