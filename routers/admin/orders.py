@@ -25,7 +25,7 @@ def get_pending_count() -> int:
 # ==============================================================================
 # JALUR RENDER HALAMAN HTML
 # ==============================================================================
-@router.get("/orders", response_class=HTMLResponse)
+@router.get("/orders", response_class=HTMLResponse, response_class=HTMLResponse, tags=["Admin CRM"], dependencies=[require_admin_roles("super_admin", "oprasional")])
 async def admin_orders(request: Request):
     pesanan = []
     pending_count = 0
@@ -50,7 +50,7 @@ async def admin_orders(request: Request):
 # ==============================================================================
 # JALUR API / LOGIKA BISNIS (CRUD)
 # ==============================================================================
-@router.post("/update-order-status")
+@router.post("/update-order-status", tags=["Admin CRM"], dependencies=[require_admin_roles("super_admin", "oprasional")])
 async def update_order_status(order_id: str = Form(...), status_order: str = Form(..., alias="status")):
     """Ubah status resi, eksekusi finansial otomatis, pengembalian stok jika batal, dan notifikasi bot"""
     try:
