@@ -25,7 +25,7 @@ def get_pending_count() -> int:
 # ==============================================================================
 # JALUR RENDER HALAMAN HTML
 # ==============================================================================
-@router.get("/settings", response_class=HTMLResponse)
+@router.get("/settings", response_class=HTMLResponse, tags=["Admin Settings"], dependencies=[require_admin_roles("super_admin")])
 async def admin_settings(request: Request):
     # Default fallback kalau database kosong
     settings_data = {
