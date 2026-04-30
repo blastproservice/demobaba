@@ -256,9 +256,9 @@
                 const li = document.createElement('li');
                 li.className = "flex items-center p-3 hover:bg-gray-50 transition-colors";
                 
-                // Ambil data produk (karena udah di-join di main.py)
-                const prodName = item.products ? item.products.name : 'Produk Dihapus';
-                const prodImg = item.products && item.products.image_url ? item.products.image_url : 'https://placehold.co/100x100/eee/999?text=IMG';
+                // DISINI PERBAIKANNYA: Ambil dari item.products.name
+                const prodName = item.products ? item.products.name : 'Produk BABA';
+                const prodImg = item.products && item.products.image_url ? item.products.image_url : '/static/img/Logo_BABA.png';
                 const price = formatMoney(item.price_at_time);
                 
                 li.innerHTML = `
