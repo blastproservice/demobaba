@@ -1,0 +1,826 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Manajemen Stok Parfum (Enterprise Edition){% endblock %}
+{% block header %}Manajemen Stok Parfum{% endblock %}
+
+{% block content %}
+<style>
+    /* Custom Scrollbar untuk Modal dan Table */
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    
+    /* Animasi Modal Fade In & Slide Up */
+    .modal-enter { animation: modalFadeIn 0.3s ease-out forwards; }
+    .modal-leave { animation: modalFadeOut 0.2s ease-in forwards; }
+    @keyframes modalFadeIn {
+        from { opacity: 0; transform: translateY(20px) scale(0.95); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes modalFadeOut {
+        from { opacity: 1; transform: translateY(0) scale(1); }
+        to { opacity: 0; transform: translateY(20px) scale(0.95); }
+    }
+    
+    /* Overlay Background */
+    .backdrop-enter { animation: backdropIn 0.3s ease-out forwards; }
+    .backdrop-leave { animation: backdropOut 0.2s ease-in forwards; }
+    @keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes backdropOut { from { opacity: 1; } to { opacity: 0; } }
+
+    /* Hide element utility */
+    .hidden-force { display: none !important; }
+</style>
+
+<div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 mb-6">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        
+        <div class="relative w-full md:w-96">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </div>
+            <input type="text" id="searchInput" class="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg focus:ring-gray-900 focus:border-gray-900 sm:text-sm bg-gray-50 transition-colors" placeholder="Cari nama parfum atau notes...">
+        </div>
+
+        <button onclick="openModal('modal-add')" class="w-full md:w-auto flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Tambah Parfum Baru
+        </button>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2 mt-5 pt-4 border-t border-gray-100" id="filterContainer">
+        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider mr-2">Filter Kategori:</span>
+        <button onclick="filterTable('ALL', this)" class="filter-btn active px-4 py-1.5 bg-gray-900 text-white border border-gray-900 rounded-full text-xs font-semibold shadow-sm transition-all">Semua</button>
+        <button onclick="filterTable('MAN', this)" class="filter-btn px-4 py-1.5 bg-white text-gray-600 border border-gray-200 hover:border-gray-900 hover:text-gray-900 rounded-full text-xs font-semibold transition-all">Man</button>
+        <button onclick="filterTable('WOMAN', this)" class="filter-btn px-4 py-1.5 bg-white text-gray-600 border border-gray-200 hover:border-pink-500 hover:text-pink-600 rounded-full text-xs font-semibold transition-all">Woman</button>
+        <button onclick="filterTable('NETRAL', this)" class="filter-btn px-4 py-1.5 bg-white text-gray-600 border border-gray-200 hover:border-purple-500 hover:text-purple-600 rounded-full text-xs font-semibold transition-all">Netral</button>
+        <div class="h-4 w-px bg-gray-300 mx-1"></div>
+        <button onclick="filterTable('TOP_SELLER', this)" class="filter-btn px-4 py-1.5 bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100 rounded-full text-xs font-bold transition-all flex items-center gap-1">
+            <span>🔥</span> Top Seller
+        </button>
+    </div>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="overflow-x-auto custom-scrollbar">
+        <table class="w-full whitespace-nowrap" id="parfumTable">
+            <thead class="bg-gray-50/80 border-b border-gray-100">
+                <tr class="text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                    <th class="px-6 py-4">Produk & Detail</th>
+                    <th class="px-6 py-4">Wangi (Notes)</th>
+                    <th class="px-6 py-4">Harga</th>
+                    <th class="px-6 py-4 text-center">Stok</th>
+                    <th class="px-6 py-4 text-center">Status</th>
+                    <th class="px-6 py-4 text-right">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 text-sm" id="tableBody">
+                
+                {% for p in produk %}
+                <tr class="hover:bg-gray-50/50 transition-colors group product-row" 
+                    data-name="{{ p.name | lower }}" 
+                    data-category="{{ p.tags | join(' ') | upper }}"
+                    data-stock="{{ p.stock_quantity }}">
+                    
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-4">
+                            <div class="w-14 h-14 rounded-lg bg-gray-100 border border-gray-200 overflow-hidden flex-shrink-0 relative">
+                                <img src="{{ p.image_url }}" alt="{{ p.name }}" class="w-full h-full object-cover">
+                                {% if 'top seller' in (p.tags | join(' ') | lower) %}
+                                    <div class="absolute top-0 right-0 bg-red-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-bl-lg">HOT</div>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-gray-900 text-base">{{ p.name }}</h3>
+                                <p class="text-xs text-gray-500 mb-1">{{ p.tagline }}</p>
+                                <div class="flex gap-1">
+                                    {% set cat_string = p.tags | join(' ') | upper %}
+                                    {% if 'MAN' in cat_string and 'WOMAN' not in cat_string %}
+                                        <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">MAN</span>
+                                    {% elif 'WOMAN' in cat_string %}
+                                        <span class="text-[10px] font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded border border-pink-100">WOMAN</span>
+                                    {% elif 'NETRAL' in cat_string or 'UNISEX' in cat_string %}
+                                        <span class="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">NETRAL</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+
+                    <td class="px-6 py-4">
+                        <div class="flex flex-col gap-1 text-xs">
+                            <div class="flex items-start">
+                                <span class="font-bold text-gray-700 w-12 flex-shrink-0">Top:</span>
+                                <span class="text-gray-600 truncate max-w-[200px]" title="{{ p.top_notes | join(', ') }}">{{ p.top_notes | join(', ') }}</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="font-bold text-gray-700 w-12 flex-shrink-0">Heart:</span>
+                                <span class="text-gray-600 truncate max-w-[200px]">{{ p.heart_notes | join(', ') }}</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span class="font-bold text-gray-700 w-12 flex-shrink-0">Base:</span>
+                                <span class="text-gray-600 truncate max-w-[200px]">{{ p.base_notes | join(', ') }}</span>
+                            </div>
+                        </div>
+                    </td>
+
+                    <td class="px-6 py-4">
+                        <div class="flex flex-col">
+                            <span class="font-bold text-gray-900 text-sm">{{ p.discounted_price | currency }}</span>
+                            {% if p.original_price > p.discounted_price %}
+                                <span class="text-xs text-gray-400 line-through">{{ p.original_price | currency }}</span>
+                            {% endif %}
+                        </div>
+                    </td>
+
+                    <td class="px-6 py-4 text-center">
+                        <span class="text-lg font-bold {% if p.stock_quantity <= 0 %}text-red-500{% elif p.stock_quantity <= 10 %}text-amber-500{% else %}text-gray-900{% endif %}">
+                            {{ p.stock_quantity }}
+                        </span>
+                    </td>
+
+                    <td class="px-6 py-4 text-center">
+                        {% if not p.is_active %}
+                            <span class="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-[11px] font-bold border border-gray-200">Nonaktif</span>
+                        {% elif p.stock_quantity <= 0 %}
+                            <span class="px-3 py-1 bg-red-50 text-red-600 rounded-full text-[11px] font-bold border border-red-200 animate-pulse">Habis</span>
+                        {% elif p.stock_quantity <= 10 %}
+                            <span class="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[11px] font-bold border border-amber-200">Menipis</span>
+                        {% else %}
+                            <span class="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[11px] font-bold border border-emerald-200">Aman</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="px-6 py-4 text-right">
+                        <div class="flex items-center justify-end gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                            
+                            <button onclick="openDetailModal({{ p | tojson | forceescape }})" class="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors tooltip-trigger" title="Lihat Detail">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </button>
+
+                            <button onclick="openEditModal({{ p | tojson | forceescape }})" class="p-2 text-amber-500 hover:bg-amber-50 rounded-lg transition-colors tooltip-trigger" title="Edit Full & Penyesuaian Stok">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </button>
+
+                            <button onclick="openDeleteModal('{{ p.id }}', '{{ p.name }}')" class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors tooltip-trigger" title="Hapus Parfum">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr id="emptyStateRow">
+                    <td colspan="6" class="px-6 py-16 text-center">
+                        <div class="flex flex-col items-center justify-center">
+                            <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-bold text-gray-900 mb-1">Stok Parfum Kosong</h3>
+                            <p class="text-sm text-gray-500 max-w-sm mb-4">Belum ada data parfum di database. Klik tombol "Tambah Parfum Baru" di atas untuk mulai berjualan.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="bg-gray-50 border-t border-gray-100 px-6 py-4 flex justify-between items-center text-sm text-gray-500">
+        <div>Total Produk: <span class="font-bold text-gray-900" id="totalItemCount">{{ produk|length }}</span> Item</div>
+        <div class="flex gap-1">
+            <button class="px-3 py-1 border border-gray-200 rounded hover:bg-white disabled:opacity-50" disabled>Prev</button>
+            <button class="px-3 py-1 border border-gray-900 bg-gray-900 text-white rounded">1</button>
+            <button class="px-3 py-1 border border-gray-200 rounded hover:bg-white disabled:opacity-50" disabled>Next</button>
+        </div>
+    </div>
+</div>
+
+<div id="modalBackdrop" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-40 hidden-force transition-opacity duration-300"></div>
+
+<div id="modal-detail" class="fixed inset-0 z-50 hidden-force flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col relative modal-content">
+        <button onclick="closeModal('modal-detail')" class="absolute top-4 right-4 p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-500 transition-colors z-10">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+        
+        <div class="overflow-y-auto custom-scrollbar p-0">
+            <div class="h-48 bg-gradient-to-r from-gray-900 to-gray-800 relative flex items-center justify-center">
+                <img id="detail_image" src="" alt="Parfum" class="h-40 w-40 object-cover rounded-xl shadow-lg border-4 border-white translate-y-12">
+            </div>
+            
+            <div class="pt-16 pb-8 px-8">
+                <div class="text-center mb-6">
+                    <h2 id="detail_name" class="text-3xl font-black text-gray-900">Nama Parfum</h2>
+                    <p id="detail_tagline" class="text-gray-500 italic mt-1">Tagline disini</p>
+                    <div class="flex justify-center gap-2 mt-3" id="detail_tags_container">
+                        </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-gray-50 p-5 rounded-xl border border-gray-100">
+                        <h4 class="text-xs font-bold text-gray-400 uppercase mb-3">Informasi Komersial</h4>
+                        <div class="space-y-3">
+                            <div class="flex justify-between border-b border-gray-200 pb-2">
+                                <span class="text-sm text-gray-600">Harga Jual</span>
+                                <span id="detail_price" class="text-sm font-bold text-emerald-600">$0.00</span>
+                            </div>
+                            <div class="flex justify-between border-b border-gray-200 pb-2">
+                                <span class="text-sm text-gray-600">Sisa Stok</span>
+                                <span id="detail_stock" class="text-sm font-bold text-gray-900">0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-sm text-gray-600">Daya Tahan</span>
+                                <span id="detail_longevity" class="text-sm font-medium text-gray-900">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-amber-50 p-5 rounded-xl border border-amber-100">
+                        <h4 class="text-xs font-bold text-amber-600 uppercase mb-3">Piramida Aroma</h4>
+                        <div class="space-y-3 relative">
+                            <div class="absolute left-[11px] top-2 bottom-2 w-0.5 bg-amber-200"></div>
+                            
+                            <div class="flex items-start gap-3 relative z-10">
+                                <div class="w-6 h-6 rounded-full bg-amber-200 border-2 border-white flex items-center justify-center text-[10px] font-bold text-amber-700 mt-0.5">T</div>
+                                <div>
+                                    <p class="text-[10px] font-bold text-gray-400 uppercase">Top Notes</p>
+                                    <p id="detail_top" class="text-sm text-gray-800 font-medium">-</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3 relative z-10">
+                                <div class="w-6 h-6 rounded-full bg-amber-300 border-2 border-white flex items-center justify-center text-[10px] font-bold text-amber-800 mt-0.5">H</div>
+                                <div>
+                                    <p class="text-[10px] font-bold text-gray-400 uppercase">Heart Notes</p>
+                                    <p id="detail_heart" class="text-sm text-gray-800 font-medium">-</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3 relative z-10">
+                                <div class="w-6 h-6 rounded-full bg-amber-400 border-2 border-white flex items-center justify-center text-[10px] font-bold text-amber-900 mt-0.5">B</div>
+                                <div>
+                                    <p class="text-[10px] font-bold text-gray-400 uppercase">Base Notes</p>
+                                    <p id="detail_base" class="text-sm text-gray-800 font-medium">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="text-xs font-bold text-gray-400 uppercase mb-2">Deskripsi Produk</h4>
+                    <p id="detail_desc" class="text-sm text-gray-600 leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100">-</p>
+                </div>
+            </div>
+        </div>
+        <div class="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+            <button onclick="closeModal('modal-detail')" class="px-6 py-2 bg-gray-900 text-white font-medium rounded-lg hover:bg-gray-800 transition">Tutup</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-add" class="fixed inset-0 z-50 hidden-force flex items-center justify-center p-4 sm:p-6">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col relative modal-content">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 rounded-t-2xl">
+            <h2 class="text-xl font-bold text-gray-900">Tambah Parfum Baru</h2>
+            <button onclick="closeModal('modal-add')" class="text-gray-400 hover:text-red-500 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        
+        <form action="/admin/add-product" method="POST" class="flex-1 overflow-y-auto custom-scrollbar p-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-1 space-y-5">
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-4">
+                        <h3 class="text-sm font-bold text-gray-800 border-b border-gray-200 pb-2">Informasi Dasar</h3>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Nama Parfum <span class="text-red-500">*</span></label>
+                            <input type="text" name="name" required class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900 focus:border-gray-900">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Tagline Singkat</label>
+                            <input type="text" name="tagline" placeholder="Cth: Bold. Signature." class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900 focus:border-gray-900">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Kategori / Tags (Koma)</label>
+                            <input type="text" name="tags" placeholder="MAN, TOP SELLER" class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900 focus:border-gray-900">
+                            <p class="text-[10px] text-gray-400 mt-1">Tulis MAN, WOMAN, atau NETRAL untuk filter.</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-4">
+                        <h3 class="text-sm font-bold text-gray-800 border-b border-gray-200 pb-2">Harga & Stok Awal</h3>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Harga Coret (Original)</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2 text-gray-500 text-sm">$</span>
+                                <input type="number" step="0.01" name="original_price" value="0.00" class="w-full pl-7 text-sm border-gray-300 rounded-md focus:ring-gray-900 focus:border-gray-900">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Harga Jual (Discounted) <span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2 text-gray-500 text-sm font-bold">$</span>
+                                <input type="number" step="0.01" name="discounted_price" required class="w-full pl-7 text-sm font-bold text-emerald-600 border-gray-300 rounded-md focus:ring-gray-900 focus:border-gray-900">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Stok Awal <span class="text-red-500">*</span></label>
+                            <input type="number" name="stock_quantity" required value="0" class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900 focus:border-gray-900">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2 space-y-5">
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <h3 class="text-sm font-bold text-gray-800 border-b border-gray-200 pb-2 mb-4">Piramida Aroma (Notes)</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Top Notes</label>
+                                <textarea name="top_notes" rows="2" placeholder="Pisahkan dgn koma" class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900 focus:border-gray-900"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Heart Notes</label>
+                                <textarea name="heart_notes" rows="2" placeholder="Pisahkan dgn koma" class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900 focus:border-gray-900"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Base Notes</label>
+                                <textarea name="base_notes" rows="2" placeholder="Pisahkan dgn koma" class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900 focus:border-gray-900"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-4">
+                        <h3 class="text-sm font-bold text-gray-800 border-b border-gray-200 pb-2">Informasi Tambahan</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Daya Tahan (Longevity)</label>
+                                <input type="text" name="longevity" placeholder="Cth: 8-12 Jam" class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900 focus:border-gray-900">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Rekomendasi Pemakaian</label>
+                                <input type="text" name="recommendation" placeholder="Cth: Malam hari, Date" class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900 focus:border-gray-900">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">URL Gambar (Opsional)</label>
+                                <input type="url" name="image_url" placeholder="https://..." class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900 focus:border-gray-900">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Deskripsi Lengkap</label>
+                                <textarea name="description" rows="3" class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900 focus:border-gray-900"></textarea>
+                            </div>
+                            <input type="hidden" name="category_id" value="1">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 pt-4 border-t border-gray-100 flex justify-end gap-3">
+                <button type="button" onclick="closeModal('modal-add')" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Batal</button>
+                <button type="submit" class="px-5 py-2.5 text-sm font-bold text-white bg-gray-900 rounded-lg hover:bg-gray-800 shadow-md">Simpan Parfum</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-edit" class="fixed inset-0 z-50 hidden-force flex items-center justify-center p-4 sm:p-6">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col relative modal-content">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <div>
+                <h2 class="text-xl font-bold text-gray-900">Edit & Penyesuaian Stok</h2>
+                <p class="text-xs text-gray-500" id="edit_product_title_context">Memuat...</p>
+            </div>
+            <button onclick="closeModal('modal-edit')" class="text-gray-400 hover:text-red-500 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        
+        <form id="form-edit" method="POST" class="flex-1 overflow-y-auto custom-scrollbar p-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                
+                <div class="lg:col-span-1 space-y-5">
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-4">
+                        <div class="flex justify-between items-center border-b border-gray-200 pb-2">
+                            <h3 class="text-sm font-bold text-gray-800">Informasi Dasar</h3>
+                            <label class="relative inline-flex items-center cursor-pointer tooltip-trigger" title="Status Aktif/Nonaktif Produk">
+                                <input type="checkbox" name="is_active" id="edit_is_active" class="sr-only peer" checked>
+                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Nama Parfum <span class="text-red-500">*</span></label>
+                            <input type="text" name="name" id="edit_name" required class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900 focus:border-gray-900">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Tagline Singkat</label>
+                            <input type="text" name="tagline" id="edit_tagline" class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900 Focus:border-gray-900">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Kategori / Tags (Koma)</label>
+                            <input type="text" name="tags" id="edit_tags" class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900 focus:border-gray-900">
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-4">
+                        <h3 class="text-sm font-bold text-gray-800 border-b border-gray-200 pb-2">Informasi Harga</h3>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Harga Coret (Original)</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2 text-gray-500 text-sm">$</span>
+                                <input type="number" step="0.01" name="original_price" id="edit_original_price" class="w-full pl-7 text-sm border-gray-300 rounded-md focus:ring-gray-900 focus:border-gray-900">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Harga Jual (Discounted) <span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2 text-gray-500 text-sm font-bold">$</span>
+                                <input type="number" step="0.01" name="discounted_price" id="edit_price" required class="w-full pl-7 text-sm font-bold text-emerald-600 border-gray-300 rounded-md focus:ring-gray-900 focus:border-gray-900">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2 space-y-5">
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <h3 class="text-sm font-bold text-gray-800 border-b border-gray-200 pb-2 mb-4">Piramida Aroma (Notes)</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Top Notes</label>
+                                <textarea name="top_notes" id="edit_top_notes" rows="2" class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Heart Notes</label>
+                                <textarea name="heart_notes" id="edit_heart_notes" rows="2" class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Base Notes</label>
+                                <textarea name="base_notes" id="edit_base_notes" rows="2" class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-4">
+                        <h3 class="text-sm font-bold text-gray-800 border-b border-gray-200 pb-2">Informasi Tambahan & Gambar</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Daya Tahan (Longevity)</label>
+                                <input type="text" name="longevity" id="edit_longevity" class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Rekomendasi Pemakaian</label>
+                                <input type="text" name="recommendation" id="edit_recommendation" class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900">
+                            </div>
+                            <div class="md:col-span-2 flex items-center gap-3">
+                                <img id="edit_image_preview" src="" alt="Preview" class="w-12 h-12 object-cover rounded-lg border border-gray-200 bg-gray-100 flex-shrink-0">
+                                <div class="flex-1">
+                                    <label class="block text-xs font-semibold text-gray-600 mb-1">URL Gambar (Editable)</label>
+                                    <input type="url" name="image_url" id="edit_image_url" placeholder="https://..." class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900">
+                                </div>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-semibold text-gray-600 mb-1">Deskripsi Lengkap</label>
+                                <textarea name="description" id="edit_description" rows="3" class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t-2 border-dashed border-gray-200 pt-6 mt-8">
+                <div class="bg-gray-900 p-5 rounded-2xl text-white shadow-inner">
+                    <h3 class="text-base font-extrabold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                        Penyesuaian Stok (Mode Auditor)
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-5 items-center">
+                        <div class="bg-white/10 p-4 rounded-xl text-center border border-white/10 md:col-span-1">
+                            <span class="block text-[10px] font-bold text-gray-300 uppercase tracking-widest">Stok Saat Ini</span>
+                            <span class="text-3xl font-black" id="current_stock_display">0</span>
+                            <input type="hidden" name="stock_quantity" id="final_stock_input">
+                        </div>
+
+                        <div class="md:col-span-3 bg-white p-4 rounded-xl shadow-md space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-700 mb-2">Tindakan Stok:</label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="stock_action" value="tetap" class="peer sr-only" checked onchange="calculateStock()">
+                                        <div class="text-center py-2 text-xs font-bold border border-gray-200 rounded-lg peer-checked:bg-gray-900 peer-checked:text-white peer-checked:border-gray-900 hover:bg-gray-50 transition">Tetap</div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="stock_action" value="tambah" class="peer sr-only" onchange="calculateStock()">
+                                        <div class="text-center py-2 text-xs font-bold border border-gray-200 rounded-lg peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 hover:bg-emerald-50 transition">+ Tambah</div>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="stock_action" value="kurang" class="peer sr-only" onchange="calculateStock()">
+                                        <div class="text-center py-2 text-xs font-bold border border-gray-200 rounded-lg peer-checked:bg-red-600 peer-checked:text-white peer-checked:border-red-600 hover:bg-red-50 transition">- Kurangi</div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="stock_adjustment_area" class="hidden-force grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-gray-100">
+                                <div>
+                                    <label class="block text-xs font-semibold text-gray-600 mb-1" id="adj_label">Jumlah</label>
+                                    <input type="number" id="adj_amount" name="adj_amount" value="0" min="1" class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900" oninput="calculateStock()">
+                                </div>
+                                <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200 mt-5">
+                                    <span class="text-xs font-bold text-gray-500">Stok Akhir Nanti:</span>
+                                    <span class="text-2xl font-black text-gray-900" id="projected_stock">0</span>
+                                </div>
+                                
+                                <div id="reason_area" class="md:col-span-2 hidden-force animate-pulse">
+                                    <label class="block text-[11px] font-bold text-red-600 mb-1 uppercase tracking-wider">⚠️ ALASAN PENGURANGAN (WAJIB)</label>
+                                    <textarea id="stock_reason" name="stock_reason" rows="2" placeholder="Contoh: Barang rusak di gudang / Expired" class="w-full text-sm border-red-300 rounded-md focus:ring-red-500 focus:border-red-500 bg-red-50"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-5 border-t border-gray-100 flex justify-end gap-3">
+                <button type="button" onclick="closeModal('modal-edit')" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">Batal</button>
+                <button type="button" onclick="submitEditForm()" class="px-6 py-2.5 text-sm font-bold text-white bg-gray-900 rounded-lg hover:bg-gray-800 shadow-lg transition flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                    Simpan Perubahan Full
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-delete" class="fixed inset-0 z-50 hidden-force flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col relative modal-content text-center p-6">
+        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        </div>
+        <h2 class="text-xl font-bold text-gray-900 mb-2">Hapus Parfum?</h2>
+        <p class="text-sm text-gray-500 mb-6">Anda yakin ingin menghapus <strong id="del_name" class="text-gray-900">Parfum</strong> secara permanen? Data yang dihapus tidak bisa dikembalikan.</p>
+        
+        <div class="flex gap-3 w-full">
+            <button onclick="closeModal('modal-delete')" class="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold rounded-lg transition">Batal</button>
+            <a href="#" id="del_confirm_btn" class="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition flex items-center justify-center">Ya, Hapus</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 1. SISTEM MODAL (BUKA/TUTUP DENGAN ANIMASI) ---
+    const backdrop = document.getElementById('modalBackdrop');
+    
+    function openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        const content = modal.querySelector('.modal-content');
+        
+        backdrop.classList.remove('hidden-force', 'backdrop-leave');
+        backdrop.classList.add('backdrop-enter');
+        
+        modal.classList.remove('hidden-force');
+        content.classList.remove('modal-leave');
+        content.classList.add('modal-enter');
+    }
+
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        const content = modal.querySelector('.modal-content');
+        
+        backdrop.classList.remove('backdrop-enter');
+        backdrop.classList.add('backdrop-leave');
+        
+        content.classList.remove('modal-enter');
+        content.classList.add('modal-leave');
+        
+        // Tunggu animasi selesai baru di-hide beneran
+        setTimeout(() => {
+            modal.classList.add('hidden-force');
+            backdrop.classList.add('hidden-force');
+        }, 200); // 200ms sama dengan durasi animasi CSS
+    }
+
+    // --- 2. LOGIKA MODAL DETAIL (MATA) ---
+    function openDetailModal(data) {
+        document.getElementById('detail_image').src = data.image_url || 'https://placehold.co/400x400/111/fff?text=No+Image';
+        document.getElementById('detail_name').innerText = data.name;
+        document.getElementById('detail_tagline').innerText = data.tagline || '-';
+        document.getElementById('detail_price').innerText = '$' + parseFloat(data.discounted_price).toFixed(2);
+        document.getElementById('detail_stock').innerText = data.stock_quantity + ' Pcs';
+        document.getElementById('detail_longevity').innerText = data.longevity || 'Tidak diketahui';
+        document.getElementById('detail_desc').innerText = data.description || 'Tidak ada deskripsi.';
+        
+        // Piramida Notes
+        document.getElementById('detail_top').innerText = (data.top_notes && data.top_notes.length > 0) ? data.top_notes.join(', ') : '-';
+        document.getElementById('detail_heart').innerText = (data.heart_notes && data.heart_notes.length > 0) ? data.heart_notes.join(', ') : '-';
+        document.getElementById('detail_base').innerText = (data.base_notes && data.base_notes.length > 0) ? data.base_notes.join(', ') : '-';
+
+        // Render Tags
+        const tagsContainer = document.getElementById('detail_tags_container');
+        tagsContainer.innerHTML = '';
+        if(data.tags && data.tags.length > 0) {
+            data.tags.forEach(tag => {
+                const span = document.createElement('span');
+                span.className = 'px-3 py-1 bg-gray-100 text-gray-600 text-[10px] font-bold uppercase rounded-full tracking-wider border border-gray-200';
+                span.innerText = tag;
+                tagsContainer.appendChild(span);
+            });
+        }
+        openModal('modal-detail');
+    }
+
+    // --- 3. LOGIKA MODAL EDIT "FULL KONTROL" + STOK MANAGER ---
+    let currentOriginalStock = 0;
+
+    function openEditModal(data) {
+        // Set action url dynamically
+        document.getElementById('form-edit').action = `/admin/stock/edit/${data.id}`;
+        
+        // --- POPULATE ALL EDITABLE FIELDS (FULL CONTROL) ---
+        document.getElementById('edit_product_title_context').innerText = `Editing: ${data.name} (ID: ${data.id})`;
+        document.getElementById('edit_name').value = data.name;
+        document.getElementById('edit_tagline').value = data.tagline || '';
+        document.getElementById('edit_price').value = data.discounted_price;
+        document.getElementById('edit_original_price').value = data.original_price || '0.00';
+        document.getElementById('edit_longevity').value = data.longevity || '';
+        document.getElementById('edit_recommendation').value = data.recommendation || '';
+        document.getElementById('edit_image_url').value = data.image_url || '';
+        document.getElementById('edit_image_preview').src = data.image_url || 'https://placehold.co/100x100/eee/999?text=No+Img';
+        document.getElementById('edit_description').value = data.description || '';
+        
+        // Checkbox Status Aktif
+        document.getElementById('edit_is_active').checked = data.is_active;
+
+        // Populate Tags (Join back to comma separated string)
+        document.getElementById('edit_tags').value = (data.tags && data.tags.length > 0) ? data.tags.join(', ') : '';
+
+        // Populate Notes (Join back to comma separated string)
+        document.getElementById('edit_top_notes').value = (data.top_notes && data.top_notes.length > 0) ? data.top_notes.join(', ') : '';
+        document.getElementById('edit_heart_notes').value = (data.heart_notes && data.heart_notes.length > 0) ? data.heart_notes.join(', ') : '';
+        document.getElementById('edit_base_notes').value = (data.base_notes && data.base_notes.length > 0) ? data.base_notes.join(', ') : '';
+        
+        // --- POPULATE STOCK LOGIC ---
+        currentOriginalStock = parseInt(data.stock_quantity);
+        document.getElementById('current_stock_display').innerText = currentOriginalStock;
+        document.getElementById('final_stock_input').value = currentOriginalStock;
+        document.getElementById('projected_stock').innerText = currentOriginalStock;
+        
+        // Reset radio buttons & inputs
+        document.querySelector('input[name="stock_action"][value="tetap"]').checked = true;
+        document.getElementById('adj_amount').value = 0;
+        document.getElementById('stock_reason').value = '';
+        document.getElementById('stock_reason').required = false;
+        
+        // Trigger UI update
+        calculateStock();
+        
+        openModal('modal-edit');
+    }
+
+    // Live update preview image when URL changed in Edit Modal
+    document.getElementById('edit_image_url').addEventListener('input', function() {
+        document.getElementById('edit_image_preview').src = this.value || 'https://placehold.co/100x100/eee/999?text=No+Img';
+    });
+
+    // --- LOGIKA STOK MANAGER (TETAP SAMA) ---
+    function calculateStock() {
+        const action = document.querySelector('input[name="stock_action"]:checked').value;
+        const adjArea = document.getElementById('stock_adjustment_area');
+        const reasonArea = document.getElementById('reason_area');
+        const reasonInput = document.getElementById('stock_reason');
+        const label = document.getElementById('adj_label');
+        
+        let amount = parseInt(document.getElementById('adj_amount').value) || 0;
+        let finalStock = currentOriginalStock;
+
+        if (action === 'tetap') {
+            adjArea.classList.add('hidden-force');
+            reasonArea.classList.add('hidden-force');
+            reasonInput.required = false;
+            finalStock = currentOriginalStock;
+        } else {
+            adjArea.classList.remove('hidden-force');
+            if (action === 'tambah') {
+                label.innerText = "Jumlah Ditambahkan (+)";
+                label.className = "block text-xs font-bold text-emerald-600 mb-1";
+                reasonArea.classList.add('hidden-force');
+                reasonInput.required = false;
+                finalStock = currentOriginalStock + amount;
+            } else if (action === 'kurang') {
+                label.innerText = "Jumlah Dikurangi (-)";
+                label.className = "block text-xs font-bold text-red-600 mb-1";
+                reasonArea.classList.remove('hidden-force');
+                reasonInput.required = true; // WAJIB DIISI!
+                finalStock = currentOriginalStock - amount;
+                if (finalStock < 0) finalStock = 0; // Gak boleh minus
+            }
+        }
+
+        // Update UI
+        document.getElementById('projected_stock').innerText = finalStock;
+        document.getElementById('final_stock_input').value = finalStock;
+    }
+
+    function submitEditForm() {
+        // Validasi kustom sebelum submit (Wajib alasan kalau kurang)
+        const action = document.querySelector('input[name="stock_action"]:checked').value;
+        const reason = document.getElementById('stock_reason').value.trim();
+        
+        if (action === 'kurang' && reason === '') {
+            alert("⚠️ ALASAN PENGURANGAN WAJIB DIISI!\n\nDemi profesionalitas manajemen stok BABA Parfume, Anda wajib menuliskan alasan kenapa stok dikurangi secara manual (contoh: Barang pecah, Expired, atau Kehilangan) untuk keperluan log audit.");
+            document.getElementById('stock_reason').focus();
+            return; // Stop submission
+        }
+        
+        // Kalau lolos, submit formnya
+        document.getElementById('form-edit').submit();
+    }
+
+    // --- 4. LOGIKA MODAL DELETE ---
+    function openDeleteModal(id, name) {
+        document.getElementById('del_name').innerText = name;
+        document.getElementById('del_confirm_btn').href = `/admin/stock/delete/${id}`;
+        openModal('modal-delete');
+    }
+
+    // --- 5. LOGIKA FILTER & SEARCH (REALTIME FRONTEND) ---
+    function filterTable(category, btnElement) {
+        // Update UI Buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('bg-gray-900', 'text-white');
+            btn.classList.add('bg-white', 'text-gray-600');
+        });
+        btnElement.classList.remove('bg-white', 'text-gray-600');
+        btnElement.classList.add('bg-gray-900', 'text-white');
+
+        // Logic Filter
+        const rows = document.querySelectorAll('.product-row');
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const rowCat = row.getAttribute('data-category');
+            const rowName = row.getAttribute('data-name');
+            
+            // Cek Kategori
+            let matchCategory = false;
+            if (category === 'ALL') matchCategory = true;
+            else if (rowCat.includes(category)) matchCategory = true;
+            
+            // Cek Search
+            let matchSearch = rowName.includes(searchTerm);
+
+            if (matchCategory && matchSearch) {
+                row.classList.remove('hidden-force');
+                visibleCount++;
+            } else {
+                row.classList.add('hidden-force');
+            }
+        });
+
+        // Handle Empty State & Counter
+        document.getElementById('totalItemCount').innerText = visibleCount;
+        const emptyState = document.getElementById('emptyStateRow');
+        if (emptyState) {
+            if (visibleCount === 0) emptyState.classList.remove('hidden-force');
+            else emptyState.classList.add('hidden-force');
+        }
+    }
+
+    // Listener buat Search Bar (Ketik langsung filter)
+    document.getElementById('searchInput').addEventListener('input', function() {
+        // Cari tombol filter mana yang lagi aktif
+        const activeBtn = document.querySelector('.filter-btn.bg-gray-900');
+        let activeCategory = 'ALL';
+        
+        // Deteksi kategori dari text tombol
+        if(activeBtn.innerText.includes('Man')) activeCategory = 'MAN';
+        if(activeBtn.innerText.includes('Woman')) activeCategory = 'WOMAN';
+        if(activeBtn.innerText.includes('Netral')) activeCategory = 'NETRAL';
+        if(activeBtn.innerText.includes('Top Seller')) activeCategory = 'TOP_SELLER';
+
+        filterTable(activeCategory, activeBtn);
+    });
+
+    // Close modal if clicked outside
+    window.onclick = function(event) {
+        if (event.target == backdrop) {
+            document.querySelectorAll('.modal-content').forEach(el => {
+                if(!el.parentElement.classList.contains('hidden-force')) {
+                    closeModal(el.parentElement.id);
+                }
+            });
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,595 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Belanja Stok & Distribusi{% endblock %}
+{% block header %}Belanja Stok (Kulakan){% endblock %}
+{% block breadcrumb %}Manajemen Stok / Belanja{% endblock %}
+
+{% block content %}
+<div x-data="{ toasts: [] }" @notify.window="toasts.push({ id: Date.now(), type: $event.detail.type, message: $event.detail.message }); setTimeout(() => toasts.shift(), 4000)" class="fixed bottom-5 right-5 z-[150] flex flex-col gap-3 pointer-events-none">
+    <template x-for="toast in toasts" :key="toast.id">
+        <div x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 scale-95" x-transition:enter-end="opacity-100 translate-y-0 scale-100" x-transition:leave="transition ease-in duration-200" class="min-w-[300px] p-4 rounded-2xl shadow-2xl border bg-white flex items-start gap-3 pointer-events-auto" :class="toast.type === 'success' ? 'border-emerald-100' : 'border-blue-100'">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5" :class="toast.type === 'success' ? 'bg-emerald-50 text-emerald-500' : (toast.type === 'error' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500')">
+                <i data-lucide="check-circle" x-show="toast.type === 'success'" class="w-4 h-4"></i>
+                <i data-lucide="alert-circle" x-show="toast.type === 'error'" class="w-4 h-4"></i>
+                <i data-lucide="info" x-show="toast.type === 'info'" class="w-4 h-4"></i>
+            </div>
+            <div>
+                <h4 class="text-sm font-bold text-gray-900" x-text="toast.type === 'success' ? 'Berhasil!' : (toast.type === 'error' ? 'Gagal!' : 'Informasi')"></h4>
+                <p class="text-xs text-gray-500 mt-0.5 font-medium leading-relaxed" x-text="toast.message"></p>
+            </div>
+        </div>
+    </template>
+</div>
+
+<div x-data="stockBelanja()" x-init="initData()" class="space-y-6 pb-10">
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-6 shadow-xl border border-gray-800 relative overflow-hidden text-white group hover:shadow-brand-500/10 transition-all">
+            <div class="absolute -right-6 -top-6 w-32 h-32 bg-brand-500/20 rounded-full blur-3xl group-hover:bg-brand-500/30 transition-all duration-500"></div>
+            <div class="relative z-10 flex justify-between items-start">
+                <div>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Belanja (Bulan Ini)</p>
+                    <h3 class="text-3xl font-black mb-1 flex items-baseline gap-1" x-text="formatCurrency(totalBelanjaBulanIni)">0</h3>
+                    <p class="text-xs text-brand-400 font-medium flex items-center gap-1 mt-2">
+                        <i data-lucide="bar-chart" class="w-3.5 h-3.5"></i> Total Modal Keluar
+                    </p>
+                </div>
+                <div class="p-3 bg-gray-800/80 backdrop-blur-sm rounded-xl border border-gray-700 shadow-inner">
+                    <i data-lucide="shopping-cart" class="w-6 h-6 text-brand-400"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex justify-between items-start group hover:shadow-md transition-shadow">
+            <div>
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Biaya Ongkir & Jastip</p>
+                <h3 class="text-2xl font-black text-gray-900 mb-1" x-text="formatCurrency(totalOngkirBulanIni)">0</h3>
+                <p class="text-xs text-orange-500 font-bold mt-2 flex items-center gap-1">
+                    <i data-lucide="plane" class="w-3.5 h-3.5"></i> <span x-text="persentaseOngkir + '%'">0%</span> dari total belanja
+                </p>
+            </div>
+            <div class="p-3 bg-orange-50 rounded-xl border border-orange-100 group-hover:scale-110 transition-transform">
+                <i data-lucide="package-check" class="w-6 h-6 text-orange-500"></i>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex justify-between items-start group hover:shadow-md transition-shadow">
+            <div>
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total PO Aktif</p>
+                <h3 class="text-2xl font-black text-gray-900 mb-1"><span x-text="totalPOBulanIni">0</span> <span class="text-sm font-semibold text-gray-500">Nota</span></h3>
+                <p class="text-xs text-gray-500 font-medium mt-2">Transaksi bulan ini</p>
+            </div>
+            <div class="p-3 bg-blue-50 rounded-xl border border-blue-100 group-hover:scale-110 transition-transform">
+                <i data-lucide="file-text" class="w-6 h-6 text-blue-500"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+        <div class="p-5 border-b border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-50/50">
+            <div class="relative w-full md:max-w-xs">
+                <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                <input type="text" x-model="searchQuery" placeholder="Cari No. PO atau Catatan..." class="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 outline-none transition-all shadow-sm">
+            </div>
+            <button @click="openPOModal()" class="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-brand-900 rounded-xl text-sm font-black shadow-lg shadow-brand-500/30 transition-all active:scale-95">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i> Catat Belanja (PO) Baru
+            </button>
+        </div>
+
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left border-collapse whitespace-nowrap">
+                <thead>
+                    <tr class="bg-white border-b border-gray-100 text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                        <th class="px-6 py-4">No. PO & Tanggal</th>
+                        <th class="px-6 py-4">Catatan / Supplier</th>
+                        <th class="px-6 py-4 text-right">Modal Barang</th>
+                        <th class="px-6 py-4 text-right">Ongkir/Jastip</th>
+                        <th class="px-6 py-4 text-right">Total Keluar</th>
+                        <th class="px-6 py-4 text-center">Sumber Dana</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    
+                    <template x-if="paginatedPurchases.length === 0">
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center text-gray-400">
+                                <i data-lucide="inbox" class="w-10 h-10 mx-auto mb-3 opacity-50"></i>
+                                <p class="text-sm font-bold">Belum ada data belanja atau tidak ditemukan.</p>
+                            </td>
+                        </tr>
+                    </template>
+
+                    <template x-for="po in paginatedPurchases" :key="po.id">
+                        <tr class="hover:bg-gray-50/80 transition-colors group">
+                            <td class="px-6 py-4">
+                                <p class="text-sm font-black text-gray-900 font-mono group-hover:text-brand-600 transition-colors" x-text="po.po_number"></p>
+                                <p class="text-[10px] font-bold text-gray-400 mt-0.5" x-text="formatDate(po.created_at)"></p>
+                            </td>
+                            <td class="px-6 py-4">
+                                <p class="text-sm font-bold text-gray-800 truncate max-w-[200px]" x-text="po.notes || 'Tanpa Catatan'" :title="po.notes"></p>
+                                <p class="text-[10px] text-gray-500 mt-0.5 truncate max-w-[200px]" x-text="po.items_preview" :title="po.items_preview"></p>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <p class="text-sm font-bold text-gray-700" x-text="formatCurrency(po.total_items)"></p>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <p class="text-sm font-bold text-orange-500" x-text="'+ ' + formatCurrency(po.shipping)"></p>
+                            </td>
+                            <td class="px-6 py-4 text-right bg-red-50/10 group-hover:bg-white transition-colors">
+                                <p class="text-sm font-black text-red-600" x-text="formatCurrency(po.grand_total)"></p>
+                            </td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="inline-flex px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-wider"
+                                      :class="getBankBadge(po.bank_name)" x-text="po.bank_name">
+                                </span>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="p-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50">
+            <span class="text-xs text-gray-500 font-bold">
+                Menampilkan <span x-text="paginatedPurchases.length > 0 ? startIndex + 1 : 0"></span> - <span x-text="endIndex"></span> dari <span x-text="filteredPurchases.length"></span> nota
+            </span>
+            <div class="flex gap-2">
+                <button @click="prevPage()" :disabled="currentPage === 1" class="px-4 py-2 text-xs font-black text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">Sebelumnya</button>
+                <button @click="nextPage()" :disabled="currentPage === totalPages || totalPages === 0" class="px-4 py-2 text-xs font-black text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">Selanjutnya</button>
+            </div>
+        </div>
+    </div>
+
+
+    <div x-show="isModalOpen" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div x-show="isModalOpen" x-transition.opacity class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm" @click="if(!isSubmitting) closePOModal()"></div>
+
+        <div x-show="isModalOpen" 
+             x-transition:enter="transition ease-out duration-300" 
+             x-transition:enter-start="opacity-0 translate-y-8 scale-95" 
+             x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+             x-transition:leave="transition ease-in duration-200" 
+             x-transition:leave-start="opacity-100 translate-y-0 scale-100" 
+             x-transition:leave-end="opacity-0 translate-y-8 scale-95"
+             class="relative bg-white rounded-3xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col border border-gray-100 overflow-hidden">
+            
+            <div class="px-6 py-5 border-b border-gray-100 bg-gray-50 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-brand-100 rounded-xl flex items-center justify-center text-brand-600 shadow-inner border border-brand-200">
+                        <i data-lucide="shopping-cart" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black text-gray-900 tracking-tight">Buat Purchase Order (PO)</h2>
+                        <p class="text-xs font-bold text-gray-500">Sistem otomatis memotong saldo bank & menambah inventaris gudang</p>
+                    </div>
+                </div>
+                <button @click="closePOModal()" :disabled="isSubmitting" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <div class="p-0 overflow-y-auto custom-scrollbar flex-1 bg-white">
+                <div class="flex flex-col lg:flex-row h-full">
+                    
+                    <div class="w-full lg:w-2/3 p-6 space-y-6">
+                        <div class="flex justify-between items-end border-b-2 border-brand-500 pb-2">
+                            <div>
+                                <h3 class="text-sm font-black text-gray-800 uppercase tracking-widest">Daftar Barang (Keranjang)</h3>
+                                <p class="text-[10px] text-gray-500 font-medium">Ketik nama untuk mencari produk dari database</p>
+                            </div>
+                            <button @click="addItem()" type="button" class="text-xs font-black text-brand-700 bg-brand-100 hover:bg-brand-200 px-4 py-2 rounded-xl flex items-center gap-1.5 transition-colors shadow-sm">
+                                <i data-lucide="plus" class="w-4 h-4"></i> Tambah Baris
+                            </button>
+                        </div>
+
+                        <div class="space-y-4">
+                            <template x-for="(item, index) in items" :key="item.keyId">
+                                <div class="flex flex-col sm:flex-row gap-3 items-start p-4 bg-gray-50/50 hover:bg-gray-50 border border-gray-200 rounded-2xl relative group transition-colors">
+                                    
+                                    <div class="w-full sm:w-5/12 relative" @click.outside="item.showSuggestions = false">
+                                        <label class="block text-[10px] font-black text-gray-500 uppercase mb-1.5">Nama Barang / Aroma</label>
+                                        <div class="relative">
+                                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                                            <input type="text" x-model="item.searchName" 
+                                                   @input="handleSearch(item)" 
+                                                   @focus="handleSearch(item); item.showSuggestions = true"
+                                                   placeholder="Cari parfum atau ketik manual..." 
+                                                   class="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-bold text-gray-800 focus:ring-2 focus:ring-brand-500 outline-none transition-all">
+                                        </div>
+                                        
+                                        <div x-show="!item.product_id && item.searchName.length > 0" x-cloak class="mt-1.5 flex items-start gap-1">
+                                            <i data-lucide="alert-triangle" class="w-3 h-3 text-orange-500 shrink-0 mt-0.5"></i>
+                                            <span class="text-[9px] text-orange-600 font-bold leading-tight">Barang Baru / Non-Inventori. Akan didaftarkan ke gudang secara otomatis.</span>
+                                        </div>
+                                        <div x-show="item.product_id" x-cloak class="mt-1.5 flex items-center gap-1">
+                                            <i data-lucide="check-circle-2" class="w-3 h-3 text-emerald-500"></i>
+                                            <span class="text-[9px] text-emerald-600 font-bold">Produk terdaftar di Database</span>
+                                        </div>
+
+                                        <div x-show="item.showSuggestions && item.suggestions.length > 0" x-transition.opacity
+                                             class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl max-h-48 overflow-y-auto custom-scrollbar">
+                                            <template x-for="sug in item.suggestions" :key="sug.id">
+                                                <div @click="selectProduct(item, sug)" class="px-4 py-2.5 hover:bg-brand-50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors">
+                                                    <p class="text-xs font-black text-gray-900" x-text="sug.name"></p>
+                                                    <p class="text-[9px] text-gray-500 mt-0.5" x-text="'Stok Gudang: ' + sug.stock + ' | Harga Modal: Rp' + formatNumber(sug.price)"></p>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+
+                                    <div class="w-1/3 sm:w-2/12">
+                                        <label class="block text-[10px] font-black text-gray-500 uppercase mb-1.5">Qty</label>
+                                        <input type="number" x-model.number="item.qty" min="1" class="w-full px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-black text-center focus:ring-2 focus:ring-brand-500 outline-none">
+                                    </div>
+
+                                    <div class="w-3/5 sm:w-4/12">
+                                        <label class="block text-[10px] font-black text-gray-500 uppercase mb-1.5">Modal Satuan (Rp)</label>
+                                        <div class="relative">
+                                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-gray-400">Rp</span>
+                                            <input type="number" x-model.number="item.price" class="w-full pl-8 pr-3 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-black focus:ring-2 focus:ring-brand-500 outline-none">
+                                        </div>
+                                    </div>
+
+                                    <div class="w-auto pt-6 flex justify-end">
+                                        <button @click="removeItem(index)" type="button" class="p-2.5 text-red-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 rounded-xl transition-all" title="Hapus baris">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="w-full lg:w-1/3 bg-gray-50 border-l border-gray-200 p-6 flex flex-col justify-between">
+                        
+                        <div class="space-y-5">
+                            <div>
+                                <h3 class="text-sm font-black text-gray-800 uppercase tracking-widest border-b-2 border-brand-500 pb-1 inline-block mb-4">Pengaturan Tagihan</h3>
+                                
+                                <div class="mb-4">
+                                    <label class="block text-[10px] font-black text-gray-500 uppercase mb-1.5 flex items-center gap-1"><i data-lucide="credit-card" class="w-3 h-3"></i> Bayar Pakai Rekening</label>
+                                    <select x-model.number="formAccountId" required class="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-sm font-bold text-gray-800 focus:ring-2 focus:ring-brand-500 outline-none appearance-none shadow-sm cursor-pointer">
+                                        <option value="" disabled selected>-- Pilih Sumber Dana --</option>
+                                        <template x-for="acc in listAccounts" :key="acc.id">
+                                            <option :value="acc.id" x-text="acc.name + ' (' + acc.currency + ')'"></option>
+                                        </template>
+                                    </select>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="block text-[10px] font-black text-gray-500 uppercase mb-1.5 flex items-center gap-1"><i data-lucide="plane" class="w-3 h-3"></i> Biaya Ongkir / Jastip Import</label>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-gray-400">Rp</span>
+                                        <input type="number" x-model.number="formShipping" class="w-full pl-8 pr-3 py-3 bg-white border border-gray-300 rounded-xl text-sm font-black focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all shadow-sm" placeholder="0">
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="block text-[10px] font-black text-gray-500 uppercase mb-1.5 flex items-center gap-1"><i data-lucide="edit-3" class="w-3 h-3"></i> Catatan Transaksi / Resi</label>
+                                    <textarea x-model="formNotes" rows="2" class="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-500 outline-none resize-none shadow-sm" placeholder="Cth: Beli di Tokopedia, resi JNE..."></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-6">
+                            <div class="bg-[#0B1121] rounded-2xl p-5 text-white shadow-2xl relative overflow-hidden">
+                                <div class="absolute -top-2 left-0 w-full flex justify-around opacity-20">
+                                    <div class="w-3 h-3 bg-white rounded-full"></div><div class="w-3 h-3 bg-white rounded-full"></div><div class="w-3 h-3 bg-white rounded-full"></div><div class="w-3 h-3 bg-white rounded-full"></div><div class="w-3 h-3 bg-white rounded-full"></div><div class="w-3 h-3 bg-white rounded-full"></div>
+                                </div>
+                                
+                                <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest text-center mb-4 mt-2">Ringkasan Tagihan</h4>
+                                
+                                <div class="space-y-2 mb-4 max-h-32 overflow-y-auto custom-scrollbar pr-1">
+                                    <template x-for="it in items" :key="it.keyId">
+                                        <div class="flex justify-between items-center text-xs" x-show="it.searchName && it.qty && it.price">
+                                            <span class="text-gray-300 truncate w-2/3" x-text="it.qty + 'x ' + it.searchName"></span>
+                                            <span class="font-bold text-white text-right w-1/3" x-text="formatNumber(it.qty * it.price)"></span>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <div class="border-t border-gray-700 border-dashed pt-3 pb-3 space-y-2">
+                                    <div class="flex justify-between items-center text-xs text-gray-400">
+                                        <span>Subtotal Barang:</span>
+                                        <span class="font-bold text-white" x-text="'Rp ' + formatNumber(calculateSubtotal())"></span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-xs text-gray-400">
+                                        <span>Biaya Ongkir:</span>
+                                        <span class="font-bold text-orange-400" x-text="'+ Rp ' + formatNumber(formShipping)"></span>
+                                    </div>
+                                </div>
+                                
+                                <div class="border-t border-gray-700 pt-3 flex justify-between items-end">
+                                    <span class="text-[10px] font-black uppercase tracking-widest text-brand-400">Total Keluar</span>
+                                    <span class="text-2xl font-black text-white" x-text="'Rp ' + formatNumber(calculateGrandTotal())"></span>
+                                </div>
+                            </div>
+
+                            <button @click="submitPurchaseOrder()" :disabled="isSubmitting" type="button" class="w-full mt-4 py-4 text-sm font-black text-brand-900 bg-brand-500 hover:bg-brand-600 rounded-2xl shadow-lg shadow-brand-500/30 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span x-show="!isSubmitting" class="flex items-center gap-2"><i data-lucide="check-circle" class="w-5 h-5"></i> Proses & Simpan PO Ke Server</span>
+                                <span x-show="isSubmitting" x-cloak class="flex items-center gap-2"><i data-lucide="loader" class="w-5 h-5 animate-spin"></i> Menyinkronkan Gudang...</span>
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function stockBelanja() {
+        return {
+            // Data Mentah dari Backend
+            rawPurchases: [
+                {% if purchases %}
+                    {% for po in purchases %}
+                    {
+                        id: "{{ po.id }}",
+                        po_number: "{{ po.purchase_number }}",
+                        created_at: "{{ po.created_at }}",
+                        notes: `{{ po.notes | replace('\n', ' ') | replace('`', '') | default('-', true) }}`,
+                        total_items: parseFloat("{{ po.total_items_cost | default(0) }}"),
+                        shipping: parseFloat("{{ po.shipping_cost | default(0) }}"),
+                        grand_total: parseFloat("{{ po.grand_total | default(0) }}"),
+                        bank_name: "{{ po.finance_accounts.bank_name if po.finance_accounts else 'Unknown' }}",
+                        // Buat preview text barang
+                        items_preview: "{% if po.stock_purchase_items %}{% for item in po.stock_purchase_items[:2] %}{{ item.item_name }}{% if not loop.last %}, {% endif %}{% endfor %}{% if po.stock_purchase_items|length > 2 %} ...+{{ po.stock_purchase_items|length - 2 }} item lagi{% endif %}{% else %}Tidak ada rincian{% endif %}"
+                    }{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                {% endif %}
+            ],
+            
+            listAccounts: [
+                {% if accounts %}
+                    {% for acc in accounts %}
+                    { id: {{ acc.id }}, name: "{{ acc.bank_name }}", currency: "{{ acc.currency }}" }{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                {% endif %}
+            ],
+
+            // DATABASE PRODUK UNTUK AUTOCOMPLETE (Perlu di-inject dari main.py router admin_stock_belanja)
+            dbProducts: [
+                // FORMAT EXPECTED: { id: 1, name: "Baccarat 30ml", price: 50000, stock: 10 }
+                {% if products %}
+                    {% for p in products %}
+                    { id: {{ p.id }}, name: "{{ p.name }}", price: parseFloat("{{ p.original_price | default(0) }}"), stock: parseInt("{{ p.stock_quantity | default(0) }}") }{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                {% endif %}
+            ],
+
+            // State UI & Filter
+            searchQuery: '',
+            currentPage: 1,
+            itemsPerPage: 15,
+            
+            // State Modal PO
+            isModalOpen: false,
+            isSubmitting: false,
+            
+            // Form Data PO
+            formAccountId: '',
+            formShipping: null,
+            formNotes: '',
+            items: [], // Array keranjang
+
+            initData() {
+                setTimeout(() => lucide.createIcons(), 50);
+            },
+
+            // =====================================
+            // COMPUTED PROPERTIES (STATS & TABLE)
+            // =====================================
+            get filteredPurchases() {
+                let res = this.rawPurchases;
+                if (this.searchQuery.trim() !== '') {
+                    const q = this.searchQuery.toLowerCase();
+                    res = res.filter(p => 
+                        p.po_number.toLowerCase().includes(q) || 
+                        p.notes.toLowerCase().includes(q) ||
+                        p.items_preview.toLowerCase().includes(q)
+                    );
+                }
+                this.currentPage = 1;
+                return res;
+            },
+            get paginatedPurchases() {
+                setTimeout(() => lucide.createIcons(), 50);
+                return this.filteredPurchases.slice(this.startIndex, this.endIndex);
+            },
+            get totalPages() { return Math.ceil(this.filteredPurchases.length / this.itemsPerPage); },
+            get startIndex() { return (this.currentPage - 1) * this.itemsPerPage; },
+            get endIndex() { const end = this.startIndex + this.itemsPerPage; return end > this.filteredPurchases.length ? this.filteredPurchases.length : end; },
+            
+            // STATS BULAN INI
+            get totalBelanjaBulanIni() {
+                const currentMonth = new Date().getMonth();
+                return this.rawPurchases
+                    .filter(p => new Date(p.created_at).getMonth() === currentMonth)
+                    .reduce((sum, p) => sum + p.grand_total, 0);
+            },
+            get totalOngkirBulanIni() {
+                const currentMonth = new Date().getMonth();
+                return this.rawPurchases
+                    .filter(p => new Date(p.created_at).getMonth() === currentMonth)
+                    .reduce((sum, p) => sum + p.shipping, 0);
+            },
+            get persentaseOngkir() {
+                if (this.totalBelanjaBulanIni === 0) return 0;
+                return ((this.totalOngkirBulanIni / this.totalBelanjaBulanIni) * 100).toFixed(1);
+            },
+            get totalPOBulanIni() {
+                const currentMonth = new Date().getMonth();
+                return this.rawPurchases.filter(p => new Date(p.created_at).getMonth() === currentMonth).length;
+            },
+
+            prevPage() { if (this.currentPage > 1) this.currentPage--; },
+            nextPage() { if (this.currentPage < this.totalPages) this.currentPage++; },
+
+            // =====================================
+            // LOGIC MODAL PO & AUTOCOMPLETE DEWA
+            // =====================================
+            openPOModal() {
+                this.formAccountId = '';
+                this.formShipping = null;
+                this.formNotes = '';
+                this.items = [];
+                this.addItem(); // Kasih 1 baris kosong di awal
+                
+                this.isModalOpen = true;
+                document.body.style.overflow = 'hidden';
+                setTimeout(() => lucide.createIcons(), 50);
+            },
+            
+            closePOModal() {
+                this.isModalOpen = false;
+                document.body.style.overflow = 'auto';
+            },
+
+            addItem() {
+                this.items.push({ 
+                    keyId: Date.now() + Math.random(), // Unique key for Vue/Alpine loop
+                    searchName: '', 
+                    product_id: null,
+                    qty: 1, 
+                    price: null,
+                    showSuggestions: false,
+                    suggestions: []
+                });
+            },
+
+            removeItem(index) {
+                if (this.items.length > 1) {
+                    this.items.splice(index, 1);
+                } else {
+                    this.$dispatch('notify', { type: 'error', message: 'Minimal harus ada 1 barang dalam nota PO!' });
+                }
+            },
+
+            // FUNGSI AUTOCOMPLETE PENCARIAN
+            handleSearch(item) {
+                const q = item.searchName.toLowerCase().trim();
+                if (q === '') {
+                    item.suggestions = [];
+                    item.product_id = null;
+                    return;
+                }
+                
+                // Cari di array database produk
+                item.suggestions = this.dbProducts.filter(p => p.name.toLowerCase().includes(q));
+                
+                // Cek apakah inputan saat ini SAMA PERSIS dengan ID yang sudah dipilih
+                // Jika tidak sama persis (user ngedit text manual), set product_id jadi NULL (Barang Baru)
+                const exactMatch = this.dbProducts.find(p => p.name.toLowerCase() === q);
+                if (exactMatch) {
+                    item.product_id = exactMatch.id;
+                } else {
+                    item.product_id = null;
+                }
+            },
+
+            // KETIKA USER KLIK DARI DROPDOWN
+            selectProduct(item, prod) {
+                item.searchName = prod.name;
+                item.product_id = prod.id;
+                // Opsional: Otomatis ngisi harga modal dari database kalau ada (kalau nggak biarin user ngisi)
+                if (prod.price > 0 && !item.price) item.price = prod.price; 
+                
+                item.showSuggestions = false;
+                item.suggestions = [];
+            },
+
+            calculateSubtotal() {
+                return this.items.reduce((total, item) => {
+                    const qty = Number(item.qty) || 0;
+                    const price = Number(item.price) || 0;
+                    return total + (qty * price);
+                }, 0);
+            },
+
+            calculateGrandTotal() {
+                return this.calculateSubtotal() + (Number(this.formShipping) || 0);
+            },
+
+            // SUBMIT KE BACKEND API
+            async submitPurchaseOrder() {
+                if (this.isSubmitting) return;
+
+                // 1. Validasi Frontend
+                if (!this.formAccountId) return this.$dispatch('notify', { type: 'error', message: 'Sumber Rekening belum dipilih!' });
+                
+                // Cek isi keranjang (hilangkan baris kosong)
+                const validItems = this.items.filter(it => it.searchName.trim() !== '' && it.qty > 0 && it.price > 0);
+                if (validItems.length === 0) return this.$dispatch('notify', { type: 'error', message: 'Keranjang belanja belum diisi dengan benar (Nama, Qty, dan Harga wajib diisi)!' });
+
+                this.isSubmitting = true;
+
+                // 2. Susun Payload (Bentuk JSON)
+                const payload = {
+                    account_id: this.formAccountId,
+                    shipping_cost: Number(this.formShipping) || 0,
+                    notes: this.formNotes.trim() || 'Belanja Stok via Enterprise Panel',
+                    items: validItems.map(it => ({
+                        product_id: it.product_id, // Null jika barang baru (Backend akan create barang baru)
+                        item_name: it.searchName.trim(),
+                        quantity: Number(it.qty),
+                        capital_price_per_unit: Number(it.price)
+                    }))
+                };
+
+                try {
+                    const response = await fetch('/api/v1/stock/belanja/process', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if(response.ok && data.status === 'success') {
+                        this.$dispatch('notify', { type: 'success', message: 'Nota PO ' + data.po_number + ' Berhasil diproses & disinkron ke gudang!' });
+                        this.closePOModal();
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        throw new Error(data.message || data.detail || 'Terjadi kesalahan internal server.');
+                    }
+                } catch (error) {
+                    console.error("PO Error:", error);
+                    this.$dispatch('notify', { type: 'error', message: error.message });
+                } finally {
+                    this.isSubmitting = false;
+                }
+            },
+
+            // =====================================
+            // FORMATTERS
+            // =====================================
+            formatNumber(value) {
+                if (isNaN(value)) return '0';
+                return new Intl.NumberFormat('id-ID').format(value);
+            },
+            formatCurrency(val) {
+                if (isNaN(val)) return 'Rp 0';
+                return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+            },
+            formatDate(isoString) {
+                if (!isoString) return '-';
+                try {
+                    const d = new Date(isoString);
+                    return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+                } catch(e) { return isoString.split('T')[0]; }
+            },
+            getBankBadge(bankName) {
+                const name = bankName.toLowerCase();
+                if (name.includes('bca')) return 'bg-blue-100 text-blue-700';
+                if (name.includes('aba')) return 'bg-teal-100 text-teal-700';
+                if (name.includes('jago')) return 'bg-orange-100 text-orange-700';
+                if (name.includes('cash') || name.includes('tunai')) return 'bg-emerald-100 text-emerald-700';
+                return 'bg-gray-100 text-gray-700';
+            }
+        }
+    }
+</script>
+{% endblock %}

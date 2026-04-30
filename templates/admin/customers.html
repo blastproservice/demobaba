@@ -1,0 +1,339 @@
+{% extends "admin/base.html" %}
+
+{% block title %}CRM & Data Pelanggan{% endblock %}
+{% block header %}Data Pelanggan (CRM){% endblock %}
+
+{% block content %}
+<style>
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    
+    .modal-enter { animation: modalFadeIn 0.3s ease-out forwards; }
+    .modal-leave { animation: modalFadeOut 0.2s ease-in forwards; }
+    @keyframes modalFadeIn { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes modalFadeOut { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(20px) scale(0.95); } }
+    
+    .backdrop-enter { animation: backdropIn 0.3s ease-out forwards; }
+    .backdrop-leave { animation: backdropOut 0.2s ease-in forwards; }
+    @keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes backdropOut { from { opacity: 1; } to { opacity: 0; } }
+    
+    .hidden-force { display: none !important; }
+</style>
+
+{% set total_cust = pelanggan | length %}
+{% set total_vip = 0 %}
+{% set total_revenue_all = 0 %}
+{% for c in pelanggan %}
+    {% set total_revenue_all = total_revenue_all + (c.calc_total_spent | default(0)) %}
+    {% if (c.calc_total_spent | default(0)) >= 100 or (c.calc_total_orders | default(0)) >= 3 %}
+        {% set total_vip = total_vip + 1 %}
+    {% endif %}
+{% endfor %}
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+        <div>
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Pelanggan</p>
+            <h3 class="text-2xl font-black text-gray-900">{{ total_cust }} <span class="text-sm font-medium text-gray-500">Orang</span></h3>
+        </div>
+        <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+        </div>
+    </div>
+    
+    <div class="bg-gradient-to-br from-gray-900 to-gray-800 p-5 rounded-xl shadow-sm border border-gray-800 flex items-center justify-between">
+        <div>
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Pelanggan VIP</p>
+            <h3 class="text-2xl font-black text-white">{{ total_vip }} <span class="text-sm font-medium text-gray-400">Sultan</span></h3>
+        </div>
+        <div class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-yellow-400">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+        </div>
+    </div>
+
+    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+        <div>
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Customer Lifetime Value</p>
+            <h3 class="text-2xl font-black text-emerald-600">{{ total_revenue_all | currency }}</h3>
+        </div>
+        <div class="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
+    </div>
+</div>
+
+<div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+    <div class="relative w-full md:w-96">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        </div>
+        <input type="text" id="searchInput" placeholder="Cari nama, telegram ID, atau username..." class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-sm">
+    </div>
+    
+    <div class="flex space-x-2 w-full md:w-auto">
+        <button onclick="filterStatus('all')" class="status-filter-btn active px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium transition-colors">Semua</button>
+        <button onclick="filterStatus('vip')" class="status-filter-btn px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors">VIP</button>
+        <div class="w-px bg-gray-200 mx-1"></div>
+        <button onclick="exportTableToCSV('Data_Pelanggan_BABA.csv')" class="w-full md:w-auto bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 px-4 py-2 rounded-lg font-bold flex items-center justify-center space-x-2 transition-colors shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            <span>Export CSV</span>
+        </button>
+    </div>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="overflow-x-auto custom-scrollbar">
+        <table class="w-full whitespace-nowrap" id="customerTable">
+            <thead class="bg-gray-50/80 border-b border-gray-100">
+                <tr class="text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                    <th class="px-6 py-4">Profil Pelanggan</th>
+                    <th class="px-6 py-4">Kontak / Sosmed</th>
+                    <th class="px-6 py-4 text-center">Total Order</th>
+                    <th class="px-6 py-4">Total Belanja</th>
+                    <th class="px-6 py-4 text-center">Status</th>
+                    <th class="px-6 py-4 text-right">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 text-sm">
+                
+                {% for c in pelanggan %}
+                {% set orders = c.calc_total_orders | default(0) %}
+                {% set spent = c.calc_total_spent | default(0) %}
+                
+                {% set crm_status = "Baru" %}
+                {% if orders > 0 %} {% set crm_status = "Aktif" %} {% endif %}
+                {% if spent >= 100 or orders >= 3 %} {% set crm_status = "VIP" %} {% endif %}
+
+                <tr class="hover:bg-gray-50/50 transition-colors customer-row" data-name="{{ c.full_name | lower }}" data-username="{{ c.username | lower }}" data-status="{{ crm_status | lower }}">
+                    
+                    <td class="px-6 py-4">
+                        <div class="flex items-center space-x-4">
+                            <div class="relative">
+                                <img src="https://ui-avatars.com/api/?name={{ c.full_name | urlencode }}&background=random&color=fff&rounded=true&bold=true" class="w-10 h-10 rounded-full shadow-sm border border-gray-200">
+                                {% if crm_status == 'VIP' %}
+                                <div class="absolute -top-1 -right-1 bg-yellow-400 rounded-full p-0.5 border-2 border-white" title="VIP Customer">
+                                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <p class="font-bold text-gray-900">{{ c.full_name }}</p>
+                                <p class="text-[11px] text-gray-400">Join: {{ c.created_at | datetime }}</p>
+                                <span class="hidden-force csv-data">{{ c.full_name }},{{ c.telegram_id }},{{ c.username }},{{ c.phone }},{{ orders }},{{ spent }},{{ crm_status }}</span>
+                            </div>
+                        </div>
+                    </td>
+
+                    <td class="px-6 py-4">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium text-gray-700 flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .24z"/></svg>
+                                {% if c.username %}@{{ c.username }}{% else %}<i>No Username</i>{% endif %}
+                            </span>
+                            <span class="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                                <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                                {{ c.phone | default('Belum diisi', true) }}
+                            </span>
+                        </div>
+                    </td>
+
+                    <td class="px-6 py-4 text-center">
+                        <span class="text-sm font-black {% if orders > 0 %}text-gray-900{% else %}text-gray-400{% endif %}">{{ orders }}</span>
+                    </td>
+
+                    <td class="px-6 py-4">
+                        <span class="text-sm font-bold {% if spent > 0 %}text-emerald-600{% else %}text-gray-400{% endif %}">{{ spent | currency }}</span>
+                    </td>
+
+                    <td class="px-6 py-4 text-center">
+                        {% if crm_status == 'VIP' %}
+                            <span class="px-3 py-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-white rounded-full text-[10px] font-black tracking-wider shadow-sm">VIP MEMBER</span>
+                        {% elif crm_status == 'Aktif' %}
+                            <span class="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-200 rounded-full text-[11px] font-bold">Aktif</span>
+                        {% else %}
+                            <span class="px-3 py-1 bg-gray-100 text-gray-500 border border-gray-200 rounded-full text-[11px] font-bold">Baru</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="openEditModal({{ c | tojson | forceescape }}, '{{ crm_status }}', {{ orders }}, {{ spent }})" class="p-2 text-gray-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors tooltip-trigger" title="Edit Data Pelanggan">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        </button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr id="emptyStateRow">
+                    <td colspan="6" class="px-6 py-16 text-center">
+                        <div class="flex flex-col items-center justify-center">
+                            <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                            </div>
+                            <h3 class="text-lg font-bold text-gray-900 mb-1">Belum Ada Pelanggan</h3>
+                            <p class="text-sm text-gray-500 max-w-sm mb-4">Orang yang klik /start di bot otomatis akan masuk ke sini.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="modalBackdrop" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-40 hidden-force transition-opacity duration-300"></div>
+
+<div id="modal-edit" class="fixed inset-0 z-50 hidden-force flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col relative modal-content">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <h2 class="text-lg font-bold text-gray-900">Update Info Pelanggan</h2>
+            <button onclick="closeModal('modal-edit')" class="text-gray-400 hover:text-red-500 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        
+        <form id="form-edit" method="POST" class="p-6 space-y-4">
+            <div class="bg-gray-50 p-3 rounded-lg border border-gray-100 mb-2 flex items-center gap-3">
+                <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold" id="edit_avatar">U</div>
+                <div>
+                    <p class="text-xs font-bold text-gray-500 uppercase">Telegram ID</p>
+                    <p class="text-sm font-black text-gray-900" id="edit_telegram_id">-</p>
+                </div>
+                <div class="ml-auto text-right">
+                    <p class="text-xs font-bold text-gray-500 uppercase">Status</p>
+                    <p class="text-sm font-black text-emerald-600" id="edit_status">-</p>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Nama Lengkap</label>
+                <input type="text" name="full_name" id="edit_name" required class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Nomor Handphone / WhatsApp</label>
+                <input type="text" name="phone" id="edit_phone" placeholder="Cth: +62812..." class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Alamat Pengiriman (Default)</label>
+                <textarea name="default_address" id="edit_address" rows="3" class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900"></textarea>
+            </div>
+
+            <div class="pt-4 flex justify-end gap-3 border-t border-gray-100">
+                <button type="button" onclick="closeModal('modal-edit')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Batal</button>
+                <button type="submit" class="px-5 py-2 text-sm font-bold text-white bg-gray-900 rounded-lg hover:bg-gray-800 shadow-md">Simpan Data</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // --- MODAL LOGIC ---
+    const backdrop = document.getElementById('modalBackdrop');
+    
+    function openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        const content = modal.querySelector('.modal-content');
+        backdrop.classList.remove('hidden-force', 'backdrop-leave');
+        backdrop.classList.add('backdrop-enter');
+        modal.classList.remove('hidden-force');
+        content.classList.remove('modal-leave');
+        content.classList.add('modal-enter');
+    }
+
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        const content = modal.querySelector('.modal-content');
+        backdrop.classList.remove('backdrop-enter');
+        backdrop.classList.add('backdrop-leave');
+        content.classList.remove('modal-enter');
+        content.classList.add('modal-leave');
+        setTimeout(() => {
+            modal.classList.add('hidden-force');
+            backdrop.classList.add('hidden-force');
+        }, 200);
+    }
+
+    function openEditModal(data, status, orders, spent) {
+        // Set action route ke backend
+        document.getElementById('form-edit').action = `/admin/customers/edit/${data.id}`;
+        
+        // Isi Form
+        document.getElementById('edit_avatar').innerText = data.full_name.charAt(0).toUpperCase();
+        document.getElementById('edit_telegram_id').innerText = data.telegram_id;
+        document.getElementById('edit_status').innerText = status;
+        document.getElementById('edit_name').value = data.full_name;
+        document.getElementById('edit_phone').value = data.phone || '';
+        document.getElementById('edit_address').value = data.default_address || '';
+        
+        openModal('modal-edit');
+    }
+
+    // --- SEARCH & FILTER LOGIC ---
+    let activeFilter = 'all';
+
+    function filterStatus(statusStr) {
+        activeFilter = statusStr;
+        
+        // Update Buttons UI
+        document.querySelectorAll('.status-filter-btn').forEach(btn => {
+            btn.classList.remove('bg-gray-900', 'text-white');
+            btn.classList.add('bg-white', 'text-gray-700');
+        });
+        event.currentTarget.classList.remove('bg-white', 'text-gray-700');
+        event.currentTarget.classList.add('bg-gray-900', 'text-white');
+
+        applyFilters();
+    }
+
+    document.getElementById('searchInput').addEventListener('input', applyFilters);
+
+    function applyFilters() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const rows = document.querySelectorAll('.customer-row');
+        
+        rows.forEach(row => {
+            const name = row.getAttribute('data-name');
+            const username = row.getAttribute('data-username');
+            const status = row.getAttribute('data-status');
+            
+            let matchSearch = name.includes(searchTerm) || username.includes(searchTerm);
+            let matchStatus = activeFilter === 'all' ? true : status === activeFilter;
+
+            if (matchSearch && matchStatus) {
+                row.classList.remove('hidden-force');
+            } else {
+                row.classList.add('hidden-force');
+            }
+        });
+    }
+
+    // --- EXPORT CSV ENGINE ---
+    function exportTableToCSV(filename) {
+        let csv = [];
+        // Header
+        csv.push("Nama Lengkap,Telegram ID,Username,No HP,Total Order,Total Belanja ($),Status CRM");
+        
+        // Ambil data yang hidden di dalam span "csv-data"
+        const rows = document.querySelectorAll('.csv-data');
+        
+        rows.forEach(row => {
+            csv.push(row.innerText);
+        });
+
+        downloadCSV(csv.join("\n"), filename);
+    }
+
+    function downloadCSV(csv, filename) {
+        let csvFile;
+        let downloadLink;
+        csvFile = new Blob([csv], {type: "text/csv"});
+        downloadLink = document.createElement("a");
+        downloadLink.download = filename;
+        downloadLink.href = window.URL.createObjectURL(csvFile);
+        downloadLink.style.display = "none";
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,503 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Laporan Laba Rugi Eksekutif{% endblock %}
+{% block header %}Laporan Keuangan (P&L){% endblock %}
+{% block breadcrumb %}Finance / Report{% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<div x-data="{ toasts: [] }" @notify.window="toasts.push({ id: Date.now(), type: $event.detail.type, message: $event.detail.message }); setTimeout(() => toasts.shift(), 4000)" class="fixed bottom-5 right-5 z-[150] flex flex-col gap-3 pointer-events-none">
+    <template x-for="toast in toasts" :key="toast.id">
+        <div x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 scale-95" x-transition:enter-end="opacity-100 translate-y-0 scale-100" x-transition:leave="transition ease-in duration-200" class="min-w-[300px] p-4 rounded-2xl shadow-2xl border bg-white flex items-start gap-3 pointer-events-auto" :class="toast.type === 'success' ? 'border-emerald-100' : 'border-blue-100'">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5" :class="toast.type === 'success' ? 'bg-emerald-50 text-emerald-500' : 'bg-blue-50 text-blue-500'">
+                <i data-lucide="check-circle" x-show="toast.type === 'success'" class="w-4 h-4"></i>
+                <i data-lucide="info" x-show="toast.type === 'info'" class="w-4 h-4"></i>
+            </div>
+            <div>
+                <h4 class="text-sm font-bold text-gray-900" x-text="toast.type === 'success' ? 'Berhasil!' : 'Informasi'"></h4>
+                <p class="text-xs text-gray-500 mt-0.5 font-medium leading-relaxed" x-text="toast.message"></p>
+            </div>
+        </div>
+    </template>
+</div>
+
+<div x-data="financeReport()" x-init="initData()" class="space-y-6 pb-10">
+
+    <div class="bg-white rounded-2xl p-4 lg:p-5 shadow-sm border border-gray-100 flex flex-col lg:flex-row justify-between items-center gap-4 relative z-20">
+        
+        <div class="flex items-center gap-3 w-full lg:w-auto shrink-0">
+            <div class="p-2.5 bg-brand-50 rounded-xl border border-brand-100 text-brand-600 shadow-inner">
+                <i data-lucide="pie-chart" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h2 class="text-base font-black text-gray-900 tracking-tight">Profit & Loss Statement</h2>
+                <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Analisis Kinerja Finansial</p>
+            </div>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto bg-gray-50 p-2 rounded-2xl border border-gray-100">
+            <select x-model="filterPeriod" @change="applyFilter()" class="w-full sm:w-auto px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:ring-2 focus:ring-brand-500 outline-none appearance-none cursor-pointer shadow-sm">
+                <option value="this_month">Bulan Ini</option>
+                <option value="last_month">Bulan Lalu</option>
+                <option value="this_year">Tahun Ini</option>
+                <option value="all_time">Semua Waktu</option>
+                <option value="custom">Pilih Tanggal Manual</option>
+            </select>
+            
+            <div x-show="filterPeriod === 'custom'" x-cloak class="flex items-center gap-2 w-full sm:w-auto">
+                <input type="date" x-model="customStartDate" @change="applyFilter()" class="w-full sm:w-auto px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 focus:ring-2 focus:ring-brand-500 outline-none shadow-sm">
+                <span class="text-gray-400 font-bold">-</span>
+                <input type="date" x-model="customEndDate" @change="applyFilter()" class="w-full sm:w-auto px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 focus:ring-2 focus:ring-brand-500 outline-none shadow-sm">
+            </div>
+
+            <button @click="downloadPDF()" class="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-gray-900 hover:bg-black text-white rounded-xl text-sm font-black shadow-md transition-all active:scale-95">
+                <i data-lucide="printer" class="w-4 h-4"></i> Cetak PDF
+            </button>
+        </div>
+    </div>
+
+
+    <div id="printable-report" class="space-y-6 bg-gray-50 pb-5">
+        
+        <div class="hidden print-header bg-white p-6 rounded-t-2xl border-b border-gray-200 mb-6 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 bg-brand-500 rounded-xl flex items-center justify-center">
+                    <h1 class="text-2xl font-black text-brand-900">B.</h1>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-black text-gray-900">BABA Parfume Enterprise</h2>
+                    <p class="text-xs text-gray-500 font-medium">Laporan Laba Rugi & Arus Kas</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Periode Laporan</p>
+                <p class="text-sm font-black text-gray-900" x-text="getReportPeriodText()"></p>
+                <p class="text-[10px] text-gray-500 mt-1">Dicetak pada: <span x-text="new Date().toLocaleDateString('id-ID')"></span></p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5 px-1">
+            
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 relative overflow-hidden group">
+                <div class="absolute right-0 top-0 w-20 h-20 bg-emerald-50 rounded-bl-full z-0 group-hover:scale-110 transition-transform"></div>
+                <div class="relative z-10">
+                    <p class="text-[10px] font-black text-emerald-600/70 uppercase tracking-widest mb-1">1. Total Omset (Kotor)</p>
+                    <h3 class="text-2xl font-black text-gray-900 mb-2 truncate" x-text="formatCurrency(report.revenue)">0</h3>
+                    <div class="flex items-center gap-1.5 text-xs font-bold text-gray-500">
+                        <i data-lucide="bar-chart" class="w-3.5 h-3.5 text-emerald-500"></i> Pemasukan kotor
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 relative overflow-hidden group">
+                <div class="absolute right-0 top-0 w-20 h-20 bg-orange-50 rounded-bl-full z-0 group-hover:scale-110 transition-transform"></div>
+                <div class="relative z-10">
+                    <p class="text-[10px] font-black text-orange-600/70 uppercase tracking-widest mb-1 flex items-center gap-1">
+                        2. Total HPP (Modal Stok)
+                    </p>
+                    <h3 class="text-2xl font-black text-gray-900 mb-2 truncate" x-text="formatCurrency(report.hpp)">0</h3>
+                    <div class="flex items-center gap-1.5 text-xs font-bold text-gray-500">
+                        <span class="px-1.5 py-0.5 rounded bg-orange-100 text-orange-600 text-[9px] font-black" x-text="calculatePercentage(report.hpp, report.revenue) + '%'"></span> dari Omset
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 relative overflow-hidden group">
+                <div class="absolute right-0 top-0 w-20 h-20 bg-red-50 rounded-bl-full z-0 group-hover:scale-110 transition-transform"></div>
+                <div class="relative z-10">
+                    <p class="text-[10px] font-black text-red-600/70 uppercase tracking-widest mb-1">3. Biaya Operasional</p>
+                    <h3 class="text-2xl font-black text-gray-900 mb-2 truncate" x-text="formatCurrency(report.opex)">0</h3>
+                    <div class="flex items-center gap-1.5 text-xs font-bold text-gray-500">
+                        <span class="px-1.5 py-0.5 rounded bg-red-100 text-red-600 text-[9px] font-black" x-text="calculatePercentage(report.opex, report.revenue) + '%'"></span> dari Omset
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-brand-500 to-brand-600 rounded-2xl p-5 shadow-lg shadow-brand-500/20 border border-brand-400 relative overflow-hidden text-white group">
+                <div class="absolute -right-6 -bottom-6 opacity-20 group-hover:scale-110 transition-transform"><i data-lucide="piggy-bank" class="w-32 h-32"></i></div>
+                <div class="relative z-10">
+                    <p class="text-[10px] font-black text-brand-900 uppercase tracking-widest mb-1 drop-shadow-sm">4. Laba Bersih (Net Profit)</p>
+                    <h3 class="text-2xl font-black text-white mb-2 truncate drop-shadow-md" x-text="formatCurrency(report.netProfit)">0</h3>
+                    <div class="flex items-center justify-between mt-3 pt-3 border-t border-brand-400/50">
+                        <div class="flex flex-col">
+                            <span class="text-[8px] text-brand-900 font-bold uppercase tracking-widest">Net Margin</span>
+                            <span class="text-sm font-black text-white" x-text="report.margin + '%'"></span>
+                        </div>
+                        <i data-lucide="trending-up" class="w-6 h-6 text-brand-100" x-show="report.netProfit > 0"></i>
+                        <i data-lucide="trending-down" class="w-6 h-6 text-red-200" x-show="report.netProfit <= 0"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 px-1">
+            
+            <div class="lg:col-span-2 bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h3 class="text-sm font-black text-gray-900 uppercase tracking-widest">Trend Arus Kas</h3>
+                        <p class="text-xs text-gray-500 font-medium mt-0.5">Pemasukan vs Pengeluaran berdasarkan periode</p>
+                    </div>
+                </div>
+                <div class="relative h-64 w-full">
+                    <canvas id="cashflowChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+                <div class="mb-4">
+                    <h3 class="text-sm font-black text-gray-900 uppercase tracking-widest">Bedah Pengeluaran</h3>
+                    <p class="text-xs text-gray-500 font-medium mt-0.5">Komposisi HPP & Operasional</p>
+                </div>
+                <div class="relative h-52 w-full flex justify-center">
+                    <canvas id="expenseChart"></canvas>
+                </div>
+                <div class="mt-4 text-center">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Uang Keluar</p>
+                    <p class="text-lg font-black text-red-500" x-text="formatCurrency(report.hpp + report.opex)"></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm mx-1 flex flex-col mb-4">
+            <div class="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+                <div class="w-10 h-10 bg-brand-50 rounded-xl flex items-center justify-center text-brand-600">
+                    <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-black text-gray-900">Buku Laba Rugi Komprehensif</h3>
+                    <p class="text-xs text-gray-500 font-medium">Rekapitulasi terperinci dari seluruh kategori mutasi</p>
+                </div>
+            </div>
+            
+            <div class="flex-1 w-full space-y-5">
+                
+                <div>
+                    <div class="flex justify-between items-center mb-2 pb-1 border-b-2 border-emerald-500">
+                        <p class="text-xs font-black text-emerald-700 uppercase tracking-widest">1. Pendapatan (Revenue)</p>
+                        <p class="text-xs font-black text-emerald-700" x-text="formatCurrency(report.revenue)"></p>
+                    </div>
+                    <div class="space-y-2 px-2">
+                        <template x-for="(amt, cat) in categories.income" :key="cat">
+                            <div class="flex justify-between items-center text-sm group border-b border-dashed border-gray-100 pb-1">
+                                <span class="text-gray-600 font-medium group-hover:text-gray-900 transition-colors flex items-center gap-2">
+                                    <i data-lucide="arrow-down-right" class="w-3 h-3 text-emerald-400"></i> <span x-text="cat"></span>
+                                </span>
+                                <span class="font-bold text-gray-900" x-text="formatCurrency(amt)"></span>
+                            </div>
+                        </template>
+                        <template x-if="Object.keys(categories.income).length === 0">
+                            <p class="text-xs text-gray-400 italic py-1">Belum ada data pendapatan di periode ini.</p>
+                        </template>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-2 pb-1 border-b-2 border-orange-400 mt-4">
+                        <p class="text-xs font-black text-orange-700 uppercase tracking-widest">2. Harga Pokok Penjualan (HPP)</p>
+                        <p class="text-xs font-black text-orange-600" x-text="'- ' + formatCurrency(report.hpp)"></p>
+                    </div>
+                    <div class="space-y-2 px-2">
+                        <template x-for="(amt, cat) in categories.hpp" :key="cat">
+                            <div class="flex justify-between items-center text-sm group border-b border-dashed border-gray-100 pb-1">
+                                <span class="text-gray-600 font-medium flex items-center gap-2">
+                                    <i data-lucide="arrow-up-right" class="w-3 h-3 text-orange-400"></i> <span x-text="cat"></span>
+                                </span>
+                                <span class="font-bold text-orange-600" x-text="'- ' + formatCurrency(amt)"></span>
+                            </div>
+                        </template>
+                        <template x-if="Object.keys(categories.hpp).length === 0">
+                            <p class="text-xs text-gray-400 italic py-1">Tidak ada pengeluaran HPP.</p>
+                        </template>
+                    </div>
+                    
+                    <div class="flex justify-between items-center mt-3 bg-gray-50 p-3 rounded-xl border border-gray-200 shadow-sm">
+                        <span class="text-sm font-black text-gray-800 uppercase tracking-widest">Laba Kotor (Gross Profit)</span>
+                        <span class="text-base font-black text-brand-600" x-text="formatCurrency(report.grossProfit)"></span>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-2 pb-1 border-b-2 border-red-500 mt-4">
+                        <p class="text-xs font-black text-red-700 uppercase tracking-widest">3. Biaya Operasional (OpEx)</p>
+                        <p class="text-xs font-black text-red-600" x-text="'- ' + formatCurrency(report.opex)"></p>
+                    </div>
+                    <div class="space-y-2 px-2">
+                        <template x-for="(amt, cat) in categories.opex" :key="cat">
+                            <div class="flex justify-between items-center text-sm group border-b border-dashed border-gray-100 pb-1">
+                                <span class="text-gray-600 font-medium flex items-center gap-2">
+                                    <i data-lucide="arrow-up-right" class="w-3 h-3 text-red-400"></i> <span x-text="cat"></span>
+                                </span>
+                                <span class="font-bold text-red-600" x-text="'- ' + formatCurrency(amt)"></span>
+                            </div>
+                        </template>
+                        <template x-if="Object.keys(categories.opex).length === 0">
+                            <p class="text-xs text-gray-400 italic py-1">Tidak ada pengeluaran operasional.</p>
+                        </template>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="mt-6 pt-5 border-t-4 border-double border-gray-200">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 bg-gray-900 p-5 rounded-2xl shadow-xl">
+                    <div>
+                        <p class="text-sm font-black text-brand-400 uppercase tracking-widest">Total Laba Bersih Akhir</p>
+                        <p class="text-xs text-gray-400 font-medium mt-1">Laba Kotor dikurangi Total Biaya Operasional</p>
+                    </div>
+                    <div class="text-right w-full sm:w-auto">
+                        <h2 class="text-4xl font-black text-white tracking-tight" x-text="formatCurrency(report.netProfit)"></h2>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4 text-center hidden print-footer">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Dicetak otomatis dari Sistem Enterprise BABA Parfume</p>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Styling khusus pas di-download PDF biar rapih */
+    @media print {
+        .print-header { display: flex !important; }
+        .print-footer { display: block !important; }
+        body { background-color: white !important; }
+    }
+</style>
+
+<script>
+    function financeReport() {
+        return {
+            // 1. INJECT RAW DATA DARI DB 
+            allMutations: [
+                {% for m in mutations %}
+                {
+                    date: "{{ m.created_at }}".split('T')[0] || "{{ m.created_at }}".split(' ')[0],
+                    type: "{{ m.transaction_type }}",
+                    amount: parseFloat("{{ m.amount | default(0) }}"),
+                    category: "{{ m.finance_categories.category_name if m.finance_categories else 'Tanpa Kategori' }}"
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ],
+            
+            // State Filter
+            filterPeriod: 'this_month',
+            customStartDate: '',
+            customEndDate: '',
+            
+            // State Report Hasil Olahan
+            filteredMutations: [],
+            report: {
+                revenue: 0,
+                hpp: 0,
+                opex: 0,
+                grossProfit: 0,
+                netProfit: 0,
+                margin: 0
+            },
+            categories: {
+                income: {},
+                hpp: {},
+                opex: {}
+            },
+            
+            // Referensi Chart
+            barChart: null,
+            pieChart: null,
+
+            initData() {
+                // Setup tanggal default (Bulan Ini)
+                const now = new Date();
+                const y = now.getFullYear();
+                const m = String(now.getMonth() + 1).padStart(2, '0');
+                this.customStartDate = `${y}-${m}-01`;
+                this.customEndDate = `${y}-${m}-31`; // Simplified
+                
+                this.applyFilter();
+            },
+
+            applyFilter() {
+                let start = new Date('2000-01-01');
+                let end = new Date('2099-12-31');
+                const now = new Date();
+
+                if (this.filterPeriod === 'this_month') {
+                    start = new Date(now.getFullYear(), now.getMonth(), 1);
+                    end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                } else if (this.filterPeriod === 'last_month') {
+                    start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    end = new Date(now.getFullYear(), now.getMonth(), 0);
+                } else if (this.filterPeriod === 'this_year') {
+                    start = new Date(now.getFullYear(), 0, 1);
+                    end = new Date(now.getFullYear(), 11, 31);
+                } else if (this.filterPeriod === 'custom') {
+                    if (this.customStartDate) start = new Date(this.customStartDate);
+                    if (this.customEndDate) end = new Date(this.customEndDate);
+                    end.setHours(23, 59, 59); // Include whole end day
+                }
+
+                // Filter array data
+                this.filteredMutations = this.allMutations.filter(m => {
+                    const mDate = new Date(m.date);
+                    return mDate >= start && mDate <= end;
+                });
+
+                this.calculateReport();
+                this.updateCharts();
+                setTimeout(() => lucide.createIcons(), 50);
+            },
+
+            calculateReport() {
+                // Reset
+                this.report = { revenue: 0, hpp: 0, opex: 0, grossProfit: 0, netProfit: 0, margin: 0 };
+                this.categories = { income: {}, hpp: {}, opex: {} };
+
+                this.filteredMutations.forEach(m => {
+                    const catName = m.category;
+                    const catNameLower = catName.toLowerCase();
+                    const amt = m.amount;
+
+                    if (m.type === 'IN') {
+                        this.report.revenue += amt;
+                        this.categories.income[catName] = (this.categories.income[catName] || 0) + amt;
+                    } else if (m.type === 'OUT') {
+                        // Cek logic HPP vs OpEx (Kata kunci db: stok, belanja, ongkir, jastip, botol, biang)
+                        if (catNameLower.includes('stok') || catNameLower.includes('belanja') || catNameLower.includes('ongkir') || catNameLower.includes('jastip')) {
+                            this.report.hpp += amt;
+                            this.categories.hpp[catName] = (this.categories.hpp[catName] || 0) + amt;
+                        } else {
+                            this.report.opex += amt;
+                            this.categories.opex[catName] = (this.categories.opex[catName] || 0) + amt;
+                        }
+                    }
+                });
+
+                this.report.grossProfit = this.report.revenue - this.report.hpp;
+                this.report.netProfit = this.report.grossProfit - this.report.opex;
+                if (this.report.revenue > 0) {
+                    this.report.margin = ((this.report.netProfit / this.report.revenue) * 100).toFixed(1);
+                } else {
+                    this.report.margin = 0;
+                }
+            },
+
+            updateCharts() {
+                // 1. Siapin data untuk Bar Chart (Trend)
+                // Kita group by tanggal
+                const dateGroups = {};
+                this.filteredMutations.forEach(m => {
+                    if (!dateGroups[m.date]) dateGroups[m.date] = { in: 0, out: 0 };
+                    if (m.type === 'IN') dateGroups[m.date].in += m.amount;
+                    if (m.type === 'OUT') dateGroups[m.date].out += m.amount;
+                });
+
+                // Sort tanggal
+                const sortedDates = Object.keys(dateGroups).sort();
+                const labels = sortedDates.map(d => {
+                    const dt = new Date(d);
+                    return `${dt.getDate()}/${dt.getMonth()+1}`;
+                });
+                const dataIn = sortedDates.map(d => dateGroups[d].in);
+                const dataOut = sortedDates.map(d => dateGroups[d].out);
+
+                // Update Bar Chart
+                const ctxBar = document.getElementById('cashflowChart').getContext('2d');
+                if(this.barChart) this.barChart.destroy();
+                this.barChart = new Chart(ctxBar, {
+                    type: 'bar',
+                    data: {
+                        labels: labels.length > 0 ? labels : ['Belum ada data'],
+                        datasets: [
+                            { label: 'Pemasukan', data: dataIn.length > 0 ? dataIn : [0], backgroundColor: '#10b981', borderRadius: 4, barPercentage: 0.7 },
+                            { label: 'Pengeluaran', data: dataOut.length > 0 ? dataOut : [0], backgroundColor: '#ef4444', borderRadius: 4, barPercentage: 0.7 }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: { legend: { position: 'top', labels: { usePointStyle: true, font: {family: 'Inter'} } } },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { callback: (v) => 'Rp ' + (v/1000000) + ' Jt' } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+
+                // 2. Siapin data untuk Doughnut Chart (Pengeluaran)
+                const expLabels = [...Object.keys(this.categories.hpp), ...Object.keys(this.categories.opex)];
+                const expData = [...Object.values(this.categories.hpp), ...Object.values(this.categories.opex)];
+                
+                const ctxPie = document.getElementById('expenseChart').getContext('2d');
+                if(this.pieChart) this.pieChart.destroy();
+                this.pieChart = new Chart(ctxPie, {
+                    type: 'doughnut',
+                    data: {
+                        labels: expLabels.length > 0 ? expLabels : ['Belum ada pengeluaran'],
+                        datasets: [{
+                            data: expData.length > 0 ? expData : [1],
+                            backgroundColor: ['#f97316', '#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#e5e7eb'],
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { callbacks: { label: (c) => ' Rp ' + c.raw.toLocaleString('id-ID') } }
+                        }
+                    }
+                });
+            },
+
+            // Utils
+            formatCurrency(val) {
+                if (isNaN(val)) return 'Rp 0';
+                return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+            },
+            calculatePercentage(part, total) {
+                if (!total || total === 0) return 0;
+                return ((part / total) * 100).toFixed(1);
+            },
+            getReportPeriodText() {
+                if(this.filterPeriod === 'this_month') return "Bulan Ini";
+                if(this.filterPeriod === 'last_month') return "Bulan Lalu";
+                if(this.filterPeriod === 'this_year') return "Tahun Ini";
+                if(this.filterPeriod === 'all_time') return "Seluruh Waktu";
+                return `${this.customStartDate} s/d ${this.customEndDate}`;
+            },
+
+            // EKSPOR PDF MAGIC (HTML2PDF)
+            downloadPDF() {
+                this.$dispatch('notify', { type: 'info', message: 'Mempersiapkan dokumen PDF...' });
+                const element = document.getElementById('printable-report');
+                
+                // Temporarily display hidden print headers
+                const printHeaders = element.querySelectorAll('.print-header, .print-footer');
+                printHeaders.forEach(el => el.classList.remove('hidden'));
+
+                const opt = {
+                    margin:       0.5,
+                    filename:     `Laporan_Keuangan_BABA_${this.filterPeriod}.pdf`,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true },
+                    jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+                };
+
+                // Generate PDF
+                html2pdf().set(opt).from(element).save().then(() => {
+                    // Hide headers back after print
+                    printHeaders.forEach(el => el.classList.add('hidden'));
+                    this.$dispatch('notify', { type: 'success', message: 'PDF berhasil di-download!' });
+                });
+            }
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends 'admin/base.html' %}
+{% block title %}Profil Saya{% endblock %}
+{% block header %}Informasi Akun{% endblock %}
+{% block breadcrumb %}Profil Saya{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6 animate-slide-down">
+    
+    <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center md:items-start gap-6 relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-yellow-100 to-transparent rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+
+        <div class="relative shrink-0">
+            {% set safe_name = (admin_name or 'Admin') | replace(' ', '+') %}
+            <img src="https://ui-avatars.com/api/?name={{ safe_name }}&background=111827&color=FBBF24&bold=true&size=128" alt="Admin Avatar" class="w-32 h-32 rounded-full shadow-lg border-4 border-white object-cover">
+            <div class="absolute bottom-1 right-1 w-8 h-8 bg-emerald-500 border-4 border-white rounded-full flex items-center justify-center shadow-md">
+                <i data-lucide="check" class="w-4 h-4 text-white"></i>
+            </div>
+        </div>
+
+        <div class="flex-1 text-center md:text-left z-10 pt-2">
+            <h2 class="text-3xl font-black text-gray-900 tracking-tight">{{ admin_name | default('Admin BABA') }}</h2>
+            <div class="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-3">
+                <span class="bg-gray-900 text-yellow-400 text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-sm">
+                    {{ admin_role | replace('_', ' ') | title | default('Staff') }}
+                </span>
+                <span class="text-sm font-bold text-gray-400 bg-gray-50 px-4 py-1.5 rounded-full border border-gray-200">
+                    @{{ request.state.admin_user }}
+                </span>
+            </div>
+            <p class="text-sm text-gray-500 font-medium mt-4 leading-relaxed max-w-lg">
+                Ini adalah halaman profil pribadi kamu. Jaga kerahasiaan akun dan jangan pernah berikan password kepada siapapun.
+            </p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
+                    <i data-lucide="info" class="w-5 h-5"></i>
+                </div>
+                <h3 class="text-lg font-black text-gray-900">Detail Sistem</h3>
+            </div>
+            
+            <div class="space-y-4">
+                <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Status Akun</p>
+                    <p class="text-sm font-bold text-emerald-600 flex items-center gap-1.5"><i data-lucide="shield-check" class="w-4 h-4"></i> Aktif & Terverifikasi</p>
+                </div>
+                
+                <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Hak Akses Modul</p>
+                    <div class="flex flex-wrap gap-2 mt-2">
+                        {% if admin_role == 'super_admin' %}
+                            <span class="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-1 rounded-md">Semua Fitur Dewa</span>
+                        {% elif admin_role == 'oprasional' %}
+                            <span class="text-[10px] font-bold bg-white border px-2 py-1 rounded-md">Manajemen Stok</span>
+                            <span class="text-[10px] font-bold bg-white border px-2 py-1 rounded-md">Pesanan Masuk</span>
+                        {% elif admin_role == 'marketing' %}
+                            <span class="text-[10px] font-bold bg-white border px-2 py-1 rounded-md">Data Pelanggan</span>
+                            <span class="text-[10px] font-bold bg-white border px-2 py-1 rounded-md">CS AI Panel</span>
+                        {% elif admin_role == 'cs' %}
+                            <span class="text-[10px] font-bold bg-white border px-2 py-1 rounded-md">CS AI Panel</span>
+                        {% else %}
+                            <span class="text-[10px] font-bold bg-white border px-2 py-1 rounded-md">Hanya Melihat (View Only)</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if admin_detail and admin_detail.created_at %}
+                <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Bergabung Sejak</p>
+                    <p class="text-sm font-bold text-gray-900">{{ admin_detail.created_at | datetime }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-yellow-50 text-yellow-600 rounded-full flex items-center justify-center">
+                        <i data-lucide="lock" class="w-5 h-5"></i>
+                    </div>
+                    <h3 class="text-lg font-black text-gray-900">Keamanan</h3>
+                </div>
+            </div>
+
+            {% if admin_role == 'super_admin' %}
+            <div class="bg-yellow-50 border border-yellow-200 p-5 rounded-2xl text-center h-[200px] flex flex-col justify-center">
+                <i data-lucide="key" class="w-8 h-8 text-yellow-500 mx-auto mb-2"></i>
+                <p class="text-sm font-bold text-gray-900 mb-1">Akun Terkunci di .env</p>
+                <p class="text-xs text-gray-500 font-medium">Karena lu adalah Super Admin, password cuma bisa diganti lewat file <code>.env</code> di server Render lu.</p>
+            </div>
+            {% else %}
+            <form action="#" method="POST" class="space-y-4" onsubmit="alert('Fitur ganti password sedang dalam pengembangan developer bre!'); return false;">
+                <div>
+                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 pl-1">Password Baru</label>
+                    <input type="password" required placeholder="Minimal 6 karakter" class="w-full bg-gray-50 border border-gray-200 px-4 py-3.5 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 pl-1">Konfirmasi Password Baru</label>
+                    <input type="password" required placeholder="Ketik ulang password baru..." class="w-full bg-gray-50 border border-gray-200 px-4 py-3.5 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all">
+                </div>
+                <button type="submit" class="w-full mt-2 bg-gray-900 text-white font-black py-3.5 rounded-xl shadow-md hover:bg-gray-800 active:scale-95 transition-all">
+                    Simpan Password
+                </button>
+            </form>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

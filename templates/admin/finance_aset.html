@@ -1,0 +1,660 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Aset & Dompet Keuangan{% endblock %}
+{% block header %}Aset Keuangan{% endblock %}
+{% block breadcrumb %}Finance / Aset{% endblock %}
+
+{% block content %}
+<div x-data="{ toasts: [] }" 
+     @notify.window="toasts.push({ id: Date.now(), type: $event.detail.type, message: $event.detail.message }); setTimeout(() => toasts.shift(), 4000)"
+     class="fixed bottom-5 right-5 z-[150] flex flex-col gap-3 pointer-events-none">
+    <template x-for="toast in toasts" :key="toast.id">
+        <div x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-4 scale-95"
+             x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+             x-transition:leave-end="opacity-0 translate-y-4 scale-95"
+             class="min-w-[300px] p-4 rounded-2xl shadow-2xl border flex items-start gap-3 pointer-events-auto bg-white"
+             :class="toast.type === 'success' ? 'border-emerald-100' : (toast.type === 'error' ? 'border-red-100' : 'border-blue-100')">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                 :class="toast.type === 'success' ? 'bg-emerald-50 text-emerald-500' : (toast.type === 'error' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500')">
+                <i data-lucide="check-circle" x-show="toast.type === 'success'" class="w-4 h-4"></i>
+                <i data-lucide="alert-circle" x-show="toast.type === 'error'" class="w-4 h-4"></i>
+                <i data-lucide="info" x-show="toast.type === 'info'" class="w-4 h-4"></i>
+            </div>
+            <div>
+                <h4 class="text-sm font-bold text-gray-900" x-text="toast.type === 'success' ? 'Berhasil!' : (toast.type === 'error' ? 'Gagal!' : 'Informasi')"></h4>
+                <p class="text-xs text-gray-500 mt-0.5 font-medium leading-relaxed" x-text="toast.message"></p>
+            </div>
+        </div>
+    </template>
+</div>
+
+<div x-data="financeDashboard()" x-init="initData()" class="space-y-6 pb-10">
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-6 shadow-xl border border-gray-800 relative overflow-hidden group transition-all hover:shadow-brand-500/10 hover:border-gray-700">
+            <div class="absolute -right-6 -top-6 w-32 h-32 bg-brand-500/20 rounded-full blur-3xl group-hover:bg-brand-500/30 transition-all duration-500"></div>
+            <div class="flex justify-between items-start relative z-10">
+                <div>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Estimasi Aset</p>
+                    <h3 class="text-3xl font-black text-white flex items-baseline gap-2" x-text="formatCurrency({{ total_aset }}, 'IDR')">
+                        <span class="text-lg text-brand-400">Rp</span> {{ '{:,.0f}'.format(total_aset).replace(',', '.') }}
+                    </h3>
+                </div>
+                <div class="p-3 bg-gray-800/80 backdrop-blur-sm rounded-xl border border-gray-700 shadow-inner">
+                    <i data-lucide="landmark" class="w-6 h-6 text-brand-400"></i>
+                </div>
+            </div>
+            <div class="mt-5 pt-4 border-t border-gray-800/60 flex items-center justify-between">
+                <p class="text-xs text-gray-400 flex items-center gap-1.5 font-medium">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5 text-brand-500"></i> Terenkripsi & Sinkron
+                </p>
+                <span class="flex h-2 w-2 relative">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-brand-500"></span>
+                </span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between group hover:shadow-md transition-shadow">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                        Total Uang Liquid <i data-lucide="help-circle" class="w-3 h-3 text-gray-300 cursor-help" title="Total gabungan seluruh rekening & cash"></i>
+                    </p>
+                    <h3 class="text-2xl font-black text-gray-900 flex items-baseline gap-1.5" x-text="formatCurrency({{ total_liquid }}, 'IDR')">
+                        <span class="text-sm text-gray-500">Rp</span> {{ '{:,.0f}'.format(total_liquid).replace(',', '.') }}
+                    </h3>
+                </div>
+                <div class="p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 group-hover:scale-110 transition-transform">
+                    <i data-lucide="wallet" class="w-5 h-5 text-emerald-600"></i>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center justify-between bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                <p class="text-[11px] text-gray-500 font-semibold">Siap digunakan operasional</p>
+                <div class="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-100/50 px-2 py-1 rounded">
+                    <i data-lucide="activity" class="w-3 h-3"></i> Liquid
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between group hover:shadow-md transition-shadow">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                        Estimasi Nilai Stok <i data-lucide="help-circle" class="w-3 h-3 text-gray-300 cursor-help" title="Harga modal dikali jumlah fisik gudang"></i>
+                    </p>
+                    <h3 class="text-2xl font-black text-gray-900 flex items-baseline gap-1.5" x-text="formatCurrency({{ total_inventory }}, 'IDR')">
+                        <span class="text-sm text-gray-500">Rp</span> {{ '{:,.0f}'.format(total_inventory).replace(',', '.') }}
+                    </h3>
+                </div>
+                <div class="p-2.5 bg-blue-50 rounded-xl border border-blue-100 group-hover:scale-110 transition-transform">
+                    <i data-lucide="package-open" class="w-5 h-5 text-blue-600"></i>
+                </div>
+            </div>
+            <div class="mt-4 flex gap-2">
+                <a href="/admin/stock" class="flex-1 text-center text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 py-2 rounded-xl transition-colors border border-blue-100 shadow-sm flex items-center justify-center gap-1.5">
+                    <i data-lucide="boxes" class="w-3.5 h-3.5"></i> Cek Gudang
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex items-center gap-4 py-2">
+        <div class="h-px bg-gray-200/60 flex-1"></div>
+        <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Katalog Rekening Aktif</span>
+        <div class="h-px bg-gray-200/60 flex-1"></div>
+    </div>
+
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-2">
+        <div>
+            <h3 class="text-xl font-black text-gray-900 tracking-tight">Daftar Rekening & Dompet</h3>
+            <p class="text-xs text-gray-500 font-medium mt-1">Kelola arus kas masuk dan keluar di masing-masing sumber dana.</p>
+        </div>
+        <div class="flex gap-2 w-full sm:w-auto">
+            <button @click="openTransferModal()" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-xl text-sm font-black hover:bg-blue-100 shadow-sm transition-all active:scale-95">
+                <i data-lucide="arrow-right-left" class="w-4 h-4"></i> Pindah Kas (Switch)
+            </button>
+            <button @click="openAddBankModal()" class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-bold shadow-md hover:bg-black transition-all active:scale-95">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i> Bank Baru
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        {% if accounts %}
+            {% for acc in accounts %}
+            {% set bg_class = 'from-gray-700 to-gray-900' %}
+            {% set icon_name = 'wallet' %}
+            
+            {% if 'bca' in acc.bank_name|lower %}
+                {% set bg_class = 'from-blue-700 to-blue-900' %}
+                {% set icon_name = 'building-2' %}
+            {% elif 'aba' in acc.bank_name|lower %}
+                {% set bg_class = 'from-teal-700 to-cyan-900' %}
+                {% set icon_name = 'globe-2' %}
+            {% elif 'jago' in acc.bank_name|lower %}
+                {% set bg_class = 'from-orange-500 to-red-600' %}
+                {% set icon_name = 'flame' %}
+            {% elif 'cash' in acc.bank_name|lower or 'tunai' in acc.bank_name|lower %}
+                {% set bg_class = 'from-emerald-600 to-emerald-800' %}
+                {% set icon_name = 'banknote' %}
+            {% endif %}
+
+            <div class="bg-gradient-to-br {{ bg_class }} rounded-2xl p-5 shadow-lg relative overflow-hidden text-white group hover:-translate-y-1 transition-transform duration-300">
+                <div class="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
+                    <i data-lucide="{{ icon_name }}" class="w-32 h-32"></i>
+                </div>
+                
+                <div class="relative z-10">
+                    <div class="flex justify-between items-center mb-5">
+                        <span class="text-xs font-black tracking-widest opacity-90 uppercase drop-shadow-sm">{{ acc.bank_name }}</span>
+                        <div class="flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_5px_#34d399]"></span>
+                            <span class="px-2 py-0.5 bg-white/20 rounded-md text-[9px] font-black backdrop-blur-sm border border-white/10 uppercase">{{ acc.currency }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <p class="text-[10px] opacity-70 uppercase tracking-widest mb-1 font-semibold">Saldo Tersedia</p>
+                        <h4 class="text-2xl font-black tracking-tight drop-shadow-md" x-text="formatCurrency({{ acc.current_balance }}, '{{ acc.currency }}')">
+                            {{ acc.current_balance }}
+                        </h4>
+                        {% if acc.account_number %}
+                            <p class="text-[9px] text-white/50 font-mono mt-1 tracking-widest">{{ acc.account_number }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="flex gap-2">
+                        <button @click="openModal({{ acc.id }}, '{{ acc.bank_name }}', '{{ acc.currency }}', 'IN')" class="flex-1 bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-sm py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-sm">
+                            <i data-lucide="arrow-down-left" class="w-3.5 h-3.5 text-emerald-400"></i> Masuk
+                        </button>
+                        <button @click="openModal({{ acc.id }}, '{{ acc.bank_name }}', '{{ acc.currency }}', 'OUT')" class="flex-1 bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-sm py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-sm">
+                            <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-red-400"></i> Keluar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            {% endif %}
+    </div>
+
+    <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm mt-8">
+        <div class="flex justify-between items-center mb-5 pb-3 border-b border-gray-50">
+            <h3 class="text-sm font-black text-gray-800 uppercase tracking-widest flex items-center gap-2">
+                <i data-lucide="history" class="w-4 h-4 text-gray-400"></i> Riwayat Transaksi Terakhir
+            </h3>
+            <a href="/admin/finance/mutasi" class="text-xs font-bold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-4 py-2 rounded-xl transition-colors flex items-center gap-1">
+                Buku Besar Lengkap <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </a>
+        </div>
+        
+        <div class="space-y-2">
+            {% if recent_mutations %}
+                {% for mut in recent_mutations %}
+                <div class="flex items-center justify-between p-3.5 bg-white hover:bg-gray-50 rounded-xl transition-all border border-gray-100 hover:border-gray-200 group">
+                    <div class="flex items-center gap-4">
+                        {% if mut.transaction_type == 'IN' %}
+                            <div class="w-10 h-10 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-500 shrink-0 shadow-sm group-hover:scale-110 transition-transform">
+                                <i data-lucide="arrow-down-left" class="w-5 h-5"></i>
+                            </div>
+                        {% else %}
+                            <div class="w-10 h-10 rounded-full bg-red-50 border border-red-100 flex items-center justify-center text-red-500 shrink-0 shadow-sm group-hover:scale-110 transition-transform">
+                                <i data-lucide="arrow-up-right" class="w-5 h-5"></i>
+                            </div>
+                        {% endif %}
+                        
+                        <div>
+                            <p class="text-sm font-bold text-gray-900 group-hover:text-brand-600 transition-colors">
+                                {{ mut.description | default('Transaksi Tanpa Keterangan', true) | truncate(50) }}
+                            </p>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-[9px] font-black uppercase">{{ mut.finance_accounts.bank_name if mut.finance_accounts else 'Unknown' }}</span>
+                                <span class="text-[11px] font-medium text-gray-400">&bull;</span>
+                                <span class="text-[11px] font-medium text-gray-400">{{ mut.finance_categories.category_name if mut.finance_categories else 'Umum' }}</span>
+                                <span class="text-[11px] font-medium text-gray-400">&bull;</span>
+                                <span class="text-[10px] font-semibold text-gray-500">{{ mut.created_at | datetime }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0">
+                        {% if mut.transaction_type == 'IN' %}
+                            <p class="text-sm font-black text-emerald-600" x-text="'+ ' + formatCurrency({{ mut.amount }}, 'IDR')">+ {{ mut.amount }}</p>
+                        {% else %}
+                            <p class="text-sm font-black text-red-500" x-text="'- ' + formatCurrency({{ mut.amount }}, 'IDR')">- {{ mut.amount }}</p>
+                        {% endif %}
+                        <p class="text-[10px] text-gray-400 mt-0.5 font-medium">Sisa: <span x-text="formatCurrency({{ mut.balance_after }}, 'IDR')">{{ mut.balance_after }}</span></p>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="py-8 text-center">
+                    <i data-lucide="inbox" class="w-10 h-10 text-gray-200 mx-auto mb-3"></i>
+                    <p class="text-sm font-bold text-gray-500">Belum ada riwayat transaksi</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+
+    <div x-show="modalOpen" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div x-show="modalOpen" x-transition.opacity class="fixed inset-0 bg-gray-900/70 backdrop-blur-sm" @click="if(!isSubmitting) closeModal()"></div>
+
+        <div x-show="modalOpen" 
+             x-transition:enter="transition ease-out duration-300" 
+             x-transition:enter-start="opacity-0 translate-y-8 scale-95" 
+             x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+             x-transition:leave="transition ease-in duration-200" 
+             x-transition:leave-start="opacity-100 translate-y-0 scale-100" 
+             x-transition:leave-end="opacity-0 translate-y-8 scale-95"
+             class="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-6 sm:p-8 border border-gray-100 overflow-hidden transform transition-all">
+            
+            <div class="absolute top-0 left-0 w-full h-2.5 transition-colors duration-300" :class="trxType === 'IN' ? 'bg-emerald-500' : 'bg-red-500'"></div>
+
+            <div class="flex justify-between items-start mb-6 mt-2">
+                <div>
+                    <h2 class="text-xl font-black text-gray-900 tracking-tight" x-text="trxType === 'IN' ? 'Catat Kas Masuk' : 'Catat Kas Keluar'"></h2>
+                    <p class="text-xs font-medium text-gray-500 mt-1.5 flex items-center gap-1.5">
+                        Sumber Dana: <span class="px-2 py-0.5 rounded text-[10px] font-black bg-gray-100 text-gray-700 uppercase" x-text="activeBankName"></span>
+                    </p>
+                </div>
+                <button @click="closeModal()" :disabled="isSubmitting" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form @submit.prevent="submitTransaction" class="space-y-5">
+                <div>
+                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Nominal Transaksi</label>
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <span class="text-gray-500 font-black sm:text-sm" x-text="getCurrencySymbol(activeCurrency)"></span>
+                        </div>
+                        <input type="number" x-model.number="formAmount" min="1" step="0.01" required :disabled="isSubmitting"
+                               class="block w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-xl font-black focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white outline-none transition-all disabled:opacity-60" 
+                               placeholder="0">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Pilih Kategori</label>
+                    <select x-model.number="formCategoryId" required :disabled="isSubmitting"
+                            class="block w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 text-sm font-bold focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white outline-none transition-all appearance-none disabled:opacity-60">
+                        <option value="" disabled selected>-- Pilih Kategori --</option>
+                        <template x-if="trxType === 'IN'">
+                            <optgroup label="Pemasukan Operasional">
+                                {% for cat in categories_in %}
+                                    <option value="{{ cat.id }}">{{ cat.category_name }}</option>
+                                {% endfor %}
+                            </optgroup>
+                        </template>
+                        <template x-if="trxType === 'OUT'">
+                            <optgroup label="Pengeluaran Operasional">
+                                {% for cat in categories_out %}
+                                    <option value="{{ cat.id }}">{{ cat.category_name }}</option>
+                                {% endfor %}
+                            </optgroup>
+                        </template>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Keterangan Jelas</label>
+                    <textarea x-model="formDescription" rows="2" required :disabled="isSubmitting"
+                              class="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 text-sm font-medium focus:ring-2 focus:ring-brand-500 outline-none resize-none disabled:opacity-60"></textarea>
+                </div>
+
+                <div class="pt-4 border-t border-gray-100">
+                    <button type="submit" :disabled="isSubmitting" 
+                            class="w-full py-4 rounded-xl text-white font-black text-sm shadow-lg hover:shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 relative overflow-hidden disabled:opacity-70 disabled:cursor-not-allowed" 
+                            :class="trxType === 'IN' ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30' : 'bg-red-500 hover:bg-red-600 shadow-red-500/30'">
+                        <span x-show="!isSubmitting" class="flex items-center gap-2">
+                            <i data-lucide="check-circle" class="w-4 h-4"></i> Eksekusi Transaksi
+                        </span>
+                        <span x-show="isSubmitting" x-cloak>Memproses...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <div x-show="transferModalOpen" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div x-show="transferModalOpen" x-transition.opacity class="fixed inset-0 bg-gray-900/80 backdrop-blur-md" @click="if(!isSubmitting) closeTransferModal()"></div>
+
+        <div x-show="transferModalOpen" 
+             x-transition:enter="transition ease-out duration-300" 
+             x-transition:enter-start="opacity-0 translate-y-8 scale-95" 
+             x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+             x-transition:leave="transition ease-in duration-200" 
+             x-transition:leave-start="opacity-100 translate-y-0 scale-100" 
+             x-transition:leave-end="opacity-0 translate-y-8 scale-95"
+             class="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl p-6 sm:p-8 border border-gray-100 overflow-hidden">
+            
+            <div class="absolute top-0 left-0 w-full h-2.5 bg-blue-500"></div>
+
+            <div class="flex justify-between items-start mb-6 mt-2">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 shrink-0">
+                        <i data-lucide="arrow-right-left" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-black text-gray-900 tracking-tight">Pindah Kas & Exchange</h2>
+                        <p class="text-xs font-medium text-gray-500 mt-1">Mutasi antar dompet dengan konversi nilai tukar</p>
+                    </div>
+                </div>
+                <button @click="closeTransferModal()" :disabled="isSubmitting" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form @submit.prevent="submitTransferTransaction" class="space-y-5">
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200">
+                        <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1">
+                            <i data-lucide="arrow-up-right" class="w-3 h-3 text-red-500"></i> Ambil Dana Dari
+                        </label>
+                        <select x-model.number="tfFromId" @change="updateTransferInfo()" required :disabled="isSubmitting"
+                                class="block w-full px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-gray-800 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none appearance-none">
+                            <option value="" disabled selected>-- Pilih Sumber --</option>
+                            <template x-for="acc in listAccounts" :key="acc.id">
+                                <option :value="acc.id" x-text="acc.name + ' (' + acc.currency + ')'" :disabled="acc.id === tfToId"></option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <div class="bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
+                        <label class="block text-[10px] font-black text-blue-500 uppercase tracking-widest mb-2 flex items-center gap-1">
+                            <i data-lucide="arrow-down-left" class="w-3 h-3 text-emerald-500"></i> Masukkan Dana Ke
+                        </label>
+                        <select x-model.number="tfToId" @change="updateTransferInfo()" required :disabled="isSubmitting"
+                                class="block w-full px-3 py-2.5 bg-white border border-blue-200 rounded-xl text-gray-800 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none appearance-none">
+                            <option value="" disabled selected>-- Pilih Tujuan --</option>
+                            <template x-for="acc in listAccounts" :key="acc.id">
+                                <option :value="acc.id" x-text="acc.name + ' (' + acc.currency + ')'" :disabled="acc.id === tfFromId"></option>
+                            </template>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Nominal Dipindahkan</label>
+                        <div class="relative group">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <span class="text-gray-500 font-black sm:text-sm" x-text="getCurrencySymbol(tfFromCurrency)"></span>
+                            </div>
+                            <input type="number" x-model.number="tfAmount" min="0.01" step="0.01" required :disabled="isSubmitting"
+                                   class="block w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-lg font-black focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all" 
+                                   placeholder="0">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 flex items-center justify-between">
+                            <span>Rate / Kurs Pertukaran</span>
+                            <span x-show="isCrossCurrency" class="text-orange-500 font-bold bg-orange-100 px-1.5 rounded text-[8px]">MANUAL</span>
+                            <span x-show="!isCrossCurrency && tfFromId && tfToId" class="text-emerald-500 font-bold bg-emerald-100 px-1.5 rounded text-[8px]">AUTO FIXED</span>
+                        </label>
+                        <div class="relative group">
+                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <i data-lucide="calculator" class="w-4 h-4 text-gray-400"></i>
+                            </div>
+                            <input type="number" x-model.number="tfRate" min="0.0001" step="0.0001" required :disabled="isSubmitting || !isCrossCurrency"
+                                   class="block w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-lg font-black focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all disabled:opacity-50 disabled:bg-gray-100" 
+                                   placeholder="1.0">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-900 rounded-2xl p-5 text-white shadow-inner flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-1">Estimasi Diterima (Tujuan)</p>
+                        <p class="text-xs text-gray-500 font-medium">Nominal Keluar &times; Rate Kurs</p>
+                    </div>
+                    <div class="text-right">
+                        <h2 class="text-3xl font-black text-emerald-400 flex items-baseline gap-2 justify-end">
+                            <span class="text-base text-emerald-600" x-text="getCurrencySymbol(tfToCurrency)"></span>
+                            <span x-text="formatCurrency(computedTransferResult, tfToCurrency).replace(/[A-Za-z$\s]/g, '')">0</span>
+                        </h2>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Catatan Mutasi</label>
+                    <textarea x-model="tfDescription" rows="2" required :disabled="isSubmitting"
+                              class="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none resize-none" 
+                              placeholder="Cth: Pindah dana dari BCA ke Jago untuk operasional..."></textarea>
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit" :disabled="isSubmitting || !tfFromId || !tfToId" 
+                            class="w-full py-4 rounded-xl text-white font-black text-sm bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
+                        <span x-show="!isSubmitting" class="flex items-center gap-2">
+                            <i data-lucide="send" class="w-4 h-4"></i> Proses Pindah Kas
+                        </span>
+                        <span x-show="isSubmitting" x-cloak>Menyinkronkan Buku Besar...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function financeDashboard() {
+        return {
+            // UI State
+            modalOpen: false,
+            transferModalOpen: false,
+            isSubmitting: false,
+            
+            // Injeksi data dari Backend ke JS Alpine untuk dipake di form Transfer
+            listAccounts: [
+                {% for acc in accounts %}
+                { id: {{ acc.id }}, name: "{{ acc.bank_name }}", currency: "{{ acc.currency }}" },
+                {% endfor %}
+            ],
+
+            // State Transaction Biasa
+            activeBankId: null,
+            activeBankName: '',
+            activeCurrency: 'IDR',
+            trxType: '', 
+            formAmount: null,
+            formCategoryId: '',
+            formDescription: '',
+            
+            // State Form Pindah Kas (Transfer)
+            tfFromId: '',
+            tfToId: '',
+            tfFromCurrency: '',
+            tfToCurrency: '',
+            isCrossCurrency: false,
+            tfAmount: null,
+            tfRate: 1,
+            tfDescription: '',
+            
+            initData() {
+                lucide.createIcons();
+            },
+
+            // ================== UTILS ==================
+            formatCurrency(value, currencyCode) {
+                if (value === null || value === undefined || isNaN(value)) return '0';
+                try {
+                    return new Intl.NumberFormat('id-ID', {
+                        style: 'currency',
+                        currency: currencyCode || 'IDR',
+                        maximumFractionDigits: 2
+                    }).format(value);
+                } catch (e) {
+                    return Number(value).toLocaleString('id-ID'); 
+                }
+            },
+
+            getCurrencySymbol(code) {
+                if(code === 'USD') return '$';
+                if(code === 'KHR') return '៛';
+                if(code === 'IDR') return 'Rp';
+                return code || '-';
+            },
+            
+            // ================== MODAL BIASA (IN/OUT) ==================
+            openModal(id, name, currency, type) {
+                this.activeBankId = id;
+                this.activeBankName = name;
+                this.activeCurrency = currency;
+                this.trxType = type;
+                
+                this.formAmount = null;
+                this.formCategoryId = '';
+                this.formDescription = '';
+                
+                this.modalOpen = true;
+                document.body.style.overflow = 'hidden';
+                setTimeout(() => lucide.createIcons(), 50);
+            },
+            closeModal() {
+                this.modalOpen = false;
+                document.body.style.overflow = 'auto';
+            },
+
+            async submitTransaction() {
+                if(this.isSubmitting) return;
+                if(!this.formAmount || this.formAmount <= 0) return this.$dispatch('notify', { type: 'error', message: 'Nominal tidak valid!' });
+                
+                this.isSubmitting = true;
+                const payload = {
+                    account_id: this.activeBankId,
+                    category_id: this.formCategoryId,
+                    transaction_type: this.trxType,
+                    amount: this.formAmount,
+                    description: this.formDescription
+                };
+
+                try {
+                    const response = await fetch('/api/v1/finance/transaction', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await response.json();
+                    
+                    if(response.ok && data.status === 'success') {
+                        this.$dispatch('notify', { type: 'success', message: 'Transaksi tercatat di buku besar!' });
+                        this.closeModal();
+                        setTimeout(() => window.location.reload(), 1200);
+                    } else {
+                        throw new Error(data.message || 'Error Server');
+                    }
+                } catch (error) {
+                    this.$dispatch('notify', { type: 'error', message: error.message });
+                } finally {
+                    this.isSubmitting = false;
+                }
+            },
+
+            // ================== MODAL PINDAH KAS ==================
+            openTransferModal() {
+                this.tfFromId = '';
+                this.tfToId = '';
+                this.tfFromCurrency = '';
+                this.tfToCurrency = '';
+                this.tfAmount = null;
+                this.tfRate = 1;
+                this.tfDescription = 'Pindah Dana / Exchange';
+                this.isCrossCurrency = false;
+
+                this.transferModalOpen = true;
+                document.body.style.overflow = 'hidden';
+                setTimeout(() => lucide.createIcons(), 50);
+            },
+            
+            closeTransferModal() {
+                this.transferModalOpen = false;
+                document.body.style.overflow = 'auto';
+            },
+
+            // Triggered every time From / To dropdown changes
+            updateTransferInfo() {
+                const fromAcc = this.listAccounts.find(a => a.id === this.tfFromId);
+                const toAcc = this.listAccounts.find(a => a.id === this.tfToId);
+                
+                this.tfFromCurrency = fromAcc ? fromAcc.currency : '';
+                this.tfToCurrency = toAcc ? toAcc.currency : '';
+
+                if (this.tfFromCurrency && this.tfToCurrency) {
+                    // Cek apakah beda mata uang
+                    this.isCrossCurrency = (this.tfFromCurrency !== this.tfToCurrency);
+                    // Reset rate ke 1 kalo mata uangnya sama (IDR ke IDR)
+                    if (!this.isCrossCurrency) {
+                        this.tfRate = 1;
+                    }
+                }
+            },
+
+            get computedTransferResult() {
+                const amt = parseFloat(this.tfAmount) || 0;
+                const rt = parseFloat(this.tfRate) || 0;
+                return amt * rt;
+            },
+
+            async submitTransferTransaction() {
+                if(this.isSubmitting) return;
+                
+                // Validasi Cerdas
+                if(!this.tfFromId || !this.tfToId) return this.$dispatch('notify', { type: 'error', message: 'Pilih sumber dan tujuan rekening!' });
+                if(this.tfFromId === this.tfToId) return this.$dispatch('notify', { type: 'error', message: 'Rekening sumber dan tujuan tidak boleh sama!' });
+                if(!this.tfAmount || this.tfAmount <= 0) return this.$dispatch('notify', { type: 'error', message: 'Nominal pindah kas tidak valid!' });
+                if(this.isCrossCurrency && (!this.tfRate || this.tfRate <= 0)) return this.$dispatch('notify', { type: 'error', message: 'Kurs/Rate wajib diisi untuk beda mata uang!' });
+
+                this.isSubmitting = true;
+                
+                // Payload buat dikirim ke FastAPI
+                const payload = {
+                    from_account_id: this.tfFromId,
+                    to_account_id: this.tfToId,
+                    amount_out: this.tfAmount,
+                    exchange_rate: this.isCrossCurrency ? this.tfRate : 1.0,
+                    amount_in: this.computedTransferResult,
+                    description: this.tfDescription
+                };
+
+                try {
+                    // Endpoint khusus pindah dana (Lu butuh bikin ini di main.py)
+                    const response = await fetch('/api/v1/finance/transfer', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if(response.ok && data.status === 'success') {
+                        this.$dispatch('notify', { type: 'success', message: 'Pindah Kas & Mutasi berhasil dicatat!' });
+                        this.closeTransferModal();
+                        setTimeout(() => window.location.reload(), 1200);
+                    } else {
+                        throw new Error(data.message || 'Gagal memproses pindah kas');
+                    }
+                } catch (error) {
+                    this.$dispatch('notify', { type: 'error', message: error.message });
+                } finally {
+                    this.isSubmitting = false;
+                }
+            },
+
+            // Tombol dummy bank baru
+            openAddBankModal() {
+                this.$dispatch('notify', { type: 'info', message: 'Fitur pembuatan Rekening Baru segera hadir di update berikutnya.' });
+            }
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth bg-gray-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Admin BABA">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0B1121">
+    <link rel="apple-touch-icon" href="/static/img/Logo_BABA.png">
+
+    <title>{% block title %}Admin Panel{% endblock %} - BABA Parfume</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            50: '#fefce8',
+                            100: '#fef9c3',
+                            400: '#facc15',
+                            500: '#eab308',
+                            600: '#ca8a04',
+                            900: '#713f12',
+                            dark: '#0B1121', // Dark sidebar
+                            darker: '#080d1a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* SCROLLBAR MODERN */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+
+        body {
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none;
+        }
+
+        /* UTILITY ANIMATIONS */
+        @keyframes loadBar {
+            0% { width: 0; opacity: 1; }
+            50% { width: 70%; opacity: 1; }
+            100% { width: 100%; opacity: 0; }
+        }
+        .animate-load-bar { animation: loadBar 1s ease-out forwards; }
+        .page-transition-enter { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* HIDE ALPINE ELEMENTS UNTIL LOADED */
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+
+<body class="flex h-screen overflow-hidden text-gray-800 antialiased font-sans bg-gray-50" 
+      x-data="adminGlobalState()" 
+      x-init="initSystem()"
+      @keydown.window.ctrl.slash.prevent="helpOpen = true">
+
+    <div class="fixed top-0 left-0 h-1 bg-brand-500 z-[100] animate-load-bar pointer-events-none shadow-[0_0_10px_rgba(234,179,8,0.8)]"></div>
+
+    <div x-show="sidebarOpen" x-cloak x-transition.opacity class="fixed inset-0 z-40 bg-gray-900/60 backdrop-blur-sm lg:hidden" @click="sidebarOpen = false"></div>
+
+    <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" class="fixed inset-y-0 left-0 z-50 w-[280px] bg-brand-dark text-white flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 border-r border-gray-800">
+        
+        <div class="h-20 flex items-center justify-between px-6 border-b border-gray-800 bg-brand-darker shrink-0 relative overflow-hidden">
+            <div class="absolute -right-10 -top-10 w-32 h-32 bg-brand-500/10 rounded-full blur-3xl"></div>
+            <div class="flex items-center gap-3 relative z-10">
+                <div class="w-10 h-10 bg-gradient-to-br from-brand-400 to-brand-600 rounded-lg flex items-center justify-center shadow-lg shadow-brand-500/20 border border-brand-400/50">
+                    <i data-lucide="droplet" class="w-5 h-5 text-brand-dark fill-current"></i>
+                </div>
+                <div class="flex flex-col justify-center">
+                    <h1 class="text-xl font-bold tracking-wide text-white leading-none">BABA<span class="text-brand-500">.</span></h1>
+                    <span class="text-[10px] text-brand-400 font-medium tracking-widest uppercase mt-1">Enterprise</span>
+                </div>
+            </div>
+            <button @click="sidebarOpen = false" class="text-gray-400 hover:text-white lg:hidden p-2 rounded-lg bg-gray-800/50 relative z-10 transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        {% set current_path = request.url.path %}
+        
+        <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto custom-scrollbar">
+            
+            <p class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 mt-2">Menu Utama</p>
+            
+            <a href="/admin" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 {% if current_path == '/admin' or current_path == '/admin/' %}bg-brand-500/10 text-brand-400 font-semibold{% else %}text-gray-400 hover:bg-gray-800/50 hover:text-gray-200 font-medium{% endif %}">
+                <i data-lucide="layout-dashboard" class="w-5 h-5 {% if current_path == '/admin' or current_path == '/admin/' %}text-brand-500{% endif %}"></i>
+                <span>Dashboard</span>
+            </a>
+            
+            {% if admin_role in ['super_admin', 'oprasional'] %}
+            <!-- LEVERAGE: Arahkan ke /admin/stock -->
+            <a href="/admin/stock" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 {% if current_path == '/admin/stock' %}bg-brand-500/10 text-brand-400 font-semibold{% else %}text-gray-400 hover:bg-gray-800/50 hover:text-gray-200 font-medium{% endif %}">
+                <i data-lucide="package-search" class="w-5 h-5 {% if current_path == '/admin/stock' %}text-brand-500{% endif %}"></i>
+                <span>Manajemen Stok</span>
+            </a>
+
+            <!-- WIP: Belanja & PO (Backend Nyusul) -->
+            <a href="/admin/stock/belanja" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 {% if '/admin/stock/belanja' in current_path %}bg-brand-500/10 text-brand-400 font-semibold{% else %}text-gray-400 hover:bg-gray-800/50 hover:text-gray-200 font-medium{% endif %}">
+                <i data-lucide="truck" class="w-5 h-5 {% if '/admin/stock/belanja' in current_path %}text-brand-500{% endif %}"></i>
+                <span>Belanja & PO</span>
+            </a>
+            
+            <!-- LEVERAGE: Arahkan ke /admin/orders -->
+            <a href="/admin/orders" class="flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors duration-200 {% if '/admin/orders' in current_path %}bg-brand-500/10 text-brand-400 font-semibold{% else %}text-gray-400 hover:bg-gray-800/50 hover:text-gray-200 font-medium{% endif %}">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="shopping-cart" class="w-5 h-5 {% if '/admin/orders' in current_path %}text-brand-500{% endif %}"></i>
+                    <span>Pesanan Masuk</span>
+                </div>
+                {% if pending_count and pending_count > 0 %}
+                    <span class="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">{{ pending_count }}</span>
+                {% endif %}
+            </a>
+            {% endif %}
+
+            {% if admin_role in ['super_admin', 'oprasional'] %}
+            <div class="my-6 border-t border-gray-800/80"></div>
+            <p class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Keuangan (Finance)</p>
+
+            <!-- LEVERAGE: Arahkan ke /admin/finance/aset -->
+            <a href="/admin/finance/aset" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 {% if '/admin/finance/aset' in current_path %}bg-brand-500/10 text-brand-400 font-semibold{% else %}text-gray-400 hover:bg-gray-800/50 hover:text-gray-200 font-medium{% endif %}">
+                <i data-lucide="landmark" class="w-5 h-5 {% if '/admin/finance/aset' in current_path %}text-brand-500{% endif %}"></i>
+                <span>Aset & Dompet</span>
+            </a>
+
+            <!-- LEVERAGE: Arahkan ke /admin/finance/mutasi -->
+            <a href="/admin/finance/mutasi" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 {% if '/admin/finance/mutasi' in current_path %}bg-brand-500/10 text-brand-400 font-semibold{% else %}text-gray-400 hover:bg-gray-800/50 hover:text-gray-200 font-medium{% endif %}">
+                <i data-lucide="arrow-right-left" class="w-5 h-5 {% if '/admin/finance/mutasi' in current_path %}text-brand-500{% endif %}"></i>
+                <span>Buku Besar (Ledger)</span>
+            </a>
+            {% endif %}
+
+            {% if admin_role == 'super_admin' %}
+            <a href="/admin/finance/report" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 {% if '/admin/finance/report' in current_path %}bg-brand-500/10 text-brand-400 font-semibold{% else %}text-gray-400 hover:bg-gray-800/50 hover:text-gray-200 font-medium{% endif %}">
+                <i data-lucide="pie-chart" class="w-5 h-5 {% if '/admin/finance/report' in current_path %}text-brand-500{% endif %}"></i>
+                <span>Laporan Laba Rugi</span>
+            </a>
+            {% endif %}
+
+            <div class="my-6 border-t border-gray-800/80"></div>
+            <p class="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">CRM & Pelayanan</p>
+            
+            {% if admin_role in ['super_admin', 'marketing'] %}
+            <!-- LEVERAGE: Arahkan ke /admin/customers -->
+            <a href="/admin/customers" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 {% if '/admin/customers' in current_path %}bg-brand-500/10 text-brand-400 font-semibold{% else %}text-gray-400 hover:bg-gray-800/50 hover:text-gray-200 font-medium{% endif %}">
+                <i data-lucide="users-2" class="w-5 h-5 {% if '/admin/customers' in current_path %}text-brand-500{% endif %}"></i>
+                <span>Data Pelanggan</span>
+            </a>
+            {% endif %}
+
+            <!-- WIP: Panel CS -->
+            {% if admin_role in ['super_admin', 'marketing', 'cs'] %}
+            <a href="/admin/cs" class="flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors duration-200 group {% if '/admin/cs' in current_path %}bg-brand-500/10 text-brand-400 font-semibold{% else %}text-gray-400 hover:bg-gray-800/50 hover:text-gray-200 font-medium{% endif %}">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="bot-message-square" class="w-5 h-5 {% if '/admin/cs' in current_path %}text-brand-500{% endif %} group-hover:text-brand-400 transition-colors"></i>
+                    <span>Panel CS (AI)</span>
+                </div>
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+            </a>
+            {% endif %}
+            
+            {% if admin_role == 'super_admin' %}
+            <div class="my-6 border-t border-gray-800/80"></div>
+            <p class="px-3 text-xs font-semibold text-red-400/80 uppercase tracking-wider mb-3">Zona Dewa</p>
+
+            <!-- WIP: Manajemen Staff (Backend Nyusul) -->
+            <a href="/admin/staff" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 {% if '/admin/staff' in current_path %}bg-brand-500/10 text-brand-400 font-semibold{% else %}text-gray-400 hover:bg-gray-800/50 hover:text-gray-200 font-medium{% endif %}">
+                <i data-lucide="shield-half" class="w-5 h-5 {% if '/admin/staff' in current_path %}text-brand-500{% endif %}"></i>
+                <span>Manajemen Staff</span>
+            </a>
+
+            <!-- LEVERAGE: Arahkan ke /admin/settings -->
+            <a href="/admin/settings" class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors duration-200 {% if '/admin/settings' in current_path %}bg-brand-500/10 text-brand-400 font-semibold{% else %}text-gray-400 hover:bg-gray-800/50 hover:text-gray-200 font-medium{% endif %}">
+                <i data-lucide="settings" class="w-5 h-5 {% if '/admin/settings' in current_path %}text-brand-500{% endif %}"></i>
+                <span>Sistem Web</span>
+            </a>
+            {% endif %}
+        </nav>
+
+        <div class="px-4 py-4 mt-auto">
+            <div class="bg-gray-800/30 border border-gray-700/50 rounded-xl p-3.5">
+                <div class="flex items-center justify-between mb-2.5">
+                    <span class="text-xs font-semibold text-gray-400">Database</span>
+                    <i data-lucide="database" class="w-3.5 h-3.5 text-gray-500"></i>
+                </div>
+                <div class="w-full bg-gray-900 rounded-full h-1.5 mb-2 border border-gray-800/50">
+                    <div class="bg-emerald-500 h-1.5 rounded-full" style="width: 35%"></div>
+                </div>
+                <p class="text-[11px] text-gray-400">175 MB / 500 MB (35%)</p>
+            </div>
+        </div>
+
+        <div class="p-4 border-t border-gray-800 bg-brand-darker shrink-0">
+            <div class="flex items-center justify-between mb-3 px-1">
+                <span class="text-xs text-gray-400 font-medium">Server Time</span>
+                <span class="text-xs font-bold text-brand-400" x-text="currentTime"></span>
+            </div>
+            <a href="/" target="_blank" class="flex items-center justify-center gap-2 w-full py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded-lg text-sm font-medium transition-colors border border-gray-700">
+                <i data-lucide="external-link" class="w-4 h-4"></i>
+                <span>Buka Web Store</span>
+            </a>
+        </div>
+    </aside>
+
+    <div class="flex-1 flex flex-col h-screen overflow-hidden relative">
+        
+        <header class="h-20 bg-white/80 backdrop-blur-md border-b border-gray-200 flex items-center px-4 lg:px-8 justify-between z-30 shrink-0">
+            
+            <div class="flex items-center">
+                <button @click="sidebarOpen = true" class="p-2 text-gray-500 hover:bg-gray-100 rounded-lg lg:hidden mr-3 transition-colors">
+                    <i data-lucide="menu" class="w-6 h-6"></i>
+                </button>
+                
+                <div class="hidden sm:block">
+                    <h2 class="text-xl font-bold text-gray-800 leading-tight">{% block header %}Dashboard{% endblock %}</h2>
+                    <div class="flex items-center text-xs font-medium text-gray-500 mt-0.5">
+                        <span>Baba Engine</span>
+                        <i data-lucide="chevron-right" class="w-3.5 h-3.5 mx-1.5 text-gray-400"></i>
+                        <span class="text-brand-600">{% block breadcrumb %}Overview{% endblock %}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 lg:gap-4">
+                
+                <div class="hidden lg:flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100 mr-2 cursor-help" title="Sistem berjalan normal">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span class="text-xs font-bold text-emerald-700">Ping <span x-text="serverPing"></span>ms</span>
+                </div>
+
+                <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                    <button @click="open = !open" class="p-2 text-gray-400 hover:text-brand-500 hover:bg-brand-50 rounded-lg transition-colors focus:outline-none">
+                        <i data-lucide="zap" class="w-5 h-5"></i>
+                    </button>
+                    <div x-show="open" x-cloak
+                         x-transition:enter="transition ease-out duration-100"
+                         x-transition:enter-start="transform opacity-0 scale-95"
+                         x-transition:enter-end="transform opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-75"
+                         x-transition:leave-start="transform opacity-100 scale-100"
+                         x-transition:leave-end="transform opacity-0 scale-95"
+                         class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden">
+                        <div class="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+                            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Jalan Pintas</p>
+                        </div>
+                        <div class="p-1.5">
+                            {% if admin_role in ['super_admin', 'oprasional'] %}
+                            <a href="/admin/stock" class="flex items-center px-3 py-2.5 rounded-md text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700 transition-colors">
+                                <i data-lucide="plus-square" class="w-4 h-4 mr-3 text-gray-400"></i> Tambah Parfum Baru
+                            </a>
+                            {% endif %}
+                            {% if admin_role in ['super_admin', 'marketing', 'cs'] %}
+                            <a href="/admin/cs" class="flex items-center px-3 py-2.5 rounded-md text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700 transition-colors">
+                                <i data-lucide="message-square-dashed" class="w-4 h-4 mr-3 text-gray-400"></i> Pantau Live Chat AI
+                            </a>
+                            {% endif %}
+                            <button @click="helpOpen = true; open = false" class="w-full text-left flex items-center px-3 py-2.5 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                                <i data-lucide="life-buoy" class="w-4 h-4 mr-3 text-gray-400"></i> Bantuan & Dokumen
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                    <button @click="open = !open" class="relative p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors focus:outline-none">
+                        <i data-lucide="bell" class="w-5 h-5"></i>
+                        {% if pending_count and pending_count > 0 %}
+                        <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+                        {% endif %}
+                    </button>
+                    <div x-show="open" x-cloak
+                         x-transition:enter="transition ease-out duration-100"
+                         x-transition:enter-start="transform opacity-0 scale-95"
+                         x-transition:enter-end="transform opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-75"
+                         x-transition:leave-start="transform opacity-100 scale-100"
+                         x-transition:leave-end="transform opacity-0 scale-95"
+                         class="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden">
+                        <div class="px-4 py-3 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                            <p class="text-sm font-semibold text-gray-800">Notifikasi</p>
+                            <span class="text-[10px] font-bold bg-brand-100 text-brand-700 px-2 py-1 rounded-md">{{ pending_count | default('0') }} Baru</span>
+                        </div>
+                        <div class="max-h-64 overflow-y-auto">
+                            {% if pending_count and pending_count > 0 %}
+                            <a href="/admin/orders" class="p-4 flex gap-3 hover:bg-gray-50 transition-colors border-b border-gray-50 block">
+                                <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center shrink-0">
+                                    <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-semibold text-gray-900">Ada {{ pending_count }} Order Pending!</p>
+                                    <p class="text-xs text-gray-500 mt-1">Segera cek pembayaran agar pesanan bisa diproses.</p>
+                                </div>
+                            </a>
+                            {% else %}
+                            <div class="p-8 text-center">
+                                <div class="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i data-lucide="check" class="w-6 h-6 text-gray-400"></i>
+                                </div>
+                                <p class="text-sm font-medium text-gray-500">Semua tugas beres!</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="h-6 w-px bg-gray-200 hidden md:block mx-1"></div>
+
+                <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                    <button @click="open = !open" type="button" class="flex items-center gap-2 lg:gap-3 p-1 rounded-full hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2">
+                        {% set safe_name = (admin_name or 'Admin') | replace(' ', '+') %}
+                        <img src="https://ui-avatars.com/api/?name={{ safe_name }}&background=0B1121&color=facc15&bold=true" alt="Admin Avatar" class="w-8 h-8 lg:w-9 lg:h-9 rounded-full object-cover border border-gray-200">
+                        <div class="hidden md:flex flex-col items-start pr-1">
+                            <span class="text-sm font-bold text-gray-700 leading-none">{{ admin_name | default('Admin BABA') }}</span>
+                            <span class="text-[11px] font-medium text-gray-500 mt-0.5">{{ admin_role | replace('_', ' ') | title | default('Staff') }}</span>
+                        </div>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 hidden md:block transition-transform duration-200" :class="open ? 'rotate-180' : ''"></i>
+                    </button>
+
+                    <div x-show="open" x-cloak
+                         x-transition:enter="transition ease-out duration-100"
+                         x-transition:enter-start="transform opacity-0 scale-95"
+                         x-transition:enter-end="transform opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-75"
+                         x-transition:leave-start="transform opacity-100 scale-100"
+                         x-transition:leave-end="transform opacity-0 scale-95"
+                         class="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden">
+                        
+                        <div class="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+                            <p class="text-xs text-gray-500 mb-1">Masuk sebagai</p>
+                            <p class="text-sm font-bold text-gray-900 truncate">{{ admin_name | default('Admin') }}</p>
+                        </div>
+
+                        <div class="p-1.5">
+                            <a href="/admin/profile" class="flex items-center px-3 py-2.5 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                                <i data-lucide="user" class="w-4 h-4 mr-3 text-gray-400"></i> Profil Saya
+                            </a>
+
+                            {% if admin_role == 'super_admin' %}
+                            <a href="/admin/settings" class="flex items-center px-3 py-2.5 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                                <i data-lucide="settings" class="w-4 h-4 mr-3 text-gray-400"></i> Pengaturan
+                            </a>
+                            {% endif %}
+                            
+                            <a href="/" target="_blank" class="flex items-center px-3 py-2.5 rounded-md text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                                <i data-lucide="external-link" class="w-4 h-4 mr-3 text-gray-400"></i> Lihat Website
+                            </a>
+                        </div>
+
+                        <div class="border-t border-gray-100 p-1.5">
+                            <a href="/admin/logout" class="flex items-center px-3 py-2.5 rounded-md text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors">
+                                <i data-lucide="log-out" class="w-4 h-4 mr-3 text-red-500"></i> Logout
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto custom-scrollbar p-4 lg:p-8 relative page-transition-enter">
+            
+            {% if request.url.path == '/admin/staff' and admin_role != 'super_admin' %}
+                <div class="bg-white border border-red-100 p-8 rounded-2xl text-center shadow-sm max-w-md mx-auto mt-12">
+                    <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="shield-alert" class="w-8 h-8 text-red-500"></i>
+                    </div>
+                    <h2 class="text-xl font-bold mb-2 text-gray-800">Akses Ditolak!</h2>
+                    <p class="text-sm text-gray-500 mb-6">Halaman ini adalah zona merah. Hanya Super Admin yang diizinkan untuk mengakses manajemen staff.</p>
+                    <a href="/admin" class="inline-flex items-center justify-center bg-gray-900 text-white text-sm font-semibold px-6 py-2.5 rounded-lg hover:bg-gray-800 transition-colors">Kembali ke Dashboard</a>
+                </div>
+            {% else %}
+                {% block content %}
+                {% endblock %}
+            {% endif %}
+            
+            <div class="mt-12 pt-6 border-t border-gray-200/60 text-center pb-6">
+                <p class="text-xs font-semibold text-gray-400">BABA Parfume Enterprise System &copy; 2026</p>
+                <p class="text-[11px] text-gray-400 mt-1">Membawa wangi ke seluruh Kamboja 🇰🇭</p>
+            </div>
+        </main>
+    </div>
+
+    <div x-show="helpOpen" x-cloak style="display: none;" class="relative z-[70]" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+        <div x-show="helpOpen" x-transition.opacity class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity" @click="helpOpen = false"></div>
+
+        <div class="fixed inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute inset-0 overflow-hidden">
+                <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
+                    <div x-show="helpOpen"
+                         x-transition:enter="transform transition ease-in-out duration-300 sm:duration-500"
+                         x-transition:enter-start="translate-x-full"
+                         x-transition:enter-end="translate-x-0"
+                         x-transition:leave="transform transition ease-in-out duration-300 sm:duration-500"
+                         x-transition:leave-start="translate-x-0"
+                         x-transition:leave-end="translate-x-full"
+                         class="pointer-events-auto w-screen max-w-md">
+                        
+                        <div class="flex h-full flex-col overflow-y-scroll bg-white shadow-2xl border-l border-gray-100">
+                            <div class="px-6 py-5 sm:px-6 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                                <h2 class="text-base font-bold text-gray-900 flex items-center gap-2">
+                                    <i data-lucide="life-buoy" class="w-5 h-5 text-brand-500"></i> Pusat Bantuan
+                                </h2>
+                                <button type="button" @click="helpOpen = false" class="rounded-md bg-white text-gray-400 hover:text-gray-500 hover:bg-gray-100 p-2 focus:outline-none transition-colors">
+                                    <i data-lucide="x" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="relative flex-1 px-6 py-6 space-y-6">
+                                <div>
+                                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Panduan Cepat</h3>
+                                    <div class="space-y-4">
+                                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                            <h4 class="text-sm font-semibold text-gray-900 mb-1">Pesanan Pending?</h4>
+                                            <p class="text-sm text-gray-600">Cek mutasi bank atau chat pelanggan. Jika sudah bayar, ubah status jadi "Diproses". Jika tidak, abaikan atau hubungi via Tele.</p>
+                                        </div>
+                                        <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                            <h4 class="text-sm font-semibold text-gray-900 mb-1">AI Salah Jawab?</h4>
+                                            <p class="text-sm text-gray-600">Buka menu <b>Panel CS</b>, cari sesi pelanggan tersebut, klik mode <b>Intercept</b>, lalu balas manual pesannya.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="border-t border-gray-100 pt-6">
+                                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Keyboard Shortcuts</h3>
+                                    <div class="bg-gray-50 px-4 py-3 rounded-xl border border-gray-100 flex justify-between items-center">
+                                        <span class="text-sm text-gray-600">Buka Panel Bantuan</span>
+                                        <kbd class="bg-white border border-gray-200 shadow-sm text-gray-600 px-2 py-1 rounded text-xs font-mono font-bold">Ctrl + /</kbd>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 text-center">
+                                <p class="text-sm text-gray-500 font-medium">BABA IT Support Team<br>+62 8xx-xxxx-xxxx</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function adminGlobalState() {
+            return {
+                sidebarOpen: false,
+                helpOpen: false,
+                currentTime: '',
+                serverPing: 12,
+                
+                initSystem() {
+                    this.updateTime();
+                    setInterval(() => this.updateTime(), 60000);
+                    // Simulasi Fluktuasi Ping Jaringan
+                    setInterval(() => {
+                        this.serverPing = Math.floor(Math.random() * (45 - 12 + 1) + 12);
+                    }, 5000);
+                },
+
+                updateTime() {
+                    const now = new Date();
+                    this.currentTime = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+                }
+            }
+        }
+
+        // Initialize Lucide Icons
+        document.addEventListener('alpine:init', () => {
+            lucide.createIcons();
+        });
+        window.onload = function() {
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>

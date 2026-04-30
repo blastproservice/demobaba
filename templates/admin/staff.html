@@ -1,0 +1,148 @@
+{% extends 'admin/base.html' %}
+{% block title %}Manajemen Staff{% endblock %}
+{% block header %}Zona Dewa: Manajemen Staff{% endblock %}
+
+{% block content %}
+<div x-data="{ isModalOpen: false }" class="animate-[fadeInUp_0.5s_ease-out]">
+    
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+            <h2 class="text-2xl font-black text-gray-900 tracking-tight">Daftar Admin & Staff</h2>
+            <p class="text-sm text-gray-500 font-medium mt-1">Atur siapa aja yang boleh ngendalikan sistem BABA Parfume.</p>
+        </div>
+        <button @click="isModalOpen = true" class="bg-gradient-to-r from-gray-900 to-black text-yellow-400 font-black px-6 py-3 rounded-xl shadow-[0_8px_20px_-8px_rgba(0,0,0,0.5)] active:scale-95 transition-all flex items-center justify-center gap-2 hover:shadow-lg">
+            <i data-lucide="user-plus" class="w-4 h-4"></i> Tambah Karyawan
+        </button>
+    </div>
+
+    <div class="bg-white rounded-[1.5rem] border border-gray-100 shadow-[0_10px_30px_-15px_rgba(0,0,0,0.05)] overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50/50 border-b border-gray-100">
+                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Karyawan</th>
+                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Akses (Role)</th>
+                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Tgl Dibuat</th>
+                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100/80">
+                    <tr class="hover:bg-yellow-50/30 transition-colors group">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-gradient-to-tr from-gray-900 to-black rounded-full flex items-center justify-center border-2 border-yellow-400 shadow-md">
+                                    <i data-lucide="crown" class="w-4 h-4 text-yellow-400"></i>
+                                </div>
+                                <div>
+                                    <p class="font-black text-gray-900 text-sm">Dewa BABA</p>
+                                    <p class="text-[11px] text-gray-500 font-bold mt-0.5">.env Configuration</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="bg-red-100 text-red-700 text-[10px] font-black px-3 py-1 rounded-md uppercase tracking-wider border border-red-200 shadow-sm">Super Admin</span>
+                        </td>
+                        <td class="px-6 py-4 text-xs text-gray-500 font-medium">Bawaan Sistem</td>
+                        <td class="px-6 py-4 text-right">
+                            <span class="text-xs font-bold text-gray-400 italic">Immortal (Tak Terkalahkan)</span>
+                        </td>
+                    </tr>
+
+                    {% for staff in staffs %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <img src="https://ui-avatars.com/api/?name={{ staff.full_name | replace(' ', '+') }}&background=f3f4f6&color=374151&bold=true" class="w-10 h-10 rounded-full border border-gray-200">
+                                <div>
+                                    <p class="font-black text-gray-900 text-sm">{{ staff.full_name }}</p>
+                                    <p class="text-[11px] text-gray-500 font-bold mt-0.5">@{{ staff.username }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if staff.role == 'oprasional' %}
+                                <span class="bg-blue-100 text-blue-700 text-[10px] font-black px-3 py-1 rounded-md uppercase tracking-wider border border-blue-200">Operasional</span>
+                            {% elif staff.role == 'marketing' %}
+                                <span class="bg-purple-100 text-purple-700 text-[10px] font-black px-3 py-1 rounded-md uppercase tracking-wider border border-purple-200">Marketing</span>
+                            {% elif staff.role == 'cs' %}
+                                <span class="bg-emerald-100 text-emerald-700 text-[10px] font-black px-3 py-1 rounded-md uppercase tracking-wider border border-emerald-200">Customer Service</span>
+                            {% else %}
+                                <span class="bg-gray-100 text-gray-600 text-[10px] font-black px-3 py-1 rounded-md uppercase tracking-wider border border-gray-200">Visitor</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-xs text-gray-500 font-medium">{{ staff.created_at | datetime }}</td>
+                        <td class="px-6 py-4 text-right">
+                            <a href="/admin/staff/delete/{{ staff.id }}" onclick="return confirm('Pecat karyawan ini bre?')" class="inline-flex items-center justify-center w-8 h-8 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors border border-red-100">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    
+                    {% if not staffs %}
+                    <tr>
+                        <td colspan="4" class="px-6 py-12 text-center">
+                            <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <i data-lucide="users" class="w-8 h-8 text-gray-300"></i>
+                            </div>
+                            <p class="text-gray-500 font-bold">Belum ada staff yang didaftarkan.</p>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div x-show="isModalOpen" style="display: none;" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div x-show="isModalOpen" x-transition.opacity class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" @click="isModalOpen = false"></div>
+        
+        <div x-show="isModalOpen" 
+             x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100 translate-y-0" x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+             class="bg-white rounded-[2rem] w-full max-w-lg relative z-10 shadow-2xl overflow-hidden border border-gray-100">
+            
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center"><i data-lucide="user-plus" class="w-5 h-5"></i></div>
+                    <h3 class="text-lg font-black text-gray-900">Rekrut Staff Baru</h3>
+                </div>
+                <button @click="isModalOpen = false" class="p-2 text-gray-400 hover:text-gray-600 bg-white border border-gray-200 rounded-full transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+
+            <form action="/admin/staff/add" method="POST" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 pl-1">Nama Lengkap</label>
+                    <input type="text" name="full_name" required placeholder="Cth: Andika Rahmadana" class="w-full bg-gray-50 border border-gray-200 px-4 py-3.5 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 pl-1">Username Login</label>
+                        <input type="text" name="username" required placeholder="Cth: dika_op" class="w-full bg-gray-50 border border-gray-200 px-4 py-3.5 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 pl-1">Password</label>
+                        <input type="password" name="password" required placeholder="Bikin rahasia..." class="w-full bg-gray-50 border border-gray-200 px-4 py-3.5 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 pl-1">Hak Akses Jabatan</label>
+                    <select name="role" required class="w-full bg-gray-50 border border-gray-200 px-4 py-3.5 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all appearance-none cursor-pointer">
+                        <option value="oprasional">📦 Operasional (Bisa akses Order & Stok)</option>
+                        <option value="marketing">🚀 Marketing (Bisa akses Customer & AI CS)</option>
+                        <option value="cs">💬 CS / AI Manager (Cuma bisa pantau AI CS)</option>
+                        <option value="visitor">👁️ Visitor (Cuma bisa liat dashboard)</option>
+                    </select>
+                </div>
+
+                <div class="pt-4 flex gap-3 mt-2">
+                    <button type="button" @click="isModalOpen = false" class="flex-1 py-3.5 bg-white border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 transition-colors">Batal</button>
+                    <button type="submit" class="flex-1 py-3.5 bg-gray-900 text-yellow-400 font-black rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all">Simpan Karyawan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
