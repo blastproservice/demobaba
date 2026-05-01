@@ -19,7 +19,7 @@ from aiogram.client.default import DefaultBotProperties
 try:
     from database import supabase
 except ImportError:
-    print("❌ [FATAL ERROR] File database.py tidak ditemukan!")
+    print("[FATAL ERROR] File database.py tidak ditemukan!")
     supabase = None
 
 # ==============================================================================
@@ -32,7 +32,7 @@ ADMIN_ID = os.getenv("ADMIN_ID")
 WEB_APP_URL = os.getenv("WEB_APP_URL") or "http://127.0.0.1:8000"
 
 if not BOT_TOKEN:
-    raise ValueError("❌ [ERROR] BOT_TOKEN belum diisi di file .env!")
+    raise ValueError("[ERROR] BOT_TOKEN belum diisi di file .env!")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("BabaBotEngine")

@@ -236,15 +236,16 @@
 
             async loadMessages(sessionId, isSilentUpdate = false) {
                 try {
-                    const res = await fetch(`/api/v1/admin/cs/messages?session_id=${sessionId}`);
+                    const url = '/api/v1/admin/cs/messages?session_id=' + sessionId;
+                    const res = await fetch(url);
                     if (!res.ok) throw new Error('Network response was not ok');
                     const data = await res.json();
                     
                     if(data.status === 'success') {
                         // Cek apakah ada chat baru biar scroll nggak loncat-loncat
-                        if (isSilentUpdate && data.messages.length === this.currentMessages.length) return;
+                        if (isSilentUpdate && data.messages && data.messages.length === this.currentMessages.length) return;
                         
-                        this.currentMessages = data.messages;
+                        this.currentMessages = data.messages || [];
                         if (!isSilentUpdate) this.scrollToBottom();
                     }
                 } catch (e) { 
@@ -268,12 +269,13 @@
                 this.scrollToBottom();
 
                 try {
+                    const telegramId = this.selectedSession.telegram_id || (this.selectedSession.customers ? this.selectedSession.customers.telegram_id : 0);
                     const res = await fetch('/api/v1/admin/cs/send-manual', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             session_id: this.selectedSession.id,
-                            tele_id: this.selectedSession.telegram_id || this.selectedSession.customers?.telegram_id,
+                            tele_id: telegramId,
                             message: text
                         })
                     });

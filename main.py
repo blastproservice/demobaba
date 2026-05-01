@@ -1,105 +1,108 @@
-import os
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 # ==============================================================================
-# 1. IMPORT MESIN BOT AIOGRAM
+# IMPORT SEMUA KOMANDAN (ROUTERS)
 # ==============================================================================
-try:
-    from bot import bot, dp, router as bot_router, alarm_pesanan_pending
-    BOT_AVAILABLE = True
-    print("✅ [SYSTEM] Modul Bot berhasil di-load!")
-except Exception as e:
-    print(f"❌ [SYSTEM] Gagal import bot.py: {e}")
-    BOT_AVAILABLE = False
-
-# ==============================================================================
-# 2. IMPORT SEMUA ROUTER MODULAR (Arsitektur Baru)
-# ==============================================================================
-# Ini adalah kabel-kabel yang menghubungkan semua modul yang udah kita rakit
+from routers.admin import (
+    auth, dashboard, stock, finance, orders, 
+    customers, settings, staff, cs, profile
+)
 from routers.customer import store
-from routers.admin import dashboard, stock, finance, orders, customers, settings, cs
+
+# Setup Logger (Biar gampang pantau error di VPS)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("baba.engine")
 
 # ==============================================================================
-# 3. LIFESPAN JANTUNG INTEGRASI (Sihir Telegram & FastAPI)
+# LIFESPAN MANAGER (Jantung Background Tasks & Bot Telegram)
 # ==============================================================================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 [LIFESPAN] BABA Enterprise Engine Starting...")
+    logger.info("[SYSTEM] BABA Enterprise Engine Starting...")
     
-    bot_task = None
-    if BOT_AVAILABLE:
-        try:
-            dp.include_router(bot_router)
-            await bot.delete_webhook(drop_pending_updates=True)
-            
-            # Jalanin Polling & Alarm di Background tanpa ngeblok server web
-            asyncio.create_task(alarm_pesanan_pending(bot))
-            bot_task = asyncio.create_task(dp.start_polling(bot, handle_signals=False))
-            
-            print("✅ [LIFESPAN] Bot Telegram Standby & Siap Tempur!")
-        except Exception as e:
-            print(f"❌ [LIFESPAN] Error nyalain bot: {e}")
-
-    yield # Di sini aplikasi Web lu running dan ngelayanin customer
-
-    print("🛑 [LIFESPAN] Shutting down...")
-    if bot_task:
-        bot_task.cancel()
-    if BOT_AVAILABLE:
-        await bot.session.close()
+    # TODO: Nanti kita nyalain logic Aiogram Bot Telegram lu di sini
+    # bot_task = asyncio.create_task(start_bot())
+    # logger.info("[SYSTEM] Telegram Bot Standby!")
+    
+    yield # Di titik ini, web lu jalan ngelayanin customer
+    
+    logger.info("[SYSTEM] Shutting down...")
+    # if bot_task:
+    #     bot_task.cancel()
 
 # ==============================================================================
-# 4. INISIALISASI FASTAPI CORE
+# INISIASI APLIKASI UTAMA (SANG JENDERAL)
 # ==============================================================================
 app = FastAPI(
-    title="BABA Parfume Enterprise Engine",
-    description="Modular & Scalable Backend by Andika",
-    version="5.0.0",
-    lifespan=lifespan # Inject jantungnya ke sini
+    title="BABA Parfume Enterprise",
+    description="Core Engine for BABA Parfume Management & Bot",
+    version="2.0.0",
+    lifespan=lifespan,
+    docs_url=None, # Matiin docs bawaan buat security
+    redoc_url=None
 )
 
-# Pasang Tameng CORS biar API lu aman dipanggil dari web mana aja
+# ==============================================================================
+# TAMENG KEAMANAN & MIDDLEWARE (CORS)
+# ==============================================================================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"], # Nanti ganti pake domain asli lu pas naik VPS
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Wajib buat load CSS, JS, Gambar logo BABA
+# ==============================================================================
+# MOUNT FOLDER STATIC (CSS, JS, GAMBAR)
+# ==============================================================================
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # ==============================================================================
-# 5. PEMASANGAN KABEL ROUTER (The Gatekeeper)
+# SISTEM TENDANGAN OTOMATIS (EXCEPTION HANDLERS)
 # ==============================================================================
-# Frontend Customer
-app.include_router(store.router)
+@app.exception_handler(StarletteHTTPException)
+async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException):
+    # Kalau ketahuan gak punya karcis/cookie (401), lempar ke halaman Login
+    if exc.status_code == 401:
+        return RedirectResponse(url="/admin/login", status_code=303)
+    
+    # Kalau URL ngaco (404 Not Found), bisa kita arahin ke halaman custom 404 nanti
+    if exc.status_code == 404:
+        return HTMLResponse(content="<h1>404 - Halaman Tidak Ditemukan</h1>", status_code=404)
+        
+    return HTMLResponse(content=f"Error {exc.status_code}: {exc.detail}", status_code=exc.status_code)
 
-# Backend Admin Terpisah
+# ==============================================================================
+# COLOKIN KABEL ROUTER (PEMBAGIAN TUGAS)
+# ==============================================================================
+# 1. Router Admin Zone
+app.include_router(auth.router)
 app.include_router(dashboard.router)
 app.include_router(stock.router)
 app.include_router(finance.router)
 app.include_router(orders.router)
 app.include_router(customers.router)
 app.include_router(settings.router)
+app.include_router(staff.router)
 app.include_router(cs.router)
+app.include_router(profile.router)
+
+# 2. Router Customer Zone (Web Store BABA)
+app.include_router(store.router)
 
 # ==============================================================================
-# EKSEKUSI SERVER LOCAL (Buat Testing)
+# ENGINE RUNNER (Buat testing lokal)
 # ==============================================================================
 if __name__ == "__main__":
-    print("\n" + "=".center(60, "="))
-    print("🚀 BABA PARFUME ENTERPRISE ENGINE (MODULAR)".center(60))
-    print("=".center(60, "="))
-    print("🌐 Web Pelanggan   : http://localhost:8000/")
-    print("🛠️  Panel Admin     : http://localhost:8000/admin")
-    print("=".center(60, "=") + "\n")
-    
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    import uvicorn
+    # Jalankan ini pake command: python main.py
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

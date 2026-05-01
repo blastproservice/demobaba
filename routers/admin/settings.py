@@ -2,6 +2,8 @@ from fastapi import APIRouter, Request, Form, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
+from routers.common import require_admin_roles
+
 # Import koneksi Supabase murni
 try:
     from database import supabase
@@ -25,7 +27,7 @@ def get_pending_count() -> int:
 # ==============================================================================
 # JALUR RENDER HALAMAN HTML
 # ==============================================================================
-@router.get("/settings", response_class=HTMLResponse)
+@router.get("/settings", response_class=HTMLResponse, tags=["Admin Settings"], dependencies=[require_admin_roles("super_admin")])
 async def admin_settings(request: Request):
     # Default fallback kalau database kosong
     settings_data = {

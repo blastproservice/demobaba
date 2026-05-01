@@ -12,6 +12,6 @@ key: str = os.getenv("SUPABASE_KEY")
 # Bikin mesin koneksi ke Supabase
 try:
     supabase: Client = create_client(url, key)
-    print("✅ Berhasil connect ke brankas Supabase!")
+    print("Berhasil connect ke brankas Supabase!")
 except Exception as e:
-    print(f"❌ Gagal connect ke Supabase: {e}")
+    print(f"Gagal connect ke Supabase: {e}")

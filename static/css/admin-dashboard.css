@@ -1,0 +1,74 @@
+/* ===========================
+   ANIMASI & UTILITAS DASHBOARD
+   =========================== */
+
+@keyframes slideUpFade {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.dashboard-animate-card {
+    animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+}
+
+.dashboard-delay-100 { animation-delay: 100ms; }
+.dashboard-delay-200 { animation-delay: 200ms; }
+.dashboard-delay-300 { animation-delay: 300ms; }
+.dashboard-delay-400 { animation-delay: 400ms; }
+.dashboard-delay-500 { animation-delay: 500ms; }
+
+/* Scrollbar mini utk tabel kecil */
+.mini-table-scroll::-webkit-scrollbar {
+    height: 4px;
+    width: 4px;
+}
+.mini-table-scroll::-webkit-scrollbar-track {
+    background: #f8fafc;
+}
+.mini-table-scroll::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 4px;
+}
+
+/* Kartu kaca */
+.glass-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+/* Strip insight hitam di tengah */
+.insight-strip {
+    border-radius: 9999px;
+    background: linear-gradient(90deg, #0f172a, #111827);
+    color: #e5e7eb;
+}
+
+/* Ring progress sederhana */
+.ring-progress {
+    width: 64px;
+    height: 64px;
+    border-radius: 9999px;
+    border-width: 6px;
+    border-style: solid;
+    border-color: #e5e7eb;
+    position: relative;
+}
+.ring-progress-inner {
+    position: absolute;
+    inset: 6px;
+    border-radius: 9999px;
+    background-color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Responsif untuk kontainer grafik bar custom */
+@media (max-width: 768px) {
+    .overflow-x-auto-mobile {
+        overflow-x: auto;
+    }
+}

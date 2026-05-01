@@ -1,36 +1,46 @@
-from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from typing import Optional
+from datetime import datetime
+import uuid, base64, asyncio
 
 try:
-    from database import supabase
+    import google.genai
 except ImportError:
-    supabase = None
+    google = None
 
-# Inisiasi Router khusus Admin CRM (Pelanggan)
+from fastapi import APIRouter, Request, Depends, HTTPException, status, Form
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+
+from database import supabase
+from routers.common import logger, render_admin_template, require_admin_roles
+
 router = APIRouter(prefix="/admin", tags=["Admin CRM"])
-templates = Jinja2Templates(directory="templates")
 
-def get_pending_count() -> int:
-    if not supabase: return 0
-    try:
-        res = supabase.table("orders").select("id").eq("status", "Menunggu Pembayaran").execute()
-        return len(res.data or [])
-    except:
-        return 0
-
-@router.get("/customers", response_class=HTMLResponse)
+@router.get("/customers", response_class=HTMLResponse, dependencies=[require_admin_roles("super_admin", "marketing")])
 async def admin_customers(request: Request):
     pelanggan = []
     if supabase:
         try:
-            res = supabase.table("customers").select("*").order("created_at", desc=True).execute()
-            pelanggan = res.data or []
+            res_cust = supabase.table("customers").select("*").order("created_at", desc=True).execute()
+            pelanggan = res_cust.data or []
         except Exception as e:
-            print(f"❌ [ERROR PELANGGAN]: {e}")
-            
-    return templates.TemplateResponse("admin/customers.html", {
-        "request": request, 
-        "pelanggan": pelanggan, 
-        "pending_count": get_pending_count()
-    })
+            logger.error(f"[ADMIN CUSTOMERS ERROR]: {e}")
+    return render_admin_template(request, "admin/customers.html", pelanggan=pelanggan)
+
+@router.post("/customers/edit/{cid}", dependencies=[require_admin_roles("super_admin", "marketing")])
+async def edit_customer(
+    cid: str,
+    full_name: str = Form(...),
+    phone: str = Form(""),
+    default_address: str = Form(""),
+):
+    try:
+        supabase.table("customers").update({
+            "full_name": full_name,
+            "phone": phone,
+            "default_address": default_address,
+        }).eq("id", cid).execute()
+        return RedirectResponse(url="/admin/customers", status_code=status.HTTP_303_SEE_OTHER)
+    except Exception as e:
+        logger.error(f"[EDIT CUSTOMER ERROR]: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
