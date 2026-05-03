@@ -1,266 +1,381 @@
-# 🌟 BABA Parfume Enterprise System 🌟
-**Sistem ERP, CRM, & Telegram Mini-App Terintegrasi Berbasis AI**
+# BABA Parfume Backend (demobaba)
 
-![Version](https://img.shields.io/badge/Version-4.0.0--Enterprise-goldenrod?style=for-the-badge)
-![Python](https://img.shields.io/badge/Python-3.9+-blue?style=for-the-badge&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
-![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
-![Alpine.js](https://img.shields.io/badge/Alpine.js-3.x-8BC0D0?style=for-the-badge&logo=alpine.js&logoColor=white)
+Backend monolith berbasis **FastAPI + Jinja2 + Supabase** untuk operasional toko BABA Parfume.
+
+Dokumen ini disusun dari kode terbaru di repo ini agar struktur proyek, endpoint, dan skema SQL konsisten dengan implementasi saat ini.
 
 ---
 
-## 📖 Executive Summary
-**BABA Parfume Enterprise System** adalah aplikasi monolith *end-to-end* yang dirancang khusus untuk mengelola operasional bisnis parfum lintas negara (Indonesia - Kamboja). Sistem ini menggabungkan kekuatan **Backend API**, **Sistem Manajemen Keuangan (Ledger)**, **Manajemen Inventaris**, **Customer Relationship Management (CRM)**, dan **Kecerdasan Buatan (AI Assistant)**.
+## 1) Ringkasan Arsitektur
 
-Dibangun dengan arsitektur **Mobile-First** untuk sisi pelanggan via Telegram Mini App, dan **Enterprise Desktop Dashboard** untuk sisi Administrator.
+- **Entry point aplikasi:** `main.py`.
+- **Routing modular:**
+  - `routers/customer/store.py` untuk halaman customer + API customer.
+  - `routers/admin/*.py` untuk panel admin dan API admin.
+- **Database:** Supabase PostgreSQL melalui `database.py`.
+- **Template rendering:** Jinja2 di folder `templates/`.
+- **Static assets:** folder `static/`.
+- **Integrasi opsional:** Telegram bot (`bot.py`) dan AI assistant (`ai_agent.py`).
 
----
-
-## 🚀 Fitur Unggulan (Core Features)
-
-### 1. 🛒 Customer Telegram Mini-App
-Aplikasi pelanggan yang berjalan mulus di dalam Telegram WebApp tanpa perlu install aplikasi tambahan.
-* **Smart Catalog:** Pencarian produk real-time, filter kategori, dan pengurutan harga/stok.
-* **Persistent Cart:** Keranjang belanja disimpan di `localStorage`, aman meskipun aplikasi ditutup.
-* **Voucher Engine:** Sistem input kode promo (contoh: `BABA2026`) yang langsung memotong total tagihan.
-* **Gamified Profile:** Halaman profil yang menampilkan *Pride Metrics* (Total Koleksi Botol) dan deteksi selera aroma (Taste Profiling).
-* **Seamless Checkout:** Mendukung berbagai metode pembayaran lintas negara (BCA, ABA Bank Cambodia, Cash On Delivery).
-
-### 2. 🤖 Mimin AI (Google Gemini Integration)
-Customer Service otomatis berbasis kecerdasan buatan.
-* **Context-Aware:** AI mengetahui produk apa saja yang sedang *Ready Stock* di database.
-* **Personalized Recommendation:** AI membaca *Taste Profile* pelanggan dari riwayat pesanannya untuk memberikan rekomendasi parfum yang akurat.
-* **Human Handoff:** Sesi obrolan AI direkam di database dan dapat dipantau (Sadap) atau diambil alih (Intercept) oleh Admin/CS secara *real-time*.
-
-### 3. 📦 Manajemen Gudang & Pembelian (Procurement)
-* **Real-time Stock Deduction:** Stok otomatis terpotong saat pelanggan melakukan *checkout*.
-* **Purchase Order (PO) System:** Fitur pencatatan belanja stok dari *supplier* (kulakan). 
-* **Smart Autocomplete:** Pembuatan nota belanja dilengkapi pencarian barang otomatis. Jika barang tidak ada, sistem akan mendaftarkannya sebagai inventaris baru.
-* **Auto-Restock:** Jika pesanan pelanggan dibatalkan, sistem otomatis mengembalikan stok fisik ke gudang.
-
-### 4. 💸 Enterprise Finance Engine (Sistem Keuangan Dewa)
-Bukan sekadar pencatatan, melainkan mesin akuntansi berbasis **Double-Entry Ledger**.
-* **Multi-Currency Wallets:** Mendukung pencatatan IDR (BCA/Jago) dan USD/KHR (ABA Bank / Laci Cash).
-* **Cross-Currency Transfer (Pindah Kas):** Fitur memindahkan uang antar rekening dengan input *Exchange Rate* manual (Mendukung IDR <-> USD).
-* **Automated Ledger:** Checkout pelanggan -> Otomatis mencatat Pemasukan (IN). Belanja PO -> Otomatis mencatat Pengeluaran (OUT). Refund Otomatis jika order dibatalkan.
-* **P&L Statement (Laba Rugi):** Kalkulasi otomatis untuk Pendapatan, Harga Pokok Penjualan (HPP/COGS), Biaya Operasional (OpEx), dan Net Profit Margin. Dilengkapi fitur **Export PDF**.
-
-### 5. 👮 Secure Admin Dashboard
-* **Role-Based Access Control (RBAC):** Hak akses terbagi menjadi `super_admin`, `oprasional`, `marketing`, dan `cs`.
-* **Encrypted Session:** Menggunakan sistem *Cookie* yang di-hash dengan algoritma `SHA-256` untuk mencegah *session hijacking*.
-* **Telegram Background Bot:** Admin mendapatkan notifikasi *real-time* via Telegram jika ada pesanan baru atau perubahan status resi.
+Karakter sistem:
+- Server-rendered app (bukan SPA React/Next).
+- Admin dashboard via Jinja template.
+- API internal `/api/v1/*` dipakai frontend (Alpine.js pada template).
 
 ---
 
-## 🏗️ Arsitektur Sistem (Tech Stack)
-
-Sistem ini menggunakan pendekatan **Monolithic Modern** untuk kemudahan *deployment* (cocok untuk VPS / PaaS seperti Render atau Railway).
-
-* **Backend Framework:** `FastAPI` (Python) - Dipilih karena asinkron (async), sangat cepat, dan memiliki auto-dokumentasi (Swagger UI).
-* **Database:** `Supabase` (PostgreSQL) - Diakses melalui HTTP REST via `supabase-py`.
-* **AI Engine:** `google-genai` - Menggunakan model Google Gemini 2.0 Flash untuk inferensi cepat.
-* **Telegram Bot:** `aiogram` - Dijalankan sebagai *background task* di dalam *lifespan* FastAPI.
-* **Frontend Engine:** `Jinja2` Templates.
-* **Frontend UI/UX:** `TailwindCSS` (Styling), `Alpine.js` (Reaktivitas DOM & State Management), `Lucide` (Icons), `Chart.js` (Visualisasi Data).
-
----
-
-## 📁 Struktur Direktori Proyek
+## 2) Struktur Proyek
 
 ```text
-baba_parfume_project/
-│
-├── main.py                 # 🌟 CORE ENGINE: Entry point FastAPI, Routing, Middleware, Auth.
-├── database.py             # Koneksi Supabase client.
-├── bot.py                  # 🤖 Telegram Bot: Polling, Notifikasi background, Alarm.
-├── ai_agent.py             # 🧠 Konfigurasi Google Gemini & Prompt Engineering BABA.
-├── requirements.txt        # Daftar dependensi Python.
-├── .env                    # Variabel lingkungan (API Keys, Database URL, dll).
-│
-├── static/                 # Aset Statis Publik
-│   └── img/
-│       └── Logo_BABA.png   # Logo Utama
-│
-└── templates/              # View Layer (HTML Jinja2)
-    ├── admin/              # 🔐 PANEL ADMIN (ZONA TERBATAS)
-    │   ├── base.html             # Master layout Admin (Sidebar, Navbar, Lucide, Alpine global).
-    │   ├── dashboard.html        # Overview metrik bisnis, statistik singkat.
-    │   ├── login.html            # Pintu gerbang keamanan berbasis role.
-    │   ├── stock.html            # Manajemen inventaris produk (Tambah, Edit, Hapus).
-    │   ├── stock_belanja.html    # Modul Procurement / Kulakan / PO dengan fitur Auto-restock.
-    │   ├── orders.html           # CRM: Manajemen Pesanan & Perubahan Status Resi.
-    │   ├── customers.html        # CRM: Direktori Pelanggan & LTV (Lifetime Value).
-    │   ├── finance_aset.html     # FIN: Dompet, Rekening, dan Fitur Pindah Kas Lintas Mata Uang.
-    │   ├── finance_mutasi.html   # FIN: Buku Besar (Ledger) dengan Live Filter Alpine.js.
-    │   ├── finance_report.html   # FIN: Statement Laba/Rugi (P&L), Chart.js, Export PDF.
-    │   ├── cs_management.html    # Modul Sadap & Intercept chat pelanggan dengan AI.
-    │   ├── staff.html            # Manajemen akun karyawan (Khusus Super Admin).
-    │   ├── profile.html          # Detail profil admin yang sedang login.
-    │   └── settings.html         # Konfigurasi sistem web & toko.
-    │
-    └── customer/           # 📱 TELEGRAM MINI-APP (PUBLIC VIEW)
-        ├── index.html            # Katalog utama, Cart system, Flash Sale, Checkout logic.
-        ├── cs.html               # Antarmuka interaksi pengguna dengan AI Assistant BABA.
-        └── profile.html          # Gamifikasi profil pengguna, analisis selera (Taste Profile).
+/workspace/demobaba
+├── main.py
+├── database.py
+├── ai_agent.py
+├── bot.py
+├── created_admin.py
+├── requirements.txt
+├── readme.md
+├── routers/
+│   ├── common.py
+│   ├── dependencies.py
+│   ├── schemas.py
+│   ├── customer/
+│   │   └── store.py
+│   └── admin/
+│       ├── auth.py
+│       ├── dashboard.py
+│       ├── stock.py
+│       ├── orders.py
+│       ├── customers.py
+│       ├── settings.py
+│       ├── staff.py
+│       ├── cs_management.py
+│       ├── profile.py
+│       └── finance.py
+├── templates/
+│   ├── customer/
+│   │   ├── index.html
+│   │   ├── profile.html
+│   │   └── cs.html
+│   └── admin/
+│       ├── base.html
+│       ├── login.html
+│       ├── dashboard.html
+│       ├── orders.html
+│       ├── customers.html
+│       ├── stock.html
+│       ├── stock_belanja.html
+│       ├── finance_aset.html
+│       ├── finance_mutasi.html
+│       ├── finance_report.html
+│       ├── finance_debts.html
+│       ├── cs_management.html
+│       ├── staff.html
+│       ├── profile.html
+│       └── settings.html
+└── static/
+    ├── css/admin-dashboard.css
+    └── img/Logo_BABA.png
+```
 
-🗄️ Skema Database (Supabase PostgreSQL)
-Sistem menggunakan struktur database relasional yang saling mengikat. Berikut adalah topologi utamanya:
+---
 
-1. Entitas Core Bisnis
-products: Menyimpan master data parfum (Nama, Kategori, Harga Coret, Harga Diskon, Stok, Notes Piramida Aroma, URL Gambar).
+## 3) Setup Environment
 
-categories: Grup produk (Man, Woman, Unisex, dll).
+Buat file `.env` di root project.
 
-customers: Direktori pelanggan yang terhubung dengan telegram_id.
+```env
+# Supabase
+SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+SUPABASE_KEY=YOUR_SUPABASE_KEY
 
-2. Modul Penjualan (Orders)
-orders: Menyimpan header transaksi pelanggan, status pesanan, alamat, dan metode pembayaran.
+# Admin bootstrap (dipakai script created_admin.py)
+ADMIN_USER=admin
+ADMIN_PASS=your_secure_password
 
-order_items: Rincian barang per pesanan. Di sinilah stok dipotong dari products.
+# Session / auth
+SECRET_TOKEN=replace_with_long_random_secret
+COOKIE_SECURE=false
 
-3. Modul AI & Pelayanan
-ai_chat_sessions: Mencatat aktivitas percakapan per user Telegram.
+# Telegram (opsional)
+BOT_TOKEN=your_telegram_bot_token
+ADMIN_ID=your_telegram_id
 
-ai_chat_messages: Detail chat antara User, Model (AI), dan Admin (Intercept).
+# AI Gemini (opsional)
+GEMINI_API_KEY=your_gemini_api_key
+```
 
-ai_feedbacks: Penilaian bintang (Rating) dan keluhan layanan.
+Catatan:
+- `database.py` akan memuat `.env` lalu inisialisasi client Supabase.
+- Jangan hardcode credential ke source code.
 
-4. Modul Keuangan & Pembelian (The Engine)
-finance_accounts: Daftar Rekening/Dompet (BCA, ABA, Jago, Cash Laci). Menyimpan Saldo saat ini.
+---
 
-finance_categories: Kategori pembukuan (Tipe INCOME dan EXPENSE).
+## 4) Instalasi & Menjalankan
 
-finance_mutations: BUKU BESAR (Ledger). Jantung akuntansi. Setiap pergerakan uang wajib dicatat di sini.
-
-stock_purchases: Dokumen Purchase Order (PO) saat belanja barang.
-
-stock_purchase_items: Rincian barang yang dibeli dari supplier.
-
-stock_logs: Audit Trail (Riwayat) pergerakan keluar/masuk stok fisik.
-
-5. Keamanan
-admins: Akun staff dengan hashing password dan Role RBAC.
-
-store_settings: Pengaturan nama toko, kontak admin, dan status bot (Global Toggle).
-
-⚙️ Panduan Instalasi (Setup Guide)
-Ikuti langkah-langkah ini untuk menjalankan BABA Enterprise System di mesin lokal atau server (VPS).
-
-Prasyarat:
-Python 3.9 atau lebih baru.
-
-Akun Supabase (untuk Database).
-
-Akun Google AI Studio (untuk API Key Gemini).
-
-Bot Telegram (Dibuat melalui BotFather).
-
-Langkah 1: Kloning Repositori
-Bash
-git clone [https://github.com/username/baba_parfume_project.git](https://github.com/username/baba_parfume_project.git)
-cd baba_parfume_project
-Langkah 2: Virtual Environment & Dependensi
-Bash
-# Buat virtual environment (Direkomendasikan)
-python -m venv venv
-
-# Aktivasi Venv (Windows)
-venv\Scripts\activate
-# Aktivasi Venv (Mac/Linux)
-source venv/bin/activate
-
-# Install semua kebutuhan paket
+```bash
+python -m venv .venv
+source .venv/bin/activate  # Linux/macOS
 pip install -r requirements.txt
-Langkah 3: Konfigurasi Environment (.env)
-Buat file bernama .env di direktori root, lalu isi dengan kredensial berikut:
+python main.py
+```
 
-Ini, TOML
-# ==========================================
-# 1. DATABASE (SUPABASE)
-# ==========================================
-SUPABASE_URL=https://[PROJECT-ID].supabase.co
-SUPABASE_KEY=eyJhbG...[YOUR_SUPABASE_ANON_KEY]
+Akses default:
+- Customer store: `http://localhost:8000/`
+- Admin login: `http://localhost:8000/admin/login`
+- Static assets: `http://localhost:8000/static/...`
 
-# ==========================================
-# 2. TELEGRAM BOT
-# ==========================================
-BOT_TOKEN=1234567890:AAH...[YOUR_BOT_TOKEN]
-ADMIN_ID=123456789  # Telegram ID Pemilik untuk Notif Order
+> Catatan: docs Swagger dinonaktifkan di `main.py` (`docs_url=None`, `redoc_url=None`).
 
-# ==========================================
-# 3. ARTIFICIAL INTELLIGENCE (GOOGLE GEMINI)
-# ==========================================
-GEMINI_API_KEY=AIzaSy...[YOUR_GEMINI_API_KEY]
+---
 
-# ==========================================
-# 4. KEAMANAN SISTEM & AUTENTIKASI ADMIN
-# ==========================================
-ADMIN_USER=adminbaba         # Username Super Admin bawaan
-ADMIN_PASS=B4baSultan2026!   # Password Super Admin
-SECRET_TOKEN=R4h4s14_B4ng3T_Br3_2026
-COOKIE_SECURE=false          # Set "true" jika menggunakan HTTPS (Production)
-PORT=8000                    # Port uvicorn berjalan
+## 5) Peta Route Utama
 
-Langkah 4: Jalankan Server BABA Engine
+### Customer
+- `GET /` halaman store.
+- `GET /profile` profil customer (berdasarkan `tele_id`).
+- `GET /cs` halaman chat AI.
+- `GET /api/v1/products/live` data produk aktif.
+- `POST /api/v1/checkout` proses checkout.
+- `GET /api/v1/chat/history`
+- `POST /api/v1/chat/send`
+- `POST /api/v1/chat/reset`
+- `POST /api/v1/chat/feedback`
 
-Web Customer (Mini App): Akses di http://localhost:8000/
+### Admin
+- Auth: `/admin/login`, `/admin/logout`
+- Dashboard: `/admin`, `/admin/`
+- Orders: `/admin/orders`, `/admin/update-order-status`, `/admin/orders/delete/{order_id}`
+- Stock: `/admin/stock`, `/admin/stock/belanja`, `/admin/add-product`, `/admin/stock/edit/{pid}`
+- Procurement API: `POST /admin/api/v1/stock/belanja/process`
+- Customers: `/admin/customers`, `/admin/customers/edit/{cid}`
+- Staff: `/admin/staff` + endpoint `/staff/api/*`
+- CS Management: `/admin/cs`, `/admin/api/v1/admin/cs/*`
+- Settings: `/admin/settings`, `/admin/settings/update`
 
-Admin Panel: Akses di http://localhost:8000/admin
+---
 
-API Docs (Swagger): Akses di http://localhost:8000/api/docs
+## 6) Skema Database (SQL)
 
-💡 Panduan Penggunaan Modul Khusus
-1. Bagaimana Modul Keuangan Bekerja Otomatis?
-Anda TIDAK PERLU memasukkan pendapatan secara manual jika pelanggan berbelanja dari Mini App.
+Berikut baseline SQL yang mencerminkan tabel-tabel yang dipakai di kode saat ini.
 
-Saat pesanan berstatus "Menunggu Pembayaran" -> Belum ada mutasi keuangan.
+```sql
+-- UUID helper
+create extension if not exists "pgcrypto";
 
-Saat Admin mengubah status pesanan menjadi "Diproses" atau "Selesai" melalui menu Orders, sistem Backend (lihat update_order_status di main.py) akan secara otomatis memotong pesanan, mendeteksi metode pembayaran, dan memasukkan uang nominal transaksi ke Buku Besar (Bank BCA, Jago, dsb).
+-- 1) master admin
+create table if not exists admins (
+  id uuid primary key default gen_random_uuid(),
+  username text unique not null,
+  password_hash text not null,
+  full_name text,
+  role text not null default 'cs',
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
 
-Jika pesanan "Dibatalkan", sistem secara ajaib akan melakukan Rollback: Mengembalikan fisik barang ke rak, dan mencabut/refund uang dari Buku Besar jika sebelumnya sudah sempat diproses.
+-- 2) store settings singleton (id=1)
+create table if not exists store_settings (
+  id int primary key,
+  store_name text,
+  admin_whatsapp text,
+  checkout_message text,
+  updated_at timestamptz not null default now()
+);
 
-2. Fitur "Pindah Kas" (Cross-Currency)
-Buka /admin/finance/aset. Jika Anda ingin memindahkan uang Cash Harian (IDR) untuk disimpan di ABA Bank (USD).
+-- 3) category & product
+create table if not exists categories (
+  id bigserial primary key,
+  name text not null,
+  created_at timestamptz not null default now()
+);
 
-Klik tombol Pindah Kas.
+create table if not exists products (
+  id bigserial primary key,
+  category_id bigint references categories(id) on delete set null,
+  name text not null,
+  tagline text,
+  description text,
+  image_url text,
+  original_price numeric(14,2) not null default 0,
+  discounted_price numeric(14,2) not null default 0,
+  stock_quantity int not null default 0,
+  tags text[] default '{}',
+  top_notes text[] default '{}',
+  heart_notes text[] default '{}',
+  base_notes text[] default '{}',
+  longevity text,
+  recommendation text,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
 
-Pilih sumber "Cash Laci", pilih tujuan "ABA Bank".
+-- 4) customer & orders
+create table if not exists customers (
+  id uuid primary key default gen_random_uuid(),
+  telegram_id bigint unique not null,
+  username text,
+  full_name text,
+  default_address text,
+  total_orders int not null default 0,
+  total_spent numeric(14,2) not null default 0,
+  created_at timestamptz not null default now()
+);
 
-Kolom Rate / Kurs akan otomatis aktif (karena beda mata uang).
+create table if not exists orders (
+  id uuid primary key default gen_random_uuid(),
+  order_number text unique not null,
+  customer_id uuid references customers(id) on delete set null,
+  shipping_address text,
+  total_amount numeric(14,2) not null default 0,
+  status text not null default 'Menunggu Pembayaran',
+  order_source text,
+  payment_method text,
+  receipt_number text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
 
-Masukkan nominal IDR, masukkan kurs saat ini (Misal: 15500), sistem otomatis menghitung berapa USD yang masuk ke ABA. Semua tercatat rapi di Mutasi!
+create table if not exists order_items (
+  id bigserial primary key,
+  order_id uuid not null references orders(id) on delete cascade,
+  product_id bigint references products(id) on delete set null,
+  quantity int not null,
+  price_at_time numeric(14,2) not null,
+  created_at timestamptz not null default now()
+);
 
-3. Melatih AI dengan Taste Profile Customer
-Sistem AI (ai_agent.py) akan menarik data "Aroma Favorit" dari Database. Jika pelanggan sering berbelanja varian "Baccarat" yang memiliki Tag SWEET dan WOODY, sistem prompt akan memberikan instruksi ke Google Gemini untuk menyarankan parfum dengan nuansa serupa jika pengguna bertanya di halaman /cs.
+-- 5) finance
+create table if not exists finance_accounts (
+  id bigserial primary key,
+  bank_name text not null,
+  account_number text,
+  currency text not null default 'IDR',
+  current_balance numeric(14,2) not null default 0,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
 
-🛠️ Internal API References (Dipanggil oleh Alpine.js)
-Frontend sangat mengandalkan API internal yang dilindungi dengan validasi Pydantic.
+create table if not exists finance_categories (
+  id bigserial primary key,
+  category_name text not null,
+  transaction_type text not null, -- IN / OUT
+  created_at timestamptz not null default now()
+);
 
-POST /api/v1/checkout: Memproses order pelanggan.
+create table if not exists finance_mutations (
+  id bigserial primary key,
+  account_id bigint references finance_accounts(id) on delete set null,
+  category_id bigint references finance_categories(id) on delete set null,
+  transaction_type text not null, -- IN / OUT
+  amount numeric(14,2) not null,
+  description text,
+  reference_order_id uuid references orders(id) on delete set null,
+  created_at timestamptz not null default now()
+);
 
-GET /api/v1/products/live: Menyuplai data produk terkini ke frontend tanpa membebani template rendering.
+-- 6) procurement & stock logs
+create table if not exists stock_purchases (
+  id bigserial primary key,
+  supplier_name text,
+  account_id bigint references finance_accounts(id) on delete set null,
+  total_amount numeric(14,2) not null default 0,
+  created_at timestamptz not null default now()
+);
 
-POST /api/v1/chat/send: Menjembatani pesan pengguna ke Google Gemini.
+create table if not exists stock_purchase_items (
+  id bigserial primary key,
+  purchase_id bigint not null references stock_purchases(id) on delete cascade,
+  product_id bigint references products(id) on delete set null,
+  quantity int not null,
+  unit_cost numeric(14,2) not null,
+  created_at timestamptz not null default now()
+);
 
-POST /api/v1/stock/belanja/process: Mesin pengolah Nota Pembelian (Logika: Kurangi Saldo -> Tambah Barang -> Insert Mutasi -> Insert Log).
+create table if not exists stock_logs (
+  id bigserial primary key,
+  product_id bigint references products(id) on delete set null,
+  change_type text not null, -- IN / OUT / RESTORE
+  quantity int not null,
+  note text,
+  reference_order_id uuid references orders(id) on delete set null,
+  created_at timestamptz not null default now()
+);
 
-POST /api/v1/finance/transfer: Mengelola pemindahan dana antar bank.
+-- 7) AI chat
+create table if not exists ai_chat_sessions (
+  id bigserial primary key,
+  telegram_id bigint not null,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
 
-🔮 Roadmap Pengembangan (Future Updates)
-Untuk versi selanjutnya, berikut adalah beberapa area yang dapat diperkaya:
+create table if not exists ai_chat_messages (
+  id bigserial primary key,
+  session_id bigint not null references ai_chat_sessions(id) on delete cascade,
+  role text not null, -- user / model / admin
+  content text not null,
+  created_at timestamptz not null default now()
+);
 
-Supabase Storage Integration: Mengganti input manual image_url pada produk dengan fitur unggah file (Multipart Form) langsung ke Bucket Supabase.
+create table if not exists ai_feedbacks (
+  id bigserial primary key,
+  telegram_id bigint,
+  rating int,
+  complaint text,
+  created_at timestamptz not null default now()
+);
 
-Native CSV Export: Menggunakan library pandas atau csv bawaan Python untuk memungkinkan Administrator mengunduh laporan Mutasi dan Laba Rugi dalam format .xlsx atau .csv.
+-- indeks rekomendasi
+create index if not exists idx_products_active on products(is_active);
+create index if not exists idx_orders_status on orders(status);
+create index if not exists idx_orders_customer on orders(customer_id);
+create index if not exists idx_mutations_reference_order on finance_mutations(reference_order_id);
+create index if not exists idx_chat_session_telegram on ai_chat_sessions(telegram_id);
+```
 
-Payment Gateway API: Integrasi dengan API Xendit (IDR) atau PayWay ABA (USD) untuk pengecekan mutasi dan pembaruan status resi pelanggan tanpa campur tangan Admin.
+> Penting: SQL di atas adalah **baseline kompatibel kode**. Jika DB existing sudah berjalan, sesuaikan migrasi secara bertahap (ALTER) agar tidak merusak data produksi.
 
-Stock Audit GUI: Membuat antarmuka visual (Tabel) untuk membaca data dari tabel stock_logs agar Admin dapat memantau jejak pergerakan stok harian.
+---
 
-🛡️ Lisensi & Hak Cipta
-Proyek ini dilindungi oleh hak cipta BABA Parfume.
-Dikembangkan untuk skala operasional tingkat dewa dengan efisiensi tinggi. "Membawa wangi signature ke seluruh Kamboja!" 🇰🇭✨
+## 7) Alur Bisnis Inti
 
-"Jangan pernah menghapus kode lama, tingkatkan dan perkayalah menjadi lebih dewa!" - BABA Dev Team.
-        
+### Checkout customer
+1. Upsert customer by `telegram_id`.
+2. Insert header order + item order.
+3. Potong `products.stock_quantity`.
+4. Kirim notifikasi Telegram (jika bot aktif).
+
+### Update status order admin
+- Saat status diproses/selesai: bisa trigger mutasi keuangan (`finance_mutations`) dan update saldo akun.
+- Saat status dibatalkan: restore stok, dan catat mutasi keluar/refund jika sebelumnya sudah ada pemasukan.
+
+### Procurement (belanja stok)
+- Validasi saldo akun keuangan.
+- Insert purchase + purchase items.
+- Tambah stok produk & log stok.
+- Kurangi saldo akun + catat mutasi OUT.
+
+---
+
+## 8) Catatan Operasional
+
+- `docs_url` dan `redoc_url` dinonaktifkan.
+- CORS saat ini terbuka `*` (disarankan dibatasi di production).
+- Error 401 diarahkan ke `/admin/login` oleh exception handler global.
+- Jika Supabase down/tidak terhubung, beberapa route merespons fallback/error 503.
+
+---
+
+## 9) Rekomendasi Pengembangan Lanjut
+
+- Pisahkan shared logic `orders` & `finance` yang masih mirip agar tidak duplikasi.
+- Tambahkan migration tooling (mis. Alembic / SQL migration scripts).
+- Tambahkan test otomatis untuk alur kritis: checkout, update status order, procurement.
+- Tambahkan hardening security: CSRF untuk form admin, cookie policy ketat, serta audit log admin action.
+
+---
+
+## 10) Lisensi & Kontribusi
+
+Belum ada file lisensi eksplisit di repo ini. Jika akan open-source/public, tambahkan LICENSE dan CONTRIBUTING.md.
