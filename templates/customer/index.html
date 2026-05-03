@@ -947,9 +947,10 @@
                     const payload = {
                         action: 'checkout',
                         customer: {
-                            id: this.tgUser.id,
-                            username: this.tgUser.username,
-                            first_name: this.tgUser.first_name,
+                            // FIX: Kasih angka random kalau dibuka di luar Telegram biar satpam backend gak ngamuk
+                            id: this.tgUser.id || Math.floor(Math.random() * 1000000), 
+                            username: this.tgUser.username || 'guest',
+                            first_name: this.tgUser.first_name || 'Guest',
                             full_name: this.checkoutForm.fullName,
                             address: this.checkoutForm.address
                         },
