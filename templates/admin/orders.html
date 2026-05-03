@@ -1,105 +1,198 @@
 {% extends "admin/base.html" %}
 
-{% block title %}Pesanan Masuk{% endblock %}
-{% block header %}Manajemen Pesanan{% endblock %}
+{% block title %}Pesanan Masuk Enterprise | BABA Parfume{% endblock %}
+{% block header %}Manajemen Pesanan Logistik{% endblock %}
 
 {% block content %}
+<!-- 
+====================================================================================================
+BABA PARFUME ENTERPRISE - ORDER MANAGEMENT UI (V5.0 DYNAMIC FINANCE ROUTING)
+====================================================================================================
+-->
 <style>
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    /* Custom Scrollbar untuk Tabel & Modal */
+    .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc; border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 2px solid #f8fafc; }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     
-    .modal-enter { animation: modalFadeIn 0.3s ease-out forwards; }
-    .modal-leave { animation: modalFadeOut 0.2s ease-in forwards; }
-    @keyframes modalFadeIn { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
-    @keyframes modalFadeOut { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(20px) scale(0.95); } }
+    /* Animasi Modal Enterprise */
+    .modal-enter { animation: modalFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .modal-leave { animation: modalFadeOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes modalFadeIn { 
+        from { opacity: 0; transform: translateY(40px) scale(0.95); } 
+        to { opacity: 1; transform: translateY(0) scale(1); } 
+    }
+    @keyframes modalFadeOut { 
+        from { opacity: 1; transform: translateY(0) scale(1); } 
+        to { opacity: 0; transform: translateY(40px) scale(0.95); } 
+    }
     
+    /* Animasi Backdrop */
     .backdrop-enter { animation: backdropIn 0.3s ease-out forwards; }
-    .backdrop-leave { animation: backdropOut 0.2s ease-in forwards; }
-    @keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes backdropOut { from { opacity: 1; } to { opacity: 0; } }
+    .backdrop-leave { animation: backdropOut 0.3s ease-in forwards; }
+    @keyframes backdropIn { from { opacity: 0; backdrop-filter: blur(0px); } to { opacity: 1; backdrop-filter: blur(8px); } }
+    @keyframes backdropOut { from { opacity: 1; backdrop-filter: blur(8px); } to { opacity: 0; backdrop-filter: blur(0px); } }
     
     .hidden-force { display: none !important; }
+    .smooth-trans { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    
+    /* Glowing Effect pada baris tabel */
+    .table-row-hover:hover { box-shadow: inset 4px 0 0 0 #eab308; background-color: #f8fafc; }
 </style>
 
-<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-    <div class="flex flex-wrap gap-2">
-        <button onclick="filterStatus('all')" class="filter-btn active px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium transition-colors shadow-sm">Semua Pesanan</button>
-        <button onclick="filterStatus('Menunggu Pembayaran')" class="filter-btn px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-yellow-50 hover:text-yellow-700 hover:border-yellow-300 rounded-lg text-sm font-medium transition-colors">Menunggu Pembayaran</button>
-        <button onclick="filterStatus('Diproses')" class="filter-btn px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 rounded-lg text-sm font-medium transition-colors">Diproses</button>
-        <button onclick="filterStatus('Selesai')" class="filter-btn px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 rounded-lg text-sm font-medium transition-colors">Selesai</button>
+<!-- ===========================================================================
+     SECTION 1: DASHBOARD MINI STATS
+============================================================================ -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between group smooth-trans hover:shadow-md hover:border-yellow-200">
+        <div>
+            <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Total Antrian</p>
+            <h3 class="text-3xl font-black text-gray-900 tracking-tighter">{{ pending_count | default('0') }} <span class="text-sm font-bold text-gray-400">Order</span></h3>
+        </div>
+        <div class="w-14 h-14 rounded-2xl bg-yellow-50 flex items-center justify-center border border-yellow-100 group-hover:scale-110 smooth-trans">
+            <i data-lucide="shopping-bag" class="w-7 h-7 text-yellow-600"></i>
+        </div>
     </div>
-
-    <div class="relative w-full md:w-72">
-        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div>
-        <input type="text" id="searchInput" placeholder="Cari Resi atau Nama..." class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 text-sm">
+    <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between group smooth-trans hover:shadow-md hover:border-blue-200">
+        <div>
+            <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Sedang Diproses</p>
+            <h3 class="text-3xl font-black text-gray-900 tracking-tighter">Live <span class="text-sm font-bold text-gray-400">Tracking</span></h3>
+        </div>
+        <div class="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center border border-blue-100 group-hover:scale-110 smooth-trans">
+            <i data-lucide="package" class="w-7 h-7 text-blue-600"></i>
+        </div>
+    </div>
+    <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between group smooth-trans hover:shadow-md hover:border-emerald-200">
+        <div>
+            <p class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Status Sistem</p>
+            <h3 class="text-3xl font-black text-emerald-500 tracking-tighter">Ready</h3>
+        </div>
+        <div class="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center border border-emerald-100 group-hover:scale-110 smooth-trans">
+            <i data-lucide="check-circle" class="w-7 h-7 text-emerald-600"></i>
+        </div>
     </div>
 </div>
 
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+<!-- ===========================================================================
+     SECTION 2: HEADER & FILTER KONTROL
+============================================================================ -->
+<div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-6 bg-white p-4 sm:p-6 rounded-[2rem] border border-gray-100 shadow-sm relative overflow-hidden">
+    <div class="absolute right-0 top-0 w-40 h-40 bg-gradient-to-bl from-gray-50 to-transparent rounded-bl-full opacity-50 pointer-events-none"></div>
+    
+    <div class="flex flex-wrap gap-3 relative z-10 w-full xl:w-auto">
+        <button onclick="filterStatus('all')" class="filter-btn active flex-1 sm:flex-none px-6 py-3.5 bg-gray-900 text-yellow-400 rounded-xl text-[11px] font-black tracking-widest uppercase transition-all shadow-lg active:scale-95 text-center">Semua List</button>
+        <button onclick="filterStatus('Menunggu Pembayaran')" class="filter-btn flex-1 sm:flex-none px-6 py-3.5 bg-white border border-gray-200 text-gray-600 hover:bg-yellow-50 hover:text-yellow-700 hover:border-yellow-300 rounded-xl text-[11px] font-black tracking-widest uppercase transition-all shadow-sm active:scale-95 text-center">Pending</button>
+        <button onclick="filterStatus('Diproses')" class="filter-btn flex-1 sm:flex-none px-6 py-3.5 bg-white border border-gray-200 text-gray-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 rounded-xl text-[11px] font-black tracking-widest uppercase transition-all shadow-sm active:scale-95 text-center">Diproses</button>
+        <button onclick="filterStatus('Selesai')" class="filter-btn flex-1 sm:flex-none px-6 py-3.5 bg-white border border-gray-200 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 rounded-xl text-[11px] font-black tracking-widest uppercase transition-all shadow-sm active:scale-95 text-center">Selesai</button>
+    </div>
+
+    <div class="relative w-full xl:w-96 relative z-10 shrink-0">
+        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <i data-lucide="search" class="w-5 h-5 text-gray-400"></i>
+        </div>
+        <input type="text" id="searchInput" placeholder="Cari Resi atau Nama Pelanggan..." class="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white text-sm font-bold smooth-trans shadow-inner">
+    </div>
+</div>
+
+<!-- ===========================================================================
+     SECTION 3: TABEL PESANAN UTAMA
+============================================================================ -->
+<div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden mb-20">
     <div class="overflow-x-auto custom-scrollbar">
-        <table class="w-full whitespace-nowrap">
+        <table class="w-full whitespace-nowrap text-left border-collapse">
             <thead class="bg-gray-50/80 border-b border-gray-100">
-                <tr class="text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                    <th class="px-6 py-4">ID Pesanan</th>
-                    <th class="px-6 py-4">Pelanggan</th>
-                    <th class="px-6 py-4">Waktu Order</th>
-                    <th class="px-6 py-4">Pembayaran</th>
-                    <th class="px-6 py-4">Total Tagihan</th>
-                    <th class="px-6 py-4 text-center">Status</th>
-                    <th class="px-6 py-4 text-right">Aksi</th>
+                <tr class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                    <th class="px-8 py-6 rounded-tl-[2rem]">ID Pesanan Logistik</th>
+                    <th class="px-8 py-6">Identitas Pelanggan</th>
+                    <th class="px-8 py-6">Waktu Transaksi</th>
+                    <th class="px-8 py-6">Tipe Pembayaran</th>
+                    <th class="px-8 py-6">Tagihan ($)</th>
+                    <th class="px-8 py-6 text-center">Status</th>
+                    <th class="px-8 py-6 text-right rounded-tr-[2rem]">Manajemen</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100 text-sm" id="ordersTableBody">
+            <tbody class="divide-y divide-gray-50 text-sm" id="ordersTableBody">
                 
                 {% for o in pesanan %}
-                <tr class="hover:bg-gray-50/50 transition-colors order-row" data-status="{{ o.status }}" data-search="{{ o.order_number | lower }} {{ o.customers.full_name | lower }}">
-                    <td class="px-6 py-4">
-                        <span class="font-black text-gray-900">{{ o.order_number }}</span><br>
-                        <span class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Via: {{ o.order_source }}</span>
+                <tr class="table-row-hover smooth-trans order-row group" data-status="{{ o.status }}" data-search="{{ o.order_number | lower }} {{ o.customers.full_name | lower }}">
+                    
+                    <!-- Kolom 1: ID Resi -->
+                    <td class="px-8 py-5 align-top pt-6">
+                        <span class="font-black text-gray-900 text-sm tracking-tight flex items-center gap-2">
+                            <i data-lucide="hash" class="w-4 h-4 text-gray-400"></i> {{ o.order_number }}
+                        </span>
+                        <div class="mt-2 flex items-center gap-2">
+                            <span class="text-[9px] text-gray-500 font-bold uppercase tracking-[0.2em] bg-gray-100 border border-gray-200 px-2 py-0.5 rounded shadow-sm">{{ o.order_source }}</span>
+                        </div>
                     </td>
-                    <td class="px-6 py-4">
-                        <p class="font-bold text-gray-800">{{ o.customers.full_name | default('User BABA') }}</p>
-                        <p class="text-xs text-gray-500">{{ o.shipping_address | truncate(30) }}</p>
+                    
+                    <!-- Kolom 2: Customer -->
+                    <td class="px-8 py-5 align-top pt-6">
+                        <p class="font-black text-gray-800 text-sm group-hover:text-blue-600 smooth-trans flex items-center gap-2">
+                            {{ o.customers.full_name | default('User BABA') }}
+                        </p>
+                        <p class="text-[11px] text-gray-500 font-medium mt-1.5 max-w-[220px] truncate" title="{{ o.shipping_address }}">
+                            <i data-lucide="map-pin" class="w-3.5 h-3.5 inline pb-0.5 text-gray-400"></i> {{ o.shipping_address | truncate(35) }}
+                        </p>
                     </td>
-                    <td class="px-6 py-4 text-gray-600 font-medium">{{ o.created_at | datetime }}</td>
-                    <td class="px-6 py-4">
-                        <span class="flex items-center gap-1.5 font-bold text-gray-700">
-                            <span class="w-2 h-2 rounded-full {% if o.payment_method == 'COD' %}bg-yellow-500{% elif o.payment_method == 'BCA' %}bg-blue-500{% else %}bg-teal-500{% endif %}"></span>
+                    
+                    <!-- Kolom 3: Waktu -->
+                    <td class="px-8 py-5 align-top pt-6">
+                        <span class="text-xs text-gray-600 font-bold flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0">
+                                <i data-lucide="calendar-days" class="w-4 h-4 text-gray-400"></i>
+                            </div>
+                            {{ o.created_at | datetime }}
+                        </span>
+                    </td>
+                    
+                    <!-- Kolom 4: Metode Bayar -->
+                    <td class="px-8 py-5 align-top pt-6">
+                        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-widest border shadow-sm {% if o.payment_method == 'COD' %}bg-yellow-50 text-yellow-800 border-yellow-200{% elif o.payment_method == 'BCA' %}bg-blue-50 text-blue-800 border-blue-200{% else %}bg-emerald-50 text-emerald-800 border-emerald-200{% endif %}">
+                            <span class="w-2.5 h-2.5 rounded-full {% if o.payment_method == 'COD' %}bg-yellow-500{% elif o.payment_method == 'BCA' %}bg-blue-500{% else %}bg-emerald-500{% endif %} animate-pulse"></span>
                             {{ o.payment_method | default('COD') }}
                         </span>
                     </td>
-                    <td class="px-6 py-4">
-                        <span class="font-black text-emerald-600 text-base">{{ o.total_amount | currency }}</span>
+                    
+                    <!-- Kolom 5: Tagihan -->
+                    <td class="px-8 py-5 align-top pt-6">
+                        <span class="font-black text-gray-900 text-lg tracking-tighter">{{ o.total_amount | currency }}</span>
+                        <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">USD Standard</p>
                     </td>
-                    <td class="px-6 py-4 text-center">
+                    
+                    <!-- Kolom 6: Status -->
+                    <td class="px-8 py-5 text-center align-middle">
                         {% if o.status == 'Menunggu Pembayaran' %}
-                            <span class="px-3 py-1 bg-yellow-50 text-yellow-700 rounded-full text-[11px] font-bold border border-yellow-200">🕒 Menunggu Bayar</span>
+                            <span class="px-4 py-2 bg-yellow-50 text-yellow-700 rounded-xl text-[10px] font-black tracking-[0.15em] border border-yellow-200 uppercase shadow-sm flex items-center justify-center gap-1.5 w-fit mx-auto"><i data-lucide="clock-3" class="w-3.5 h-3.5"></i> Pending</span>
                         {% elif o.status == 'Diproses' %}
-                            <span class="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-[11px] font-bold border border-blue-200 animate-pulse">📦 Diproses</span>
+                            <span class="px-4 py-2 bg-blue-50 text-blue-700 rounded-xl text-[10px] font-black tracking-[0.15em] border border-blue-200 uppercase shadow-sm flex items-center justify-center gap-1.5 w-fit mx-auto"><i data-lucide="package" class="w-3.5 h-3.5 animate-bounce"></i> Packing</span>
                         {% elif o.status == 'Selesai' %}
-                            <span class="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[11px] font-bold border border-emerald-200">✅ Selesai</span>
+                            <span class="px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-black tracking-[0.15em] border border-emerald-200 uppercase shadow-sm flex items-center justify-center gap-1.5 w-fit mx-auto"><i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Selesai</span>
                         {% elif o.status == 'Dibatalkan' %}
-                            <span class="px-3 py-1 bg-red-50 text-red-600 rounded-full text-[11px] font-bold border border-red-200">❌ Batal</span>
+                            <span class="px-4 py-2 bg-red-50 text-red-600 rounded-xl text-[10px] font-black tracking-[0.15em] border border-red-200 uppercase shadow-sm flex items-center justify-center gap-1.5 w-fit mx-auto"><i data-lucide="x-octagon" class="w-3.5 h-3.5"></i> Batal</span>
                         {% else %}
-                            <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-[11px] font-bold">{{ o.status }}</span>
+                            <span class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-[10px] font-black tracking-[0.15em] border border-gray-200 uppercase shadow-sm flex items-center justify-center w-fit mx-auto">{{ o.status }}</span>
                         {% endif %}
                     </td>
-                    <td class="px-6 py-4 text-right">
-                        <button onclick="openDetailModal({{ o | tojson | forceescape }})" class="bg-gray-900 hover:bg-gray-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ml-auto shadow-sm">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
-                            Detail
+                    
+                    <!-- Kolom 7: Action -->
+                    <td class="px-8 py-5 text-right align-middle">
+                        <button onclick="openDetailModal({{ o | tojson | forceescape }})" class="bg-white border border-gray-300 hover:border-gray-900 hover:bg-gray-900 text-gray-700 hover:text-white px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ml-auto shadow-sm active:scale-95 group/btn">
+                            Review <i data-lucide="scan-line" class="w-4 h-4 group-hover/btn:scale-110 smooth-trans"></i>
                         </button>
                     </td>
                 </tr>
                 {% else %}
                 <tr id="emptyStateRow">
-                    <td colspan="7" class="px-6 py-16 text-center">
+                    <td colspan="7" class="px-6 py-32 text-center bg-gray-50/30">
                         <div class="flex flex-col items-center justify-center">
-                            <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4"><svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg></div>
-                            <h3 class="text-base font-bold text-gray-900 mb-1">Belum Ada Pesanan Masuk</h3>
-                            <p class="text-sm text-gray-500 max-w-sm mb-4">Arahkan pelanggan untuk order lewat Bot Telegram.</p>
+                            <div class="w-24 h-24 bg-white border border-gray-100 shadow-sm rounded-full flex items-center justify-center mb-6 relative">
+                                <i data-lucide="folder-open" class="w-10 h-10 text-gray-300"></i>
+                                <span class="absolute top-0 right-0 w-4 h-4 bg-red-500 border-2 border-white rounded-full animate-ping"></span>
+                            </div>
+                            <h3 class="text-xl font-black text-gray-900 tracking-tight mb-2">Belum Ada Transaksi Logistik</h3>
+                            <p class="text-sm text-gray-500 max-w-sm mb-4 font-medium leading-relaxed">Sistem belum menerima ping order dari Mini App. Pastikan bot Telegram sudah berjalan dengan baik.</p>
                         </div>
                     </td>
                 </tr>
@@ -109,96 +202,171 @@
     </div>
 </div>
 
-<div id="modalBackdrop" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-40 hidden-force transition-opacity duration-300"></div>
+<!-- ===========================================================================
+     SECTION 4: MODAL ENTERPRISE (ORDER EXECUTION & DYNAMIC FINANCE ROUTING)
+============================================================================ -->
+<div id="modalBackdrop" class="fixed inset-0 bg-gray-900/80 backdrop-blur-md z-40 hidden-force transition-all duration-300"></div>
 
-<div id="modal-detail" class="fixed inset-0 z-50 hidden-force flex items-center justify-center p-4 sm:p-6">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] flex flex-col relative modal-content">
-        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 rounded-t-2xl">
-            <div>
-                <h2 class="text-lg font-black text-gray-900 flex items-center gap-2">
-                    <i data-lucide="receipt" class="w-5 h-5 text-gray-500"></i> Rincian Pesanan
-                </h2>
-                <p class="text-xs text-gray-500 font-bold tracking-widest mt-1" id="detail_order_number">ORD-XXXXXX</p>
+<div id="modal-detail" class="fixed inset-0 z-50 hidden-force flex items-center justify-center p-4 sm:p-6 overflow-y-auto custom-scrollbar">
+    <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl flex flex-col relative modal-content border border-gray-100 my-auto">
+        
+        <!-- Modal Header -->
+        <div class="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-white rounded-t-[2rem]">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 bg-gray-50 rounded-2xl border border-gray-200 shadow-inner flex items-center justify-center shrink-0">
+                    <i data-lucide="receipt" class="w-6 h-6 text-gray-800"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-black text-gray-900 tracking-tight">Rincian & Eksekusi</h2>
+                    <p class="text-[11px] text-gray-500 font-bold tracking-[0.2em] uppercase mt-1" id="detail_order_number">ORD-XXXXXX</p>
+                </div>
             </div>
-            <button onclick="closeModal('modal-detail')" class="w-8 h-8 flex items-center justify-center bg-white border border-gray-200 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors shadow-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            <button onclick="closeModal('modal-detail')" class="w-12 h-12 flex items-center justify-center bg-white border border-gray-200 rounded-full text-gray-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 smooth-trans shadow-sm active:scale-90">
+                <i data-lucide="x" class="w-5 h-5"></i>
             </button>
         </div>
         
-        <div class="flex-1 overflow-y-auto custom-scrollbar p-6 bg-gray-50/30">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
-                    <div class="absolute top-0 right-0 w-16 h-16 bg-blue-50 rounded-bl-full -mr-8 -mt-8"></div>
-                    <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-2">Informasi Pembeli</h3>
-                    <p class="font-black text-gray-900 text-sm mb-1" id="detail_cust_name">-</p>
-                    <p class="text-xs text-blue-600 font-bold mb-3" id="detail_cust_username">-</p>
-                    <div class="flex gap-2 text-xs text-gray-600 mb-2">
-                        <i data-lucide="phone" class="w-3.5 h-3.5 text-gray-400"></i>
-                        <span id="detail_cust_phone" class="font-medium">-</span>
-                    </div>
-                    <div class="flex gap-2 text-xs text-gray-600">
-                        <i data-lucide="map-pin" class="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5"></i>
-                        <span id="detail_cust_address" class="font-medium leading-relaxed">-</span>
+        <!-- Modal Body -->
+        <div class="flex-1 p-8 bg-gray-50/50">
+            
+            <!-- Grid Info Pembeli & Invoice -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                
+                <!-- Info Pelanggan -->
+                <div class="bg-white p-6 rounded-[1.5rem] border border-gray-200 relative overflow-hidden shadow-sm hover:shadow-md smooth-trans">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-12 -mt-12 opacity-80"></div>
+                    <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-5 flex items-center gap-2"><i data-lucide="user" class="w-4 h-4 text-blue-500"></i> Informasi Pelanggan</h3>
+                    
+                    <p class="font-black text-gray-900 text-xl mb-1 tracking-tight" id="detail_cust_name">-</p>
+                    <p class="text-xs text-blue-600 font-black tracking-widest mb-5" id="detail_cust_username">-</p>
+                    
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-3 text-sm text-gray-700 font-medium">
+                            <div class="w-8 h-8 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0">
+                                <i data-lucide="phone" class="w-3.5 h-3.5 text-gray-500"></i>
+                            </div>
+                            <span id="detail_cust_phone" class="font-bold">-</span>
+                        </div>
+                        <div class="flex items-start gap-3 text-sm text-gray-700 font-medium">
+                            <div class="w-8 h-8 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0 mt-0.5">
+                                <i data-lucide="map-pin" class="w-3.5 h-3.5 text-gray-500"></i>
+                            </div>
+                            <span id="detail_cust_address" class="leading-relaxed mt-1 font-bold">-</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
-                    <div class="absolute top-0 right-0 w-16 h-16 bg-emerald-50 rounded-bl-full -mr-8 -mt-8"></div>
-                    <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 border-b border-gray-100 pb-2">Ringkasan Tagihan</h3>
-                    <div class="flex justify-between items-center mb-3">
-                        <span class="text-xs font-bold text-gray-500">Metode Bayar</span>
-                        <span class="text-xs font-black bg-gray-100 px-2 py-1 rounded border border-gray-200 uppercase tracking-wider" id="detail_payment">-</span>
+                <!-- Ringkasan Invoice -->
+                <div class="bg-gray-900 p-6 rounded-[1.5rem] border border-black relative overflow-hidden text-white shadow-xl shadow-gray-900/20">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-yellow-400 rounded-bl-full -mr-16 -mt-16 opacity-10"></div>
+                    <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-5 flex items-center gap-2"><i data-lucide="file-spreadsheet" class="w-4 h-4 text-yellow-400"></i> Ringkasan Invoice</h3>
+                    
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center bg-black/40 p-3.5 rounded-xl border border-white/5">
+                            <span class="text-[11px] font-bold text-gray-400">Sistem Pembayaran</span>
+                            <span class="text-xs font-black text-yellow-400 uppercase tracking-widest" id="detail_payment">-</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-black/40 p-3.5 rounded-xl border border-white/5">
+                            <span class="text-[11px] font-bold text-gray-400">Waktu Order Masuk</span>
+                            <span class="text-xs font-bold" id="detail_date">-</span>
+                        </div>
                     </div>
-                    <div class="flex justify-between items-center mb-3">
-                        <span class="text-xs font-bold text-gray-500">Tanggal Order</span>
-                        <span class="text-xs font-medium text-gray-800" id="detail_date">-</span>
-                    </div>
-                    <div class="flex justify-between items-center mt-4 pt-3 border-t border-dashed border-gray-200">
-                        <span class="text-xs font-black text-gray-900 uppercase">Total Tagihan</span>
-                        <span class="text-2xl font-black text-emerald-600" id="detail_total">-</span>
+                    
+                    <div class="mt-6 pt-5 border-t border-white/10 flex justify-between items-end relative z-10">
+                        <span class="text-[11px] font-black text-gray-500 uppercase tracking-widest">Tagihan Sistem (USD)</span>
+                        <span class="text-4xl font-black text-yellow-400 tracking-tighter" id="detail_total">-</span>
                     </div>
                 </div>
             </div>
 
-            <h3 class="text-sm font-black text-gray-900 mb-3 flex items-center gap-2"><i data-lucide="shopping-bag" class="w-4 h-4 text-yellow-500"></i> Daftar Barang Dibeli</h3>
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-6">
+            <!-- Daftar Item (Booking Stock) -->
+            <h3 class="text-sm font-black text-gray-900 mb-4 flex items-center gap-2"><i data-lucide="shopping-cart" class="w-4 h-4 text-gray-500"></i> Barang yang Dikunci (Booking Stock)</h3>
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-2">
                 <ul class="divide-y divide-gray-100" id="detail_items_list">
-                    <li class="p-4 text-center text-xs text-gray-500">Memuat rincian barang...</li>
+                    <li class="p-6 text-center text-xs font-bold text-gray-500">Memuat rincian barang dari database...</li>
                 </ul>
             </div>
-            
         </div>
         
-        <div class="p-5 bg-white border-t border-gray-100 rounded-b-2xl shadow-[0_-10px_20px_rgba(0,0,0,0.03)]">
-            <form action="/admin/update-order-status" method="POST" class="flex flex-col sm:flex-row items-end sm:items-center gap-3">
+        <!-- =======================================================
+             THE BRAIN: FORM UPDATE & FINANCE ROUTING
+        ======================================================== -->
+        <div class="p-8 bg-white border-t border-gray-100 rounded-b-[2rem]">
+            <form action="/admin/update-order-status" method="POST" id="executionForm">
                 <input type="hidden" name="order_id" id="form_order_id">
+                <input type="hidden" id="form_usd_total" value="0"> <!-- RAW USD Amount -->
                 
-                <div class="w-full sm:flex-1">
-                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 pl-1">Update Status Pesanan</label>
-                    <select name="status" id="form_status" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm font-bold rounded-xl focus:ring-gray-900 focus:border-gray-900 p-2.5 outline-none appearance-none cursor-pointer">
-                        <option value="Menunggu Pembayaran">🕒 Menunggu Pembayaran</option>
-                        <option value="Diproses">📦 Diproses (Packing/Kirim)</option>
-                        <option value="Selesai">✅ Selesai (Diterima)</option>
-                        <option value="Dibatalkan">❌ Dibatalkan</option>
-                    </select>
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    
+                    <!-- Kiri: Pilih Status -->
+                    <div class="lg:col-span-5">
+                        <label class="block text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] mb-3 flex items-center gap-1.5"><i data-lucide="git-merge" class="w-4 h-4"></i> 1. Update Status Logistik</label>
+                        <select name="status" id="form_status" onchange="toggleFinanceSection()" class="w-full bg-white border border-gray-300 text-gray-900 text-sm font-black tracking-wide rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-gray-900 py-4 px-4 outline-none appearance-none cursor-pointer shadow-sm hover:border-gray-400 smooth-trans">
+                            <option value="Menunggu Pembayaran">🕒 Menunggu Pembayaran</option>
+                            <option value="Diproses">📦 Sedang Diproses (Packing)</option>
+                            <option value="Selesai">✅ SELESAI (Uang Cair)</option>
+                            <option value="Dibatalkan">❌ DIBATALKAN (Restock)</option>
+                        </select>
+                        <p class="text-[10px] text-gray-400 font-bold mt-3 bg-gray-50 p-2.5 rounded-lg border border-gray-100"><i data-lucide="info" class="w-3 h-3 inline"></i> Bot akan memberi info otomatis ke Telegram pelanggan saat status diubah.</p>
+                    </div>
+                    
+                    <!-- Kanan: Smart Finance Routing (Hanya Muncul saat 'Selesai') -->
+                    <div class="lg:col-span-7 bg-emerald-50 border border-emerald-200 p-6 rounded-2xl shadow-inner hidden smooth-trans" id="finance_conversion_section">
+                        <label class="block text-[11px] font-black text-emerald-800 uppercase tracking-[0.15em] mb-4 flex items-center gap-1.5"><i data-lucide="landmark" class="w-4 h-4"></i> 2. Eksekusi Pembukuan (Finance Route)</label>
+                        
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
+                            
+                            <!-- Input Bank / Dompet Tujuan -->
+                            <div>
+                                <p class="text-[9px] font-bold text-emerald-600 mb-1.5 uppercase tracking-widest">Uang Masuk Ke Akun Mana?</p>
+                                <select name="target_bank" id="target_bank" onchange="toggleRateInput()" class="w-full bg-white border border-emerald-200 text-gray-900 text-sm font-black rounded-xl focus:ring-2 focus:ring-emerald-500 p-3.5 outline-none shadow-sm cursor-pointer hover:border-emerald-300 smooth-trans">
+                                    <option value="Dolar Wings">💵 Dolar Wings (USD)</option>
+                                    <option value="BCA">💳 Bank BCA (IDR)</option>
+                                    <option value="Cash Rill">💰 Kas Laci (KHR)</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Input Rate/Kurs (HANYA MUNCUL JIKA PILIH BCA) -->
+                            <div id="rate_input_container" class="hidden smooth-trans">
+                                <p class="text-[9px] font-bold text-emerald-600 mb-1.5 uppercase tracking-widest">Kurs Manual ($1 ke IDR)</p>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-500 text-sm font-black">Rp</span>
+                                    <input type="number" name="exchange_rate" id="exchange_rate" value="15000" onkeyup="calculateConversion()" onchange="calculateConversion()" class="w-full bg-white border border-emerald-200 text-gray-900 text-sm font-black rounded-xl focus:ring-2 focus:ring-emerald-500 p-3.5 pl-10 outline-none shadow-sm hover:border-emerald-300 smooth-trans">
+                                </div>
+                            </div>
+
+                        </div>
+                        
+                        <!-- Hasil Kalkulator Realtime -->
+                        <div class="bg-white p-4 rounded-xl border border-emerald-100 flex justify-between items-center shadow-sm">
+                            <span class="text-xs font-black text-gray-500 uppercase tracking-widest">Nilai Masuk ke Aset:</span>
+                            <div class="text-right">
+                                <span class="text-2xl font-black text-emerald-600 tracking-tighter" id="calc_result">0</span>
+                                <span class="text-[9px] text-emerald-400 font-bold block mt-0.5 uppercase tracking-[0.2em]" id="calc_result_sub">Sesuai Tagihan Awal</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                
-                <button type="submit" class="w-full sm:w-auto bg-gray-900 hover:bg-gray-800 text-white font-black px-6 py-2.5 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2">
-                    Simpan & Info Pelanggan <i data-lucide="send" class="w-4 h-4"></i>
-                </button>
+
+                <div class="mt-8 pt-6 border-t border-gray-100 flex justify-end">
+                    <button type="submit" class="w-full lg:w-auto bg-gray-900 hover:bg-black text-yellow-400 font-black tracking-widest uppercase px-10 py-4 rounded-xl transition-all shadow-[0_10px_20px_-10px_rgba(0,0,0,0.5)] hover:shadow-[0_15px_25px_-10px_rgba(0,0,0,0.6)] active:scale-95 flex items-center justify-center gap-3 group/submit border border-black">
+                        Eksekusi Perintah <i data-lucide="zap" class="w-5 h-5 text-yellow-400 group-hover/submit:animate-bounce"></i>
+                    </button>
+                </div>
             </form>
-            <p class="text-[10px] text-gray-400 mt-2 text-center sm:text-left"><i data-lucide="info" class="w-3 h-3 inline"></i> Pelanggan akan otomatis mendapat notif di Telegram jika status diubah.</p>
         </div>
     </div>
 </div>
 
 <script>
-    // Inisialisasi ikon Lucide
+    // Inisialisasi ikon UI
     lucide.createIcons();
 
-    // --- MODAL LOGIC ---
     const backdrop = document.getElementById('modalBackdrop');
     
+    // ==============================================================================
+    // CORE LOGIC: MODAL ANIMATION & DATA BINDING
+    // ==============================================================================
     function openModal(modalId) {
         const modal = document.getElementById(modalId);
         const content = modal.querySelector('.modal-content');
@@ -219,115 +387,197 @@
         setTimeout(() => {
             modal.classList.add('hidden-force');
             backdrop.classList.add('hidden-force');
-        }, 200);
+        }, 300);
     }
 
-    // Format Uang Dolar
-    function formatMoney(amount) {
+    // Format Helpers
+    function formatMoneyUSD(amount) {
         return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
     }
-
-    // Format Tanggal
-    function formatDate(isoString) {
+    function formatDateStr(isoString) {
         const date = new Date(isoString);
         return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute:'2-digit' });
     }
 
-    // --- FUNGSI AJAIB: POPULATE DATA KE DALAM MODAL ---
+    // ==============================================================================
+    // THE BRAIN: DYNAMIC FINANCE ROUTING LOGIC
+    // ==============================================================================
+    function toggleFinanceSection() {
+        const status = document.getElementById('form_status').value;
+        const financeSec = document.getElementById('finance_conversion_section');
+        
+        if(status === 'Selesai') {
+            financeSec.classList.remove('hidden');
+            setTimeout(() => { financeSec.style.opacity = '1'; financeSec.style.transform = 'translateY(0)'; }, 10);
+            toggleRateInput(); // Cek input rate pas pertama buka
+        } else {
+            financeSec.classList.add('hidden');
+        }
+    }
+
+    // Logika Sesuai Permintaan Bos Dika: 
+    // USD & KHR Hilangkan Rate Manual. BCA Tampilkan Rate Manual.
+    function toggleRateInput() {
+        const bank = document.getElementById('target_bank').value;
+        const rateContainer = document.getElementById('rate_input_container');
+        
+        if (bank === 'BCA') {
+            // Tampilkan Input Rate IDR
+            rateContainer.classList.remove('hidden');
+        } else {
+            // Sembunyikan Input Rate (Buat USD dan KHR)
+            rateContainer.classList.add('hidden');
+        }
+        
+        calculateConversion(); // Kalkulasi ulang setiap ganti bank
+    }
+
+    // Kalkulator Konversi Pintar
+    function calculateConversion() {
+        const bank = document.getElementById('target_bank').value;
+        const usdTotal = parseFloat(document.getElementById('form_usd_total').value) || 0;
+        
+        const resultLabel = document.getElementById('calc_result');
+        const resultSub = document.getElementById('calc_result_sub');
+        
+        if (bank === 'BCA') {
+            const rate = parseFloat(document.getElementById('exchange_rate').value) || 0;
+            const finalAmount = rate * usdTotal;
+            resultLabel.innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(finalAmount);
+            resultSub.innerText = "Sesuai Kurs Manual";
+            resultSub.className = "text-[9px] text-blue-500 font-bold block mt-0.5 uppercase tracking-[0.2em]";
+            
+        } else if (bank === 'Dolar Wings') {
+            resultLabel.innerText = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(usdTotal);
+            resultSub.innerText = "Nilai Murni USD (1:1)";
+            resultSub.className = "text-[9px] text-emerald-500 font-bold block mt-0.5 uppercase tracking-[0.2em]";
+            
+        } else if (bank === 'Cash Rill') {
+            // Asumsi Fix Rate Backend KHR. Di UI tampilkan informasi
+            resultLabel.innerText = "AUTO KHR";
+            resultSub.innerText = "Dihitung Otomatis Oleh Sistem";
+            resultSub.className = "text-[9px] text-yellow-600 font-bold block mt-0.5 uppercase tracking-[0.2em]";
+        }
+    }
+
+    // ==============================================================================
+    // DATA BINDING: MASUKIN DATA DARI JINJA KE HTML MODAL
+    // ==============================================================================
     function openDetailModal(orderData) {
-        // 1. Isi Header & Info Customer
+        // 1. Data Kiri (Pelanggan)
         document.getElementById('detail_order_number').innerText = orderData.order_number;
         document.getElementById('detail_cust_name').innerText = orderData.customers.full_name || 'Pelanggan BABA';
         document.getElementById('detail_cust_username').innerText = orderData.customers.username ? ('@' + orderData.customers.username) : '-';
-        document.getElementById('detail_cust_phone').innerText = orderData.customers.phone || 'Nomor HP tidak ada';
-        document.getElementById('detail_cust_address').innerText = orderData.shipping_address || 'Alamat tidak disertakan';
+        document.getElementById('detail_cust_phone').innerText = orderData.customers.phone || 'Nomor HP tidak terdata';
+        document.getElementById('detail_cust_address').innerText = orderData.shipping_address || 'Alamat tidak disertakan di map';
         
-        // 2. Isi Ringkasan Tagihan
+        // 2. Data Kanan (Invoice)
         document.getElementById('detail_payment').innerText = orderData.payment_method || 'COD';
-        document.getElementById('detail_date').innerText = formatDate(orderData.created_at);
-        document.getElementById('detail_total').innerText = formatMoney(orderData.total_amount);
+        document.getElementById('detail_date').innerText = formatDateStr(orderData.created_at);
+        document.getElementById('detail_total').innerText = formatMoneyUSD(orderData.total_amount);
 
-        // 3. Render Daftar Barang (order_items)
+        // 3. Simpan Raw USD ke Hidden Input untuk JS
+        document.getElementById('form_usd_total').value = orderData.total_amount;
+
+        // 4. Render Daftar Barang (List)
         const listContainer = document.getElementById('detail_items_list');
-        listContainer.innerHTML = ''; // Kosongin list lama
+        listContainer.innerHTML = ''; 
         
         if (orderData.order_items && orderData.order_items.length > 0) {
             orderData.order_items.forEach(item => {
                 const li = document.createElement('li');
-                li.className = "flex items-center p-3 hover:bg-gray-50 transition-colors";
+                li.className = "flex items-center p-5 hover:bg-gray-50 smooth-trans";
                 
-                // Ambil data produk (karena udah di-join di main.py)
                 const prodName = item.products ? item.products.name : 'Produk Dihapus';
                 const prodImg = item.products && item.products.image_url ? item.products.image_url : 'https://placehold.co/100x100/eee/999?text=IMG';
-                const price = formatMoney(item.price_at_time);
+                const price = formatMoneyUSD(item.price_at_time);
+                const subtotal = formatMoneyUSD(item.price_at_time * item.quantity);
                 
                 li.innerHTML = `
-                    <img src="${prodImg}" class="w-12 h-12 rounded-lg object-cover bg-gray-100 border border-gray-200 mr-3">
-                    <div class="flex-1">
-                        <p class="font-bold text-gray-900 text-sm">${prodName}</p>
-                        <p class="text-[11px] font-bold text-gray-400 mt-0.5">${price} x ${item.quantity} pcs</p>
+                    <div class="w-16 h-16 rounded-[1rem] border border-gray-200 overflow-hidden mr-5 shrink-0 shadow-sm bg-gray-100">
+                        <img src="${prodImg}" class="w-full h-full object-cover">
                     </div>
-                    <div class="font-black text-gray-900 text-sm">
-                        ${formatMoney(item.price_at_time * item.quantity)}
+                    <div class="flex-1">
+                        <p class="font-black text-gray-900 text-sm tracking-tight mb-0.5">${prodName}</p>
+                        <p class="text-[11px] font-bold text-gray-500"><span class="text-emerald-600">${price}</span> <span class="text-gray-300 mx-1.5">|</span> Qty: <span class="text-gray-900 bg-gray-100 px-1.5 rounded">${item.quantity}</span> pcs</p>
+                    </div>
+                    <div class="font-black text-gray-900 text-lg tracking-tighter bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100">
+                        ${subtotal}
                     </div>
                 `;
                 listContainer.appendChild(li);
             });
         } else {
-            listContainer.innerHTML = '<li class="p-5 text-center text-sm font-medium text-gray-500">Gagal memuat rincian barang.</li>';
+            listContainer.innerHTML = '<li class="p-8 text-center text-sm font-black text-red-500 tracking-widest uppercase">Gagal memuat struktur barang!</li>';
         }
 
-        // 4. Siapin Form Update Status
+        // 5. Reset & Update Form State
         document.getElementById('form_order_id').value = orderData.id;
         document.getElementById('form_status').value = orderData.status;
+        
+        // Posisikan default dropdown target bank berdasarkan payment method (UI Magic)
+        const bankSelect = document.getElementById('target_bank');
+        if(orderData.payment_method === 'BCA') bankSelect.value = 'BCA';
+        else if(orderData.payment_method === 'COD') bankSelect.value = 'Cash Rill';
+        else bankSelect.value = 'Dolar Wings';
 
-        // Buka Modal
+        // Update view awal
+        toggleFinanceSection();
+
+        // 6. Tampilkan Modal
         openModal('modal-detail');
         lucide.createIcons();
     }
 
-    // --- FUNGSI FILTER & PENCARIAN (REALTIME) ---
+    // ==============================================================================
+    // UTILITIES: FILTER & SEARCH
+    // ==============================================================================
     function filterStatus(status) {
-        // Update styling tombol
         document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.classList.remove('bg-gray-900', 'text-white', 'shadow-sm');
-            btn.classList.add('bg-white', 'text-gray-700');
+            btn.classList.remove('bg-gray-900', 'text-yellow-400', 'shadow-lg');
+            btn.classList.add('bg-white', 'text-gray-600', 'shadow-sm');
         });
-        event.currentTarget.classList.remove('bg-white', 'text-gray-700');
-        event.currentTarget.classList.add('bg-gray-900', 'text-white', 'shadow-sm');
+        event.currentTarget.classList.remove('bg-white', 'text-gray-600', 'shadow-sm');
+        event.currentTarget.classList.add('bg-gray-900', 'text-yellow-400', 'shadow-lg');
 
-        // Logic Filter Baris
         const rows = document.querySelectorAll('.order-row');
+        let emptyState = document.getElementById('emptyStateRow');
+        let visibleCount = 0;
+
         rows.forEach(row => {
             if (status === 'all' || row.dataset.status === status) {
                 row.style.display = '';
+                visibleCount++;
             } else {
                 row.style.display = 'none';
             }
         });
+        
+        if(emptyState) emptyState.style.display = visibleCount === 0 ? '' : 'none';
     }
 
-    // Fitur Search Bar
     document.getElementById('searchInput').addEventListener('input', function(e) {
         const keyword = e.target.value.toLowerCase();
         const rows = document.querySelectorAll('.order-row');
+        let emptyState = document.getElementById('emptyStateRow');
+        let visibleCount = 0;
+
         rows.forEach(row => {
             if (row.dataset.search.includes(keyword)) {
                 row.style.display = '';
+                visibleCount++;
             } else {
                 row.style.display = 'none';
             }
         });
+        
+        if(emptyState) emptyState.style.display = visibleCount === 0 ? '' : 'none';
     });
 
-    // Close modal if clicked outside
+    // Close on backdrop click (Safety feature)
     window.onclick = function(event) {
         if (event.target == backdrop) {
-            document.querySelectorAll('.modal-content').forEach(el => {
-                if(!el.parentElement.classList.contains('hidden-force')) {
-                    closeModal(el.parentElement.id);
-                }
-            });
+            closeModal('modal-detail');
         }
     }
 </script>
