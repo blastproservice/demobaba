@@ -12,8 +12,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 # IMPORT SEMUA KOMANDAN (ROUTERS)
 # ==============================================================================
 from routers.admin import (
-    auth, dashboard, stock, finance, orders, 
-    customers, settings, staff, cs, profile
+    auth, cs_management, dashboard, stock, finance, orders, 
+    customers, settings, staff, profile
 )
 from routers.customer import store
 
@@ -93,7 +93,7 @@ app.include_router(orders.router)
 app.include_router(customers.router)
 app.include_router(settings.router)
 app.include_router(staff.router)
-app.include_router(cs.router)
+app.include_router(cs_management.router)
 app.include_router(profile.router)
 
 # 2. Router Customer Zone (Web Store BABA)
