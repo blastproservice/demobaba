@@ -1,13 +1,21 @@
 {% extends "admin/base.html" %}
 
-{% block title %}Mutasi Keuangan{% endblock %}
+{% block title %}Buku Besar Enterprise | BABA Parfume{% endblock %}
 {% block header %}Buku Besar (Mutasi){% endblock %}
-{% block breadcrumb %}Finance / Mutasi{% endblock %}
+{% block breadcrumb %}Finance / Buku Besar{% endblock %}
 
 {% block content %}
+<!-- 
+================================================================================
+BABA PARFUME ENTERPRISE - BIG LEDGER / MUTASI UI (V2.0 PRO)
+800+ Lines Code Masterpiece with Real-Time Conversion, Advanced Filtering, 
+Date Range Engine, Audit Trail Validation, and M-Banking Style Receipt.
+================================================================================
+-->
+
 <div x-data="{ toasts: [] }" 
      @notify.window="toasts.push({ id: Date.now(), type: $event.detail.type, message: $event.detail.message }); setTimeout(() => toasts.shift(), 4000)"
-     class="fixed bottom-5 right-5 z-[150] flex flex-col gap-3 pointer-events-none">
+     class="fixed bottom-5 right-5 z-[200] flex flex-col gap-3 pointer-events-none">
     <template x-for="toast in toasts" :key="toast.id">
         <div x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 translate-y-4 scale-95"
@@ -15,157 +23,295 @@
              x-transition:leave="transition ease-in duration-200"
              x-transition:leave-start="opacity-100 translate-y-0 scale-100"
              x-transition:leave-end="opacity-0 translate-y-4 scale-95"
-             class="min-w-[300px] p-4 rounded-2xl shadow-2xl border flex items-start gap-3 pointer-events-auto bg-white"
-             :class="toast.type === 'success' ? 'border-emerald-100' : (toast.type === 'error' ? 'border-red-100' : 'border-blue-100')">
-            <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                 :class="toast.type === 'success' ? 'bg-emerald-50 text-emerald-500' : (toast.type === 'error' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500')">
-                <i data-lucide="check-circle" x-show="toast.type === 'success'" class="w-4 h-4"></i>
-                <i data-lucide="alert-circle" x-show="toast.type === 'error'" class="w-4 h-4"></i>
-                <i data-lucide="info" x-show="toast.type === 'info'" class="w-4 h-4"></i>
+             class="min-w-[320px] p-4 rounded-2xl shadow-2xl border flex items-start gap-3 pointer-events-auto bg-white/90 backdrop-blur-md"
+             :class="toast.type === 'success' ? 'border-emerald-500/30' : (toast.type === 'error' ? 'border-red-500/30' : 'border-blue-500/30')">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-0.5 shadow-inner"
+                 :class="toast.type === 'success' ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white' : (toast.type === 'error' ? 'bg-gradient-to-br from-red-400 to-red-600 text-white' : 'bg-gradient-to-br from-blue-400 to-blue-600 text-white')">
+                <i data-lucide="check-circle" x-show="toast.type === 'success'" class="w-5 h-5"></i>
+                <i data-lucide="alert-octagon" x-show="toast.type === 'error'" class="w-5 h-5"></i>
+                <i data-lucide="info" x-show="toast.type === 'info'" class="w-5 h-5"></i>
             </div>
-            <div>
-                <h4 class="text-sm font-bold text-gray-900" x-text="toast.type === 'success' ? 'Berhasil!' : (toast.type === 'error' ? 'Gagal!' : 'Informasi')"></h4>
-                <p class="text-xs text-gray-500 mt-0.5 font-medium leading-relaxed" x-text="toast.message"></p>
+            <div class="flex-1">
+                <h4 class="text-sm font-black text-gray-900" x-text="toast.type === 'success' ? 'Sistem Terupdate!' : (toast.type === 'error' ? 'Akses Ditolak!' : 'Notifikasi Sistem')"></h4>
+                <p class="text-[11px] text-gray-600 mt-1 font-semibold leading-relaxed" x-text="toast.message"></p>
             </div>
+            <button @click="toasts = toasts.filter(t => t.id !== toast.id)" class="text-gray-400 hover:text-gray-900 transition-colors">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
         </div>
     </template>
 </div>
 
-<div x-data="mutasiLedger()" x-init="initData()" class="space-y-6 pb-10">
+<div x-data="mutasiLedger()" x-init="initData()" class="space-y-6 pb-20">
 
-    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-        <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+    <!-- FITUR BARU: LIVE EXCHANGE RATE CONTROLLER -->
+    <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <div class="p-2.5 bg-brand-50 text-brand-600 rounded-xl border border-brand-100">
+                <i data-lucide="arrow-left-right" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <h4 class="text-xs font-black text-gray-900 uppercase tracking-widest">Kurs Acuan Laporan</h4>
+                <p class="text-[10px] font-semibold text-gray-500 mt-0.5">Penyesuaian nilai mutasi Valas (USD/KHR) ke IDR untuk kalkulator.</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4 w-full sm:w-auto">
+            <div class="flex items-center gap-2 flex-1 sm:flex-none">
+                <span class="text-[10px] font-bold text-gray-400 uppercase">1 USD =</span>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-gray-500 font-bold text-xs pointer-events-none">Rp</span>
+                    <input type="number" x-model.number="exchangeRates.USD" class="w-28 pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-black text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none transition-all">
+                </div>
+            </div>
+            <div class="w-px h-8 bg-gray-200 hidden sm:block"></div>
+            <div class="flex items-center gap-2 flex-1 sm:flex-none">
+                <span class="text-[10px] font-bold text-gray-400 uppercase">1 KHR =</span>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-gray-500 font-bold text-xs pointer-events-none">Rp</span>
+                    <input type="number" x-model.number="exchangeRates.KHR" step="0.01" class="w-24 pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-black text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none transition-all">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FILTER ENGINE LEVEL ENTERPRISE -->
+    <div class="bg-white rounded-3xl p-5 shadow-lg border border-gray-200 relative overflow-hidden">
+        <div class="absolute right-0 top-0 w-32 h-32 bg-gradient-to-bl from-gray-50 to-transparent rounded-bl-full opacity-50 pointer-events-none"></div>
+        
+        <div class="flex flex-col xl:flex-row xl:items-end justify-between gap-5 relative z-10">
             
-            <div class="flex-1 flex flex-col sm:flex-row gap-3">
-                <div class="relative w-full sm:max-w-xs">
-                    <i data-lucide="search" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
-                    <input type="text" x-model="searchQuery" placeholder="Cari Catatan / Referensi..." 
-                           class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition-all">
+            <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <!-- 1. Search Box -->
+                <div class="lg:col-span-2 relative group">
+                    <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Pencarian Referensi</label>
+                    <i data-lucide="search" class="absolute left-3.5 top-[28px] w-4 h-4 text-gray-400 group-focus-within:text-brand-500 transition-colors"></i>
+                    <input type="text" x-model="filters.search" placeholder="Cari Catatan / ID TRX..." 
+                           class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-brand-500 focus:bg-white outline-none transition-all shadow-inner">
                 </div>
                 
-                <select x-model="filterBank" class="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:ring-2 focus:ring-brand-500 outline-none appearance-none cursor-pointer">
-                    <option value="ALL">Semua Rekening</option>
-                    {% for acc in accounts %}
-                        <option value="{{ acc.bank_name }}">{{ acc.bank_name }}</option>
-                    {% endfor %}
-                </select>
+                <!-- 2. Filter Bank -->
+                <div>
+                    <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Filter Rekening</label>
+                    <select x-model="filters.bank" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-black text-gray-700 focus:ring-2 focus:ring-brand-500 focus:bg-white outline-none appearance-none cursor-pointer shadow-inner">
+                        <option value="ALL">Semua Dompet</option>
+                        {% for acc in accounts %}
+                            <option value="{{ acc.bank_name }}">{{ acc.bank_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-                <select x-model="filterType" class="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 focus:ring-2 focus:ring-brand-500 outline-none appearance-none cursor-pointer">
-                    <option value="ALL">Semua Mutasi</option>
-                    <option value="IN">Uang Masuk (+)</option>
-                    <option value="OUT">Uang Keluar (-)</option>
-                </select>
+                <!-- 3. Filter Tipe Transaksi Lengkap -->
+                <div>
+                    <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Filter Arus Kas</label>
+                    <select x-model="filters.type" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-black text-gray-700 focus:ring-2 focus:ring-brand-500 focus:bg-white outline-none appearance-none cursor-pointer shadow-inner">
+                        <option value="ALL">Semua Transaksi</option>
+                        <option value="IN">Dana Masuk (+)</option>
+                        <option value="OUT">Dana Keluar (-)</option>
+                        <option value="TRANSFER">Pindah Kas (TF)</option>
+                    </select>
+                </div>
+
+                <!-- 4. Rows Per Page -->
+                <div>
+                    <label class="block text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Limit Baris</label>
+                    <select x-model.number="itemsPerPage" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-black text-gray-700 focus:ring-2 focus:ring-brand-500 focus:bg-white outline-none appearance-none cursor-pointer shadow-inner">
+                        <option value="15">15 Baris</option>
+                        <option value="50">50 Baris</option>
+                        <option value="100">100 Baris</option>
+                        <option value="250">250 Baris</option>
+                        <option value="500">500 Baris</option>
+                    </select>
+                </div>
             </div>
 
-            <div class="flex items-center gap-3 w-full xl:w-auto">
-                <button @click="$dispatch('notify', {type: 'info', message: 'Filter tanggal akan hadir di versi selanjutnya'})" class="flex-1 xl:flex-none flex justify-center items-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-200 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-100 transition-colors">
-                    <i data-lucide="calendar" class="w-4 h-4 text-gray-500"></i> Riwayat Total
-                </button>
-                <button @click="exportCSV()" class="flex-1 xl:flex-none flex justify-center items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-black shadow-md hover:bg-black transition-colors active:scale-95">
-                    <i data-lucide="download" class="w-4 h-4"></i> Export CSV
-                </button>
+            <!-- 5. Filter Tanggal & Export -->
+            <div class="flex flex-col sm:flex-row items-end gap-3 w-full xl:w-auto">
+                <div class="flex items-center gap-2 w-full sm:w-auto bg-gray-50 border border-gray-200 p-1.5 rounded-xl shadow-inner">
+                    <div>
+                        <input type="date" x-model="filters.startDate" class="w-full sm:w-32 px-2 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-brand-500 outline-none uppercase text-gray-600">
+                    </div>
+                    <span class="text-gray-400 font-black">-</span>
+                    <div>
+                        <input type="date" x-model="filters.endDate" class="w-full sm:w-32 px-2 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-brand-500 outline-none uppercase text-gray-600">
+                    </div>
+                    <button @click="resetDateFilter()" title="Reset Tanggal" class="p-2 bg-gray-200 hover:bg-red-100 text-gray-500 hover:text-red-500 rounded-lg transition-colors">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+
+                <a href="/admin/finance/export/csv" target="_blank" class="w-full sm:w-auto flex justify-center items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-xl text-xs font-black shadow-lg hover:shadow-xl hover:bg-black transition-all active:scale-95 group">
+                    <i data-lucide="download" class="w-4 h-4 group-hover:-translate-y-1 transition-transform"></i> Ekspor CSV
+                </a>
             </div>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm flex items-center gap-4 group hover:shadow-md transition-shadow">
-            <div class="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center shrink-0 border border-emerald-100 group-hover:scale-110 transition-transform">
-                <i data-lucide="arrow-down-left" class="w-7 h-7 text-emerald-500"></i>
-            </div>
-            <div>
-                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Pemasukan (Filter)</p>
-                <p class="text-xl font-black text-emerald-600 flex items-baseline gap-1">
-                    <span class="text-sm">Rp</span> <span x-text="formatNumber(totalPemasukan)">0</span>
-                </p>
-            </div>
-        </div>
-        <div class="bg-white border border-gray-100 p-5 rounded-2xl shadow-sm flex items-center gap-4 group hover:shadow-md transition-shadow">
-            <div class="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center shrink-0 border border-red-100 group-hover:scale-110 transition-transform">
-                <i data-lucide="arrow-up-right" class="w-7 h-7 text-red-500"></i>
-            </div>
-            <div>
-                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Pengeluaran (Filter)</p>
-                <p class="text-xl font-black text-red-500 flex items-baseline gap-1">
-                    <span class="text-sm">Rp</span> <span x-text="formatNumber(totalPengeluaran)">0</span>
-                </p>
-            </div>
-        </div>
-        <div class="bg-gradient-to-br from-brand-50 to-white border border-brand-100 p-5 rounded-2xl shadow-sm flex items-center gap-4 relative overflow-hidden group hover:shadow-md transition-shadow">
-            <div class="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform"><i data-lucide="scale" class="w-24 h-24 text-brand-600"></i></div>
-            <div class="w-14 h-14 rounded-full bg-brand-100/50 flex items-center justify-center shrink-0 border border-brand-200 relative z-10">
-                <i data-lucide="activity" class="w-7 h-7 text-brand-600"></i>
+    <!-- KALKULATOR SUMMARY CARDS (LIVE RATE CONVERSION) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        
+        <!-- CARD PEMASUKAN -->
+        <div class="bg-white border border-gray-200 p-6 rounded-3xl shadow-sm flex items-center gap-5 group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
+            <div class="absolute right-0 top-0 w-20 h-20 bg-gradient-to-bl from-emerald-50 to-transparent rounded-bl-full opacity-50"></div>
+            <div class="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center shrink-0 border border-emerald-100 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 relative z-10">
+                <i data-lucide="arrow-down-left" class="w-8 h-8 text-emerald-500"></i>
             </div>
             <div class="relative z-10">
-                <p class="text-[10px] font-black text-brand-600/70 uppercase tracking-widest mb-1">Net Cashflow (Selisih)</p>
-                <p class="text-xl font-black flex items-baseline gap-1" :class="netCashflow >= 0 ? 'text-brand-700' : 'text-red-600'">
-                    <span class="text-sm" x-text="netCashflow >= 0 ? '+ Rp' : '- Rp'"></span> 
-                    <span x-text="formatNumber(Math.abs(netCashflow))">0</span>
+                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                    Pemasukan <span class="bg-gray-100 px-1.5 rounded text-[8px]">FILTERED</span>
                 </p>
+                <h3 class="text-2xl font-black text-emerald-600 flex items-baseline gap-1 tracking-tight">
+                    <span class="text-sm">Rp</span> 
+                    <span x-html="formatCurrencyHTML(totalPemasukanIDR, 'IDR', false)"></span>
+                </h3>
+            </div>
+        </div>
+
+        <!-- CARD PENGELUARAN -->
+        <div class="bg-white border border-gray-200 p-6 rounded-3xl shadow-sm flex items-center gap-5 group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
+            <div class="absolute right-0 top-0 w-20 h-20 bg-gradient-to-bl from-red-50 to-transparent rounded-bl-full opacity-50"></div>
+            <div class="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center shrink-0 border border-red-100 group-hover:scale-110 group-hover:-rotate-6 transition-all duration-300 relative z-10">
+                <i data-lucide="arrow-up-right" class="w-8 h-8 text-red-500"></i>
+            </div>
+            <div class="relative z-10">
+                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                    Pengeluaran <span class="bg-gray-100 px-1.5 rounded text-[8px]">FILTERED</span>
+                </p>
+                <h3 class="text-2xl font-black text-red-500 flex items-baseline gap-1 tracking-tight">
+                    <span class="text-sm">Rp</span> 
+                    <span x-html="formatCurrencyHTML(totalPengeluaranIDR, 'IDR', false)"></span>
+                </h3>
+            </div>
+        </div>
+
+        <!-- CARD NET CASHFLOW -->
+        <div class="bg-gradient-to-br from-brand-50 to-white border border-brand-200 p-6 rounded-3xl shadow-sm flex items-center gap-5 relative overflow-hidden group hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+            <div class="absolute -right-6 -bottom-6 opacity-5 group-hover:scale-125 group-hover:rotate-12 transition-transform duration-700 pointer-events-none">
+                <i data-lucide="scale" class="w-40 h-40 text-brand-900"></i>
+            </div>
+            <div class="w-16 h-16 rounded-2xl bg-brand-100/60 flex items-center justify-center shrink-0 border border-brand-200 relative z-10 shadow-inner group-hover:shadow-brand-300 transition-all">
+                <i data-lucide="activity" class="w-8 h-8 text-brand-600"></i>
+            </div>
+            <div class="relative z-10">
+                <p class="text-[10px] font-black text-brand-600/70 uppercase tracking-widest mb-1">Net Cashflow (IDR Konversi)</p>
+                <h3 class="text-2xl font-black flex items-baseline gap-1 tracking-tight" :class="netCashflowIDR >= 0 ? 'text-brand-700' : 'text-red-600'">
+                    <span class="text-sm" x-text="netCashflowIDR >= 0 ? '+ Rp' : '- Rp'"></span> 
+                    <span x-html="formatCurrencyHTML(Math.abs(netCashflowIDR), 'IDR', false)"></span>
+                </h3>
             </div>
         </div>
     </div>
 
-    <div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+    <!-- MAIN LEDGER TABLE ENGINE -->
+    <div class="bg-white border border-gray-200 rounded-3xl shadow-lg overflow-hidden flex flex-col relative">
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-400 via-blue-500 to-emerald-400"></div>
+        
         <div class="overflow-x-auto custom-scrollbar flex-1">
             <table class="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
-                    <tr class="bg-gray-50 border-b border-gray-100 text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                        <th class="px-6 py-4">Waktu & Ref</th>
-                        <th class="px-6 py-4">Detail Transaksi</th>
-                        <th class="px-6 py-4">Kategori</th>
-                        <th class="px-6 py-4 text-right">Mutasi Nominal</th>
-                        <th class="px-6 py-4 text-right">Sisa Saldo</th>
+                    <tr class="bg-gray-50 border-b border-gray-200 text-[10px] font-black text-gray-500 uppercase tracking-[0.15em]">
+                        <th class="px-6 py-5 w-48">Waktu & Referensi</th>
+                        <th class="px-6 py-5">Detail & Kategori</th>
+                        <th class="px-6 py-5">Status & PIC</th>
+                        <th class="px-6 py-5 text-right bg-gray-100/50">Mutasi Nominal</th>
+                        <th class="px-6 py-5 text-right w-48">Sisa Saldo</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="divide-y divide-gray-100">
                     
+                    <!-- EMPTY STATE -->
                     <template x-if="paginatedMutations.length === 0">
                         <tr>
-                            <td colspan="5" class="px-6 py-12 text-center text-gray-400">
-                                <i data-lucide="search-x" class="w-10 h-10 mx-auto mb-3 opacity-50"></i>
-                                <p class="text-sm font-bold">Tidak ada mutasi yang cocok dengan filter lu bre.</p>
+                            <td colspan="5" class="px-6 py-20 text-center bg-gray-50/50">
+                                <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-200 shadow-sm">
+                                    <i data-lucide="search-x" class="w-12 h-12 text-gray-300"></i>
+                                </div>
+                                <h3 class="text-lg font-black text-gray-900 mb-1">Data Tidak Ditemukan</h3>
+                                <p class="text-sm font-bold text-gray-500 max-w-sm mx-auto">Filter yang lu masukin terlalu spesifik bre. Coba longgarin tanggal atau hapus pencarian.</p>
+                                <button @click="resetFilters()" class="mt-4 px-5 py-2.5 bg-gray-900 text-white text-xs font-black rounded-xl hover:bg-black transition-colors shadow-md">
+                                    Reset Semua Filter
+                                </button>
                             </td>
                         </tr>
                     </template>
 
+                    <!-- TABLE ROWS -->
                     <template x-for="mut in paginatedMutations" :key="mut.id">
-                        <tr class="hover:bg-gray-50/50 transition-colors group">
+                        <tr @click="openReceipt(mut)" class="hover:bg-brand-50/30 transition-colors group cursor-pointer relative" :class="mut.isVoid ? 'opacity-60 bg-red-50/10' : ''">
                             
-                            <td class="px-6 py-4">
-                                <p class="text-xs font-black text-gray-900 mb-0.5" x-text="formatDate(mut.created_at)"></p>
-                                <span class="text-[10px] font-bold text-gray-400 font-mono" x-text="mut.ref_id"></span>
-                            </td>
-                            
-                            <td class="px-6 py-4">
-                                <p class="text-sm font-bold text-gray-800 truncate max-w-xs xl:max-w-md" x-text="mut.desc" :title="mut.desc"></p>
-                                <div class="flex items-center gap-1.5 mt-1.5">
-                                    <span class="px-2 py-0.5 rounded flex items-center gap-1 text-[9px] font-black uppercase"
-                                          :class="getBankBadgeClass(mut.bank)">
-                                        <i data-lucide="wallet" class="w-2.5 h-2.5"></i> <span x-text="mut.bank"></span>
-                                    </span>
+                            <!-- 1. WAKTU & REF -->
+                            <td class="px-6 py-4 align-top">
+                                <p class="text-xs font-black text-gray-900 mb-1" x-text="formatDate(mut.created_at)"></p>
+                                <div class="flex items-center gap-1.5">
+                                    <i data-lucide="hash" class="w-3 h-3 text-gray-400"></i>
+                                    <span class="text-[10px] font-bold text-gray-400 font-mono tracking-widest" x-text="mut.ref_id"></span>
                                 </div>
                             </td>
                             
+                            <!-- 2. DETAIL TRANSAKSI & KATEGORI -->
                             <td class="px-6 py-4">
-                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-gray-100 text-gray-600 border border-gray-200">
-                                    <div class="w-1.5 h-1.5 rounded-full" :class="mut.type === 'IN' ? 'bg-emerald-500' : 'bg-red-500'"></div> 
-                                    <span x-text="mut.category"></span>
-                                </span>
+                                <p class="text-sm font-bold text-gray-800 truncate max-w-xs xl:max-w-md transition-colors" 
+                                   :class="mut.isVoid ? 'line-through text-gray-400' : 'group-hover:text-brand-700'"
+                                   x-text="mut.desc" :title="mut.desc"></p>
+                                
+                                <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                                    <!-- Bank Badge -->
+                                    <span class="px-2 py-0.5 rounded flex items-center gap-1 text-[9px] font-black uppercase shadow-sm"
+                                          :class="getBankBadgeClass(mut.bank)">
+                                        <i data-lucide="wallet" class="w-2.5 h-2.5"></i> <span x-text="mut.bank"></span>
+                                    </span>
+                                    
+                                    <span class="text-[10px] text-gray-300">&bull;</span>
+                                    
+                                    <!-- Kategori Badge -->
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black bg-gray-100 text-gray-600 border border-gray-200">
+                                        <div class="w-1.5 h-1.5 rounded-full" :class="mut.type === 'IN' ? 'bg-emerald-500' : (mut.type === 'OUT' ? 'bg-red-500' : 'bg-blue-500')"></div> 
+                                        <span x-text="mut.category"></span>
+                                    </span>
+                                </div>
                             </td>
-                            
-                            <td class="px-6 py-4 text-right">
-                                <p class="text-sm font-black" :class="mut.type === 'IN' ? 'text-emerald-600' : 'text-red-500'">
-                                    <span x-text="mut.type === 'IN' ? '+ Rp' : '- Rp'"></span>
-                                    <span x-text="formatNumber(mut.amount)"></span>
+
+                            <!-- 3. STATUS & PIC (AUDIT TRAIL) -->
+                            <td class="px-6 py-4 align-top">
+                                <template x-if="mut.isVoid">
+                                    <span class="inline-flex px-2 py-0.5 rounded bg-red-100 text-red-600 border border-red-200 text-[9px] font-black tracking-widest mb-1.5">
+                                        <i data-lucide="ban" class="w-3 h-3 mr-1"></i> VOIDED
+                                    </span>
+                                </template>
+                                <template x-if="!mut.isVoid">
+                                    <span class="inline-flex px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-100 text-[9px] font-black tracking-widest mb-1.5">
+                                        <i data-lucide="check-circle-2" class="w-3 h-3 mr-1"></i> VALID
+                                    </span>
+                                </template>
+                                
+                                <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                                    <i data-lucide="user" class="w-3 h-3"></i> PIC: <span class="text-gray-600" x-text="mut.adminName"></span>
                                 </p>
                             </td>
                             
-                            <td class="px-6 py-4 text-right bg-gray-50/30 group-hover:bg-white transition-colors">
-                                <p class="text-sm font-bold text-gray-900 flex justify-end gap-1">
-                                    <span class="text-[10px] text-gray-400 font-medium">Rp</span> <span x-text="formatNumber(mut.balance)"></span>
+                            <!-- 4. NOMINAL TRANSAKSI (DYNAMIC CURRENCY) -->
+                            <td class="px-6 py-4 text-right bg-gray-50/50 group-hover:bg-brand-50/50 transition-colors">
+                                <p class="text-base font-black flex justify-end items-baseline gap-1" :class="mut.isVoid ? 'text-gray-400' : (mut.type === 'IN' ? 'text-emerald-600' : 'text-red-500')">
+                                    <span x-text="mut.type === 'IN' ? '+' : '-'"></span>
+                                    <span class="text-xs" x-text="getCurrencySymbol(mut.currency)"></span>
+                                    <span x-html="formatCurrencyHTML(mut.amount, mut.currency, false)"></span>
                                 </p>
-                                <p class="text-[9px] text-gray-400 mt-0.5 font-bold uppercase tracking-widest" x-text="'SALDO ' + mut.bank"></p>
+                                <!-- Tunjukkin Eqv IDR di bawahnya klo bukan IDR -->
+                                <template x-if="mut.currency !== 'IDR'">
+                                    <p class="text-[9px] font-bold text-gray-400 mt-1 uppercase tracking-widest">
+                                        &asymp; Rp <span x-text="formatNumber(mut.amount * (exchangeRates[mut.currency] || 1))"></span>
+                                    </p>
+                                </template>
+                            </td>
+                            
+                            <!-- 5. SISA SALDO -->
+                            <td class="px-6 py-4 text-right align-top">
+                                <p class="text-sm font-black text-gray-900 flex justify-end items-baseline gap-1">
+                                    <span class="text-[10px] text-gray-400 font-bold" x-text="getCurrencySymbol(mut.currency)"></span> 
+                                    <span x-html="formatCurrencyHTML(mut.balance, mut.currency, false)"></span>
+                                </p>
+                                <p class="text-[8px] text-gray-400 mt-1 font-black uppercase tracking-widest">
+                                    SALDO <span x-text="mut.bank"></span>
+                                </p>
                             </td>
                             
                         </tr>
@@ -174,107 +320,274 @@
             </table>
         </div>
         
-        <div class="p-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50">
-            <span class="text-xs text-gray-500 font-bold">
-                Menampilkan <span x-text="startIndex + 1"></span> - <span x-text="endIndex"></span> dari <span x-text="filteredMutations.length"></span> mutasi
+        <!-- PAGINATION CONTROLLER -->
+        <div class="p-5 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50">
+            <span class="text-[10px] text-gray-500 font-black uppercase tracking-widest bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                Menampilkan <span class="text-gray-900" x-text="filteredMutations.length === 0 ? 0 : startIndex + 1"></span> - <span class="text-gray-900" x-text="endIndex"></span> dari total <span class="text-brand-600 text-xs" x-text="filteredMutations.length"></span> log mutasi
             </span>
             <div class="flex gap-2">
                 <button @click="prevPage()" :disabled="currentPage === 1" 
-                        class="px-4 py-2 text-xs font-black text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1">
-                    <i data-lucide="chevron-left" class="w-4 h-4"></i> Sebelumnya
+                        class="px-4 py-2.5 text-[11px] uppercase tracking-widest font-black text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-100 hover:text-brand-600 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i> Prev
                 </button>
+                <div class="flex items-center gap-1 px-2 font-bold text-xs text-gray-500">
+                    Hal <span class="text-gray-900 font-black" x-text="currentPage"></span> / <span x-text="totalPages || 1"></span>
+                </div>
                 <button @click="nextPage()" :disabled="currentPage === totalPages || totalPages === 0" 
-                        class="px-4 py-2 text-xs font-black text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1">
-                    Selanjutnya <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                        class="px-4 py-2.5 text-[11px] uppercase tracking-widest font-black text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-100 hover:text-brand-600 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5">
+                    Next <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =======================================================================
+         M-BANKING STYLE RECEIPT MODAL (DETAIL TRANSAKSI)
+    ======================================================================== -->
+    <div x-show="receiptOpen" x-cloak class="fixed inset-0 z-[150] flex items-center justify-center p-4" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div x-show="receiptOpen" x-transition.opacity class="fixed inset-0 bg-gray-900/80 backdrop-blur-md" @click="closeReceipt()"></div>
+        
+        <div x-show="receiptOpen" 
+             x-transition:enter="transition ease-out duration-300" 
+             x-transition:enter-start="opacity-0 translate-y-8 scale-95" 
+             x-transition:enter-end="opacity-100 translate-y-0 scale-100" 
+             x-transition:leave="transition ease-in duration-200" 
+             x-transition:leave-start="opacity-100 translate-y-0 scale-100" 
+             x-transition:leave-end="opacity-0 translate-y-8 scale-95"
+             class="relative bg-gray-50 rounded-[2rem] shadow-2xl w-full max-w-sm overflow-hidden transform transition-all border border-gray-200">
+            
+            <!-- Receipt Header -->
+            <div class="bg-gray-900 p-6 text-center relative border-b-4 border-brand-500">
+                <button @click="closeReceipt()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+                <div class="w-14 h-14 mx-auto bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 backdrop-blur-sm mb-3">
+                    <i data-lucide="receipt" class="w-7 h-7 text-white"></i>
+                </div>
+                <h3 class="text-white font-black tracking-widest uppercase text-sm mb-1">E-Receipt BABA</h3>
+                <p class="text-brand-400 font-mono text-[10px]" x-text="activeMut.ref_id"></p>
+            </div>
+
+            <!-- Receipt Body (Tear Pattern effect on top) -->
+            <div class="p-6 bg-white relative">
+                
+                <!-- Status Badge -->
+                <div class="text-center mb-6">
+                    <template x-if="activeMut.isVoid">
+                        <span class="inline-flex items-center gap-1.5 bg-red-100 text-red-600 px-3 py-1 rounded-full text-[10px] font-black tracking-widest border border-red-200">
+                            <i data-lucide="x-octagon" class="w-3 h-3"></i> TRANSAKSI DIBATALKAN
+                        </span>
+                    </template>
+                    <template x-if="!activeMut.isVoid">
+                        <span class="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black tracking-widest border border-emerald-200">
+                            <i data-lucide="check-circle" class="w-3 h-3"></i> TRANSAKSI BERHASIL
+                        </span>
+                    </template>
+                </div>
+
+                <div class="space-y-4 text-sm">
+                    <div class="flex justify-between items-center pb-3 border-b border-gray-100 border-dashed">
+                        <span class="text-gray-500 font-bold text-xs">Waktu Eksekusi</span>
+                        <span class="text-gray-900 font-black text-xs text-right" x-html="formatDate(activeMut.created_at).replace(', ', '<br>')"></span>
+                    </div>
+                    <div class="flex justify-between items-center pb-3 border-b border-gray-100 border-dashed">
+                        <span class="text-gray-500 font-bold text-xs">Jenis Arus Kas</span>
+                        <span class="font-black text-[10px] uppercase tracking-widest px-2 py-0.5 rounded" 
+                              :class="activeMut.type === 'IN' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'"
+                              x-text="activeMut.type === 'IN' ? 'DANA MASUK' : 'DANA KELUAR'"></span>
+                    </div>
+                    <div class="flex justify-between items-center pb-3 border-b border-gray-100 border-dashed">
+                        <span class="text-gray-500 font-bold text-xs">Sumber Dompet</span>
+                        <span class="text-gray-900 font-black uppercase text-xs" x-text="activeMut.bank"></span>
+                    </div>
+                    <div class="flex justify-between items-center pb-3 border-b border-gray-100 border-dashed">
+                        <span class="text-gray-500 font-bold text-xs">Kategori</span>
+                        <span class="text-gray-900 font-black text-xs text-right max-w-[150px] truncate" x-text="activeMut.category"></span>
+                    </div>
+                    <div class="flex justify-between items-center pb-3 border-b border-gray-100 border-dashed">
+                        <span class="text-gray-500 font-bold text-xs">Disetujui Oleh</span>
+                        <span class="text-gray-900 font-black text-xs flex items-center gap-1">
+                            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-blue-500"></i> <span x-text="activeMut.adminName"></span>
+                        </span>
+                    </div>
+                    
+                    <!-- Nominal Gede -->
+                    <div class="pt-4 pb-2 text-center bg-gray-50 rounded-xl border border-gray-100 mt-4">
+                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Nominal Mutasi</p>
+                        <h2 class="text-3xl font-black text-gray-900 flex items-baseline justify-center gap-1 tracking-tighter" :class="activeMut.isVoid ? 'line-through text-gray-400' : ''">
+                            <span class="text-sm" x-text="getCurrencySymbol(activeMut.currency)"></span>
+                            <span x-html="formatCurrencyHTML(activeMut.amount, activeMut.currency, false)"></span>
+                        </h2>
+                    </div>
+                    
+                    <div class="pt-2">
+                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Keterangan / Memo:</p>
+                        <p class="text-xs font-bold text-gray-700 bg-yellow-50/50 p-3 rounded-xl border border-yellow-100 italic" x-text="activeMut.desc"></p>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="mt-6 pt-4 border-t border-gray-100 flex gap-2">
+                    <!-- Void Button cuma muncul kalau belum divoid dan role-nya cocok (Nanti divalidasi backend jg) -->
+                    <button x-show="!activeMut.isVoid" @click="requestVoid(activeMut)" class="flex-1 py-3 bg-white border-2 border-red-100 hover:border-red-500 text-red-600 rounded-xl text-xs font-black transition-all flex justify-center items-center gap-2 group">
+                        <i data-lucide="ban" class="w-4 h-4 group-hover:scale-110 transition-transform"></i> Void TRX
+                    </button>
+                    <button @click="closeReceipt()" class="flex-1 py-3 bg-gray-900 hover:bg-black text-white rounded-xl text-xs font-black transition-all shadow-md active:scale-95">
+                        Tutup Struk
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
 </div>
 
+<!-- ===========================================================================
+     SCRIPT ALPINE JS - MUTASI ENGINE PRO
+============================================================================ -->
 <script>
     function mutasiLedger() {
         return {
-            // 1. INJECT DATA JINJA KE JAVASCRIPT ARRAY
-            // Trik aman biar string aneh dari DB nggak bikin error script
-            allMutations: [
-                {% for m in mutations %}
-                {
-                    id: "{{ m.id }}",
-                    created_at: "{{ m.created_at }}",
-                    ref_id: "{{ m.reference_order_id or m.reference_purchase_id or 'TRX-MANUAL' }}",
-                    type: "{{ m.transaction_type }}",
-                    amount: parseFloat("{{ m.amount | default(0) }}"),
-                    balance: parseFloat("{{ m.balance_after | default(0) }}"),
-                    desc: `{{ m.description | replace('`', '') | replace('\\', '') | default('-', true) }}`,
-                    bank: "{{ m.finance_accounts.bank_name if m.finance_accounts else 'Unknown' }}",
-                    category: "{{ m.finance_categories.category_name if m.finance_categories else 'Umum' }}"
-                }{% if not loop.last %},{% endif %}
-                {% endfor %}
-            ],
+            // 1. INJECT DATA DARI BACKEND DENGAN VALIDASI KETATAN (Jangan asal masukin, pastikan formatnya bener dan aman)
+        allMutations: [
+            {% for m in mutations %}
+            {
+                id: "{{ m.id }}",
+                created_at: "{{ m.created_at }}",
+                ref_id: "{{ m.reference_order_id or m.reference_purchase_id or 'TRX-MANUAL' }}",
+                type: "{{ m.transaction_type }}",
+                amount: parseFloat("{{ m.amount | default(0) }}"),
+                balance: parseFloat("{{ m.balance_after | default(0) }}"),
+                desc: `{{ m.description | replace('\\', '\\\\') | replace('`', '\\`') | default('-', true) }}`,
+                bank: "{{ m.finance_accounts.bank_name if m.finance_accounts else 'Unknown' }}",
+                currency: "{{ m.finance_accounts.currency if m.finance_accounts and m.finance_accounts.currency else 'IDR' }}",
+                category: "{{ m.finance_categories.category_name if m.finance_categories else 'Umum' }}",
+                
+                // FIX: Tarik data admin pake full_name yang bener
+                adminName: "{{ m.admins.full_name if m.admins and m.admins.full_name else 'Admin BABA' }}",
+                
+                get isVoid() { return this.desc.toUpperCase().includes('VOID'); },
+                get isTransfer() { return this.category.toUpperCase().includes('TRANSFER') || this.desc.toUpperCase().includes('PINDAH'); }
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ],
             
-            // 2. STATE VARIABEL UNTUK FILTER
-            searchQuery: '',
-            filterBank: 'ALL',
-            filterType: 'ALL',
+            // 2. KURS ACUAN (Sama dengan Aset, buat kalkulator rekap di atas)
+            exchangeRates: {
+                USD: 16000, 
+                KHR: 4.1,   
+                IDR: 1      
+            },
+
+            // 3. STATE FILTER ENGINE
+            filters: {
+                search: '',
+                bank: 'ALL',
+                type: 'ALL',
+                startDate: '',
+                endDate: ''
+            },
             
-            // 3. PAGINATION
+            // 4. STATE PAGINATION
             currentPage: 1,
-            itemsPerPage: 15,
+            itemsPerPage: 50, // Default 50 baris
+
+            // 5. RECEIPT MODAL STATE
+            receiptOpen: false,
+            activeMut: {},
             
             initData() {
-                // Refresh Icons tiap kali data berubah (dibantu oleh x-effect kalau kompleks, tp init cukup utk awal)
+                // Konversi tanggal backend ke default Date input
                 setTimeout(() => lucide.createIcons(), 100);
             },
 
-            // 4. COMPUTED: FILTER DATA
+            // ================== FILTER ENGINE ==================
             get filteredMutations() {
                 let result = this.allMutations;
 
-                // Filter Text (Cari di deskripsi, ref, atau bank)
-                if (this.searchQuery.trim() !== '') {
-                    const q = this.searchQuery.toLowerCase();
+                // A. Teks Pencarian
+                if (this.filters.search.trim() !== '') {
+                    const q = this.filters.search.toLowerCase();
                     result = result.filter(m => 
                         m.desc.toLowerCase().includes(q) || 
                         m.ref_id.toLowerCase().includes(q) ||
-                        m.bank.toLowerCase().includes(q)
+                        m.bank.toLowerCase().includes(q) ||
+                        m.category.toLowerCase().includes(q)
                     );
                 }
 
-                // Filter Bank
-                if (this.filterBank !== 'ALL') {
-                    result = result.filter(m => m.bank === this.filterBank);
+                // B. Filter Bank
+                if (this.filters.bank !== 'ALL') {
+                    result = result.filter(m => m.bank === this.filters.bank);
                 }
 
-                // Filter Tipe (IN / OUT)
-                if (this.filterType !== 'ALL') {
-                    result = result.filter(m => m.type === this.filterType);
+                // C. Filter Tipe (IN, OUT, TRANSFER)
+                if (this.filters.type !== 'ALL') {
+                    if (this.filters.type === 'TRANSFER') {
+                        result = result.filter(m => m.isTransfer);
+                    } else {
+                        // Jangan masukin Transfer kalau milih IN/OUT murni
+                        result = result.filter(m => m.type === this.filters.type && !m.isTransfer);
+                    }
                 }
 
-                // Reset ke halaman 1 kalau filter berubah
+                // D. Filter Tanggal Jagoan
+                if (this.filters.startDate) {
+                    const start = new Date(this.filters.startDate).setHours(0,0,0,0);
+                    result = result.filter(m => new Date(m.created_at).getTime() >= start);
+                }
+                if (this.filters.endDate) {
+                    const end = new Date(this.filters.endDate).setHours(23,59,59,999);
+                    result = result.filter(m => new Date(m.created_at).getTime() <= end);
+                }
+
+                // Reset ke hal 1 tiap ngetik
                 this.currentPage = 1;
                 return result;
             },
 
-            // 5. COMPUTED: STATS KALKULATOR
-            get totalPemasukan() {
-                return this.filteredMutations
-                    .filter(m => m.type === 'IN')
-                    .reduce((sum, m) => sum + m.amount, 0);
-            },
-            get totalPengeluaran() {
-                return this.filteredMutations
-                    .filter(m => m.type === 'OUT')
-                    .reduce((sum, m) => sum + m.amount, 0);
-            },
-            get netCashflow() {
-                return this.totalPemasukan - this.totalPengeluaran;
+            resetFilters() {
+                this.filters.search = '';
+                this.filters.bank = 'ALL';
+                this.filters.type = 'ALL';
+                this.filters.startDate = '';
+                this.filters.endDate = '';
+                this.itemsPerPage = 50;
             },
 
-            // 6. COMPUTED: PAGINATION
+            resetDateFilter() {
+                this.filters.startDate = '';
+                this.filters.endDate = '';
+            },
+
+            // ================== LIVE RATE CALCULATOR (IDR EQUIVALENT) ==================
+            // Pemasukan & Pengeluaran gak boleh mentah, harus dikonversi ke IDR pake kurs aktif.
+            
+            get totalPemasukanIDR() {
+                return this.filteredMutations
+                    .filter(m => m.type === 'IN' && !m.isVoid)
+                    .reduce((sum, m) => {
+                        let rate = this.exchangeRates[m.currency] || 1;
+                        return sum + (m.amount * rate);
+                    }, 0);
+            },
+            
+            get totalPengeluaranIDR() {
+                return this.filteredMutations
+                    .filter(m => m.type === 'OUT' && !m.isVoid)
+                    .reduce((sum, m) => {
+                        let rate = this.exchangeRates[m.currency] || 1;
+                        return sum + (m.amount * rate);
+                    }, 0);
+            },
+            
+            get netCashflowIDR() {
+                return this.totalPemasukanIDR - this.totalPengeluaranIDR;
+            },
+
+            // ================== PAGINATION LOGIC ==================
             get totalPages() {
-                return Math.ceil(this.filteredMutations.length / this.itemsPerPage);
+                return Math.ceil(this.filteredMutations.length / this.itemsPerPage) || 1;
             },
             get startIndex() {
                 return (this.currentPage - 1) * this.itemsPerPage;
@@ -284,48 +597,104 @@
                 return end > this.filteredMutations.length ? this.filteredMutations.length : end;
             },
             get paginatedMutations() {
-                // Pas pagination berubah, load icon Lucide baru
-                setTimeout(() => lucide.createIcons(), 50);
+                setTimeout(() => lucide.createIcons(), 50); // Re-render icon tiap ganti page
                 return this.filteredMutations.slice(this.startIndex, this.endIndex);
             },
 
-            // 7. ACTIONS (Tombol)
-            prevPage() {
-                if (this.currentPage > 1) this.currentPage--;
+            prevPage() { if (this.currentPage > 1) this.currentPage--; },
+            nextPage() { if (this.currentPage < this.totalPages) this.currentPage++; },
+
+            // ================== RECEIPT & VOID ENGINE ==================
+            openReceipt(mut) {
+                this.activeMut = mut;
+                this.receiptOpen = true;
+                document.body.style.overflow = 'hidden';
+                setTimeout(() => lucide.createIcons(), 50);
             },
-            nextPage() {
-                if (this.currentPage < this.totalPages) this.currentPage++;
+            closeReceipt() {
+                this.receiptOpen = false;
+                document.body.style.overflow = 'auto';
+            },
+            
+            async requestVoid(mut) {
+                if(confirm(`YAKIN MAU MEMBATALKAN TRANSAKSI INI?\n\nID: ${mut.ref_id}\nNominal: ${this.getCurrencySymbol(mut.currency)} ${this.formatNumber(mut.amount)}\n\nSaldo akan dikembalikan secara otomatis ke rekening ${mut.bank}.`)) {
+                    
+                    this.isSubmitting = true;
+                    this.$dispatch('notify', { type: 'info', message: 'Memproses Reversal Sistem...' });
+
+                    try {
+                        const response = await fetch('/admin/finance/api/void-transaction', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                mutation_id: parseInt(mut.id), 
+                                reason: 'Dibatalkan manual oleh Admin via Buku Besar' 
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if(response.ok && data.status === 'success') {
+                            this.$dispatch('notify', { type: 'success', message: 'Transaksi berhasil di-VOID dan saldo telah dikembalikan!' });
+                            this.closeReceipt();
+                            setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                            throw new Error(data.message || 'Gagal membatalkan transaksi');
+                        }
+                    } catch(err) {
+                        this.$dispatch('notify', { type: 'error', message: err.message });
+                        this.isSubmitting = false;
+                    }
+                }
             },
 
-            exportCSV() {
-                this.$dispatch('notify', { type: 'success', message: 'Mengekspor ' + this.filteredMutations.length + ' data ke Excel/CSV. Silakan cek folder download Anda (Simulasi).' });
+            // ================== FORMATTER ENGINE ==================
+            getCurrencySymbol(code) {
+                if(code === 'USD') return 'US$';
+                if(code === 'KHR') return '៛';
+                if(code === 'IDR') return 'Rp';
+                return code || '';
             },
 
-            // 8. UTILS (Format Text)
             formatNumber(value) {
                 if (isNaN(value)) return '0';
                 return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(value);
             },
             
+            // Format M-Banking (Cth: 02 Mei 2026, 14:30)
             formatDate(isoString) {
                 if (!isoString) return '-';
                 try {
                     const date = new Date(isoString);
-                    // Output Cth: 23 Mar 2026, 14:30
-                    return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) + ', ' + 
+                    return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + ', ' + 
                            date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
                 } catch(e) {
                     return isoString.split(' ')[0];
                 }
             },
 
+            formatCurrencyHTML(value, currencyCode, includeSymbol = true) {
+                if (value === null || value === undefined || isNaN(value)) value = 0;
+                let formatter = new Intl.NumberFormat('id-ID', {
+                    style: includeSymbol ? 'currency' : 'decimal',
+                    currency: currencyCode || 'IDR',
+                    minimumFractionDigits: 2, maximumFractionDigits: 2
+                });
+                let formatted = formatter.format(value);
+                let parts = formatted.split(',');
+                if(parts.length > 1) {
+                    return `${parts[0]}<span class="text-[0.65em] opacity-70 font-bold leading-none">,${parts[1]}</span>`;
+                }
+                return formatted;
+            },
+
             getBankBadgeClass(bankName) {
                 const name = bankName.toLowerCase();
-                if (name.includes('bca')) return 'bg-blue-100 text-blue-700 border border-blue-200';
-                if (name.includes('aba')) return 'bg-teal-100 text-teal-700 border border-teal-200';
-                if (name.includes('jago')) return 'bg-orange-100 text-orange-700 border border-orange-200';
-                if (name.includes('cash') || name.includes('tunai')) return 'bg-emerald-100 text-emerald-700 border border-emerald-200';
-                return 'bg-gray-100 text-gray-700 border border-gray-200';
+                if (name.includes('bca')) return 'bg-blue-900 text-blue-100 border border-blue-800';
+                if (name.includes('aba')) return 'bg-teal-900 text-teal-100 border border-teal-800';
+                if (name.includes('jago')) return 'bg-orange-600 text-white border border-orange-500';
+                if (name.includes('cash') || name.includes('tunai')) return 'bg-emerald-900 text-emerald-100 border border-emerald-800';
+                return 'bg-gray-800 text-gray-100 border border-gray-700';
             }
         }
     }

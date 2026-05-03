@@ -2,169 +2,250 @@ import os
 import json
 import logging
 import asyncio
+import hashlib
 from datetime import datetime
+from typing import Optional, List, Dict
+
 from dotenv import load_dotenv
 
-# Aiogram v3
-from aiogram import Bot, Dispatcher, F, Router
+# Aiogram v3 Stack
+from aiogram import Bot, Dispatcher, F, Router, html
 from aiogram.types import (
     Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, 
-    WebAppData, WebAppInfo
+    WebAppData, WebAppInfo, BotCommand, LabeledPrice, PreCheckoutQuery
 )
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command, StateFilter
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
-
-# Import Database
-try:
-    from database import supabase
-except ImportError:
-    print("[FATAL ERROR] File database.py tidak ditemukan!")
-    supabase = None
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 
 # ==============================================================================
-# 1. SETUP & KONFIGURASI
+# 0. INITIALIZATION & SECURITY
 # ==============================================================================
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_ID = os.getenv("ADMIN_ID") 
-WEB_APP_URL = os.getenv("WEB_APP_URL") or "http://127.0.0.1:8000"
+ADMIN_ID = os.getenv("ADMIN_ID") # ID Telegram Lu (Bos Utama)
+WEB_APP_URL = os.getenv("WEB_APP_URL")
 
 if not BOT_TOKEN:
-    raise ValueError("[ERROR] BOT_TOKEN belum diisi di file .env!")
+    raise ValueError("[FATAL] BOT_TOKEN missing in .env!")
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("BabaBotEngine")
+# Logging Setup
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("BabaEnterpriseBot")
 
-# INI DIA YANG DICARI SAMA main.py (Variabel 'bot', 'dp', 'router')
+# Core Aiogram Objects
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
 router = Router()
 
-__all__ = ['bot', 'dp', 'router', 'alarm_pesanan_pending']
+# Database Bridge
+try:
+    from database import supabase
+except ImportError:
+    logger.error("❌ Database module not found!")
+    supabase = None
 
 # ==============================================================================
-# 2. SISTEM DATABASE HELPER
+# 1. DATABASE & FINANCE UTILS (SYNC WITH WEB ENGINE)
 # ==============================================================================
-async def sync_user_to_db(user):
+async def sync_user(user_id: int, username: str, full_name: str):
+    """Pastikan data pelanggan sinkron dengan tabel customers di Supabase"""
     if not supabase: return
     try:
-        res = supabase.table("customers").select("*").eq("telegram_id", user.id).execute()
+        # Cek apakah sudah ada
+        res = supabase.table("customers").select("id, total_orders").eq("telegram_id", user_id).execute()
+        
         payload = {
-            "telegram_id": user.id,
-            "username": user.username or "",
-            "full_name": user.full_name or "User BABA"
+            "telegram_id": user_id,
+            "username": username or "",
+            "full_name": full_name or "User BABA",
+            "updated_at": datetime.now().isoformat()
         }
+        
         if not res.data:
             supabase.table("customers").insert(payload).execute()
+            logger.info(f"🆕 New Customer: {full_name} ({user_id})")
         else:
-            supabase.table("customers").update(payload).eq("telegram_id", user.id).execute()
+            supabase.table("customers").update(payload).eq("telegram_id", user_id).execute()
     except Exception as e:
-        logger.error(f"❌ [DB SYNC ERROR] {e}")
+        logger.error(f"⚠️ Sync Error: {e}")
+
+async def get_user_stats(user_id: int) -> Dict:
+    """Tarik data history belanja dan poin loyalty dari DB"""
+    if not supabase: return {}
+    try:
+        res = supabase.table("customers").select("total_orders, total_spent").eq("telegram_id", user_id).single().execute()
+        return res.data or {}
+    except: return {}
 
 # ==============================================================================
-# 3. UI/UX KEYBOARD BUILDER
+# 2. KEYBOARD BUILDERS (DYNAMICS)
 # ==============================================================================
-def kb_main_menu() -> InlineKeyboardMarkup:
-    web_app_belanja = WebAppInfo(url=WEB_APP_URL)
-    web_app_ai = WebAppInfo(url=f"{WEB_APP_URL}/ai-chat")
+def get_main_kb(user_id: int) -> InlineKeyboardMarkup:
+    # Mini Apps Integration
+    web_shop = WebAppInfo(url=WEB_APP_URL)
+    web_ai = WebAppInfo(url=f"{WEB_APP_URL}/cs")
     
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🛍️ PESEN DI SINI (KLIK)", web_app=web_app_belanja)],
-        [InlineKeyboardButton(text="🤖 Tanya Ahli Parfum (AI)", web_app=web_app_ai)],
+    buttons = [
+        [InlineKeyboardButton(text="🛍️ MULAI BELANJA (MINI APP)", web_app=web_shop)],
+        [InlineKeyboardButton(text="🤖 KONSULTASI PARFUM (AI)", web_app=web_ai)],
         [
-            InlineKeyboardButton(text="👥 Lihat Grup", url="https://t.me/GrupBabaParfume"),
-            InlineKeyboardButton(text="💬 Hubungi Admin BABA", callback_data="menu_admin")
+            InlineKeyboardButton(text="📋 Pesanan Saya", callback_data="my_orders"),
+            InlineKeyboardButton(text="💎 Loyalty Point", callback_data="my_points")
         ],
-        [InlineKeyboardButton(text="💰 Tanya Harga", callback_data="menu_harga")]
-    ])
-
-def kb_admin_menu() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="📱 Admin Telegram", url="https://t.me/AndikaKot"),
-            InlineKeyboardButton(text="🟢 Admin WhatsApp", url="https://wa.me/6281234567890")
-        ],
-        [InlineKeyboardButton(text="🔙 Kembali ke Menu Utama", callback_data="menu_utama")]
-    ])
+            InlineKeyboardButton(text="🏬 Katalog Bot", callback_data="bot_catalog"),
+            InlineKeyboardButton(text="❓ Bantuan", callback_data="help_center")
+        ]
+    ]
+    
+    # Tombol Khusus Admin (Dika)
+    if str(user_id) == str(ADMIN_ID):
+        buttons.append([InlineKeyboardButton(text="⚡ ADMIN DASHBOARD", callback_data="admin_panel")])
+        
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-def kb_harga_menu() -> InlineKeyboardMarkup:
-    web_app_belanja = WebAppInfo(url=WEB_APP_URL)
+def get_back_kb(target: str = "main_menu") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔥 Mulai dari 10$ Aja! (Cek Katalog)", web_app=web_app_belanja)],
-        [InlineKeyboardButton(text="🔙 Kembali", callback_data="menu_utama")]
+        [InlineKeyboardButton(text="🔙 Kembali", callback_data=target)]
     ])
 
 # ==============================================================================
-# 4. HANDLERS UTAMA
+# 3. CORE HANDLERS (USER SIDE)
 # ==============================================================================
 @router.message(CommandStart())
-async def command_start_handler(message: Message) -> None:
-    await sync_user_to_db(message.from_user)
-    welcome_text = (
-        f"Halo kak <b>{message.from_user.first_name}</b>! ✨ Selamat datang di BABA Parfume Official Bot.\n\n"
-        f"Mencari wangi yang <i>'kamu banget'</i>? Kamu udah ada di tempat yang tepat!\n"
-        f"BABA Parfume diracik dengan bibit Import Paris, 100% Halal, BPOM, dan pastinya Tahan Lama seharian.\n\n"
-        f"👇 <b>Silakan pilih menu di bawah ini ya kak:</b>"
+async def start_handler(message: Message):
+    """Pintu masuk utama bot"""
+    await sync_user(message.from_user.id, message.from_user.username, message.from_user.full_name)
+    
+    welcome_msg = (
+        f"🌟 <b>BABA PARFUME ENTERPRISE</b> 🌟\n\n"
+        f"Halo kak {html.bold(message.from_user.first_name)}! Selamat datang di layanan autopilot kami.\n\n"
+        f"Kami menyediakan parfum kualitas <i>Import Paris</i> dengan ketahanan seharian. "
+        f"Silakan gunakan menu di bawah untuk mulai menjelajah."
     )
-    await message.reply(welcome_text, reply_markup=kb_main_menu())
+    
+    # Kirim foto logo jika ada di static web
+    try:
+        await message.answer_photo(
+            photo=f"{WEB_APP_URL}/static/img/Logo_BABA.png",
+            caption=welcome_msg,
+            reply_markup=get_main_kb(message.from_user.id)
+        )
+    except:
+        await message.answer(welcome_msg, reply_markup=get_main_kb(message.from_user.id))
 
-@router.callback_query(F.data == "menu_admin")
-async def callback_menu_admin(callback: CallbackQuery):
-    text = "👨‍💼 <b>Layanan Pelanggan BABA Parfume</b>\n\nSilakan pilih jalur komunikasi yang nyaman buat kamu:"
-    await callback.message.edit_text(text, reply_markup=kb_admin_menu())
-    await callback.answer()
+@router.callback_query(F.data == "main_menu")
+async def back_to_main(callback: CallbackQuery):
+    await callback.message.edit_caption(
+        caption="👇 <b>Silakan pilih menu utama BABA:</b>",
+        reply_markup=get_main_kb(callback.from_user.id)
+    )
 
-@router.callback_query(F.data == "menu_harga")
-async def callback_menu_harga(callback: CallbackQuery):
-    text = "💸 <b>Pricelist BABA Parfume</b>\n\nHarga varian premium kita <b>Mulai dari $10 aja!</b> 👇"
-    await callback.message.edit_text(text, reply_markup=kb_harga_menu())
-    await callback.answer()
+@router.callback_query(F.data == "my_points")
+async def show_points(callback: CallbackQuery):
+    stats = await get_user_stats(callback.from_user.id)
+    total_spent = stats.get("total_spent", 0)
+    # Kalkulasi Loyalty Point (Misal: Tiap $1 dapet 10 poin)
+    points = int(total_spent * 10)
+    
+    text = (
+        f"💎 <b>BABA LOYALTY PROGRAM</b>\n\n"
+        f"Status Akun: <b>Premium Member</b>\n"
+        f"Total Belanja: <b>${total_spent:,.2f}</b>\n"
+        f"Poin Terkumpul: <b>{points} Poin</b>\n\n"
+        f"<i>Kumpulkan terus poinmu dan tukarkan dengan diskon khusus di pembelian selanjutnya!</i>"
+    )
+    await callback.message.edit_caption(caption=text, reply_markup=get_back_kb())
 
-@router.callback_query(F.data == "menu_utama")
-async def callback_menu_utama(callback: CallbackQuery):
-    text = f"Mencari wangi yang <i>'kamu banget'</i>? Kamu udah ada di tempat yang tepat!\n\n👇 <b>Silakan pilih menu di bawah:</b>"
-    await callback.message.edit_text(text, reply_markup=kb_main_menu())
-    await callback.answer()
+@router.callback_query(F.data == "my_orders")
+async def show_order_history(callback: CallbackQuery):
+    if not supabase: return
+    
+    # Ambil Customer ID dulu
+    cust = supabase.table("customers").select("id").eq("telegram_id", callback.from_user.id).single().execute()
+    if not cust.data: return
+    
+    # Ambil 5 pesanan terakhir
+    res = supabase.table("orders").select("*").eq("customer_id", cust.data['id']).order("created_at", desc=True).limit(5).execute()
+    
+    if not res.data:
+        text = "❌ <b>Kamu belum pernah melakukan pemesanan.</b>\nYuk mulai belanja sekarang!"
+    else:
+        text = "📋 <b>5 PESANAN TERAKHIR KAMU:</b>\n\n"
+        for o in res.data:
+            emoji = "🕒" if o['status'] == "Menunggu Pembayaran" else "✅" if o['status'] == "Selesai" else "📦"
+            text += f"{emoji} <code>{o['order_number']}</code> | <b>${o['total_amount']}</b>\nStatus: <i>{o['status']}</i>\n\n"
+            
+    await callback.message.edit_caption(caption=text, reply_markup=get_back_kb())
 
 # ==============================================================================
-# 5. THE BRIDGE: NANGKEP DATA DARI MINI APPS
+# 4. CATALOG SYSTEM (BOT EXPLORER)
+# ==============================================================================
+@router.callback_query(F.data == "bot_catalog")
+async def bot_catalog_root(callback: CallbackQuery):
+    """Menampilkan kategori produk langsung di Bot"""
+    if not supabase: return
+    res = supabase.table("categories").select("*").execute()
+    
+    kb = []
+    for cat in res.data:
+        kb.append([InlineKeyboardButton(text=f"📂 {cat['name']}", callback_data=f"cat_{cat['id']}")])
+    kb.append([InlineKeyboardButton(text="🔙 Kembali", callback_data="main_menu")])
+    
+    await callback.message.edit_caption(
+        caption="🗂️ <b>PILIH KATEGORI PRODUK:</b>\nSilakan pilih kategori yang ingin kakak lihat detailnya.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=kb)
+    )
+
+# ==============================================================================
+# 5. MINI APP BRIDGE (REFINED FINANCE LOGIC)
 # ==============================================================================
 @router.message(F.web_app_data)
-async def handle_web_app_data(message: Message):
+async def handle_checkout_data(message: Message):
+    """Menerima data belanja dari Mini App"""
     try:
-        data = json.loads(message.web_app_data.data)
-        if data.get("action") != "checkout": return
+        raw_data = json.loads(message.web_app_data.data)
+        if raw_data.get("action") != "checkout": return
 
-        cust_info = data.get("customer", {})
-        items = data.get("items", [])
-        total_amount = data.get("total_amount", 0)
-        payment_method = data.get("payment_method", "Tidak Diketahui")
-        address = cust_info.get("address", "")
+        cust_info = raw_data.get("customer", {})
+        items = raw_data.get("items", [])
+        total_usd = float(raw_data.get("total_amount", 0))
+        pay_method = raw_data.get("payment_method", "COD")
         
-        order_number = f"ORD-{datetime.now().strftime('%y%m%d')}-{str(message.from_user.id)[-4:]}"
+        # Buat Nomor Order Unik
+        order_no = f"ORD-{datetime.now().strftime('%y%m%d')}-{str(message.from_user.id)[-4:]}"
 
         if supabase:
+            # 1. Update/Get Customer UUID
             supabase.table("customers").update({
-                "default_address": address,
+                "default_address": cust_info.get("address", ""),
                 "full_name": cust_info.get('full_name', message.from_user.full_name)
             }).eq("telegram_id", message.from_user.id).execute()
             
             cust_db = supabase.table("customers").select("id").eq("telegram_id", message.from_user.id).single().execute()
             cust_uuid = cust_db.data.get("id")
 
-            order_payload = {
-                "order_number": order_number,
+            # 2. Simpan Order Utama (Input USD murni, Web yang konversi)
+            order_res = supabase.table("orders").insert({
+                "order_number": order_no,
                 "customer_id": cust_uuid,
-                "shipping_address": address,
-                "total_amount": total_amount,
+                "shipping_address": cust_info.get("address", ""),
+                "total_amount": total_usd, # BOT TIDAK KONVERSI!
                 "status": "Menunggu Pembayaran",
-                "order_source": "Telegram Bot Mini App"
-            }
-            order_res = supabase.table("orders").insert(order_payload).execute()
+                "payment_method": pay_method,
+                "order_source": "Telegram Mini App"
+            }).execute()
+            
             order_uuid = order_res.data[0].get("id")
 
+            # 3. Simpan Item & Kurangi Stok (Booking)
             for item in items:
                 supabase.table("order_items").insert({
                     "order_id": order_uuid,
@@ -172,56 +253,111 @@ async def handle_web_app_data(message: Message):
                     "quantity": item['qty'],
                     "price_at_time": item['price']
                 }).execute()
+                
+                # Pengurangan stok fisik
+                p_res = supabase.table("products").select("stock_quantity").eq("id", item['id']).single().execute()
+                new_stok = max(0, int(p_res.data['stock_quantity']) - int(item['qty']))
+                supabase.table("products").update({"stock_quantity": new_stok}).eq("id", item['id']).execute()
 
-                prod_data = supabase.table("products").select("stock_quantity").eq("id", item['id']).single().execute()
-                new_stock = max(0, prod_data.data.get("stock_quantity", 0) - item['qty'])
-                supabase.table("products").update({"stock_quantity": new_stock}).eq("id", item['id']).execute()
-
-        struk_belanja = (
-            f"✅ <b>YAY! PESANAN BERHASIL DIBUAT!</b>\n\n"
-            f"Terima kasih kak <b>{cust_info.get('full_name')}</b>!\n"
-            f"Nomor Pesanan: <code>{order_number}</code>\n"
-            f"Total Tagihan: <b>${total_amount:.2f}</b>\n"
-            f"Metode Bayar: <b>{payment_method}</b>\n\n"
-            f"<i>Silakan tunggu sebentar ya, tim Admin BABA akan segera menghubungi kakak.</i> 🚀"
+        # Feedback Struk ke Pelanggan
+        struk = (
+            f"✅ <b>ORDER BERHASIL DICATAT!</b>\n\n"
+            f"No. Pesanan: <code>{order_no}</code>\n"
+            f"Total Tagihan: <b>${total_usd:,.2f}</b>\n"
+            f"Metode: <b>{pay_method}</b>\n\n"
+            f"⚠️ <b>INSTRUKSI PEMBAYARAN:</b>\n"
+            f"Silakan tunggu admin menghubungi kakak untuk konversi nilai ke <b>Rupiah (IDR)</b> "
+            f"sesuai kurs yang berlaku di Web Dashboard kami.\n\n"
+            f"<i>Terima kasih sudah memilih BABA Parfume!</i>"
         )
-        await message.reply(struk_belanja)
+        await message.reply(struk)
 
+        # Alert ke Admin (Dika)
         if ADMIN_ID:
-            alert_admin = (
-                f"🚨 <b>BOS ADA ORDERAN BARU MASUK!</b> 🚨\n\n"
-                f"Dari: {cust_info.get('full_name')} (@{cust_info.get('username')})\n"
-                f"Nilai Order: ${total_amount:.2f}\n"
-                f"Alamat: {address}\n\n"
-                f"Cek Dashboard Web sekarang buat diproses!"
+            alert = (
+                f"🚨 <b>ORDER BARU MASUK!</b>\n\n"
+                f"ID: {order_no}\n"
+                f"User: {cust_info.get('full_name')} (@{message.from_user.username})\n"
+                f"Total: ${total_usd:,.2f}\n"
+                f"Bayar: {pay_method}\n\n"
+                f"👉 <i>Cek Dashboard Web buat konversi Kurs & Update Aset!</i>"
             )
-            await bot.send_message(chat_id=ADMIN_ID, text=alert_admin)
+            await bot.send_message(chat_id=ADMIN_ID, text=alert)
 
     except Exception as e:
-        logger.error(f"❌ [WEB APP DATA ERROR]: {e}")
-        await message.reply("Waduh kak, sistem kita lagi sibuk nih. Coba pesan manual ke admin ya.")
-
-@router.message(F.text)
-async def catch_all_messages(message: Message):
-    if message.text.startswith("/"): return
-    await message.reply("Kak <b>/start</b> dulu ya nanti tinggal klik klik aja di menunya, jangan cape cape ngetik hehe 😊✨")
+        logger.error(f"❌ MiniApp Error: {e}")
+        await message.reply("Maaf kak, sistem pendaftaran order sedang sibuk. Mohon hubungi admin manual.")
 
 # ==============================================================================
-# 6. BACKGROUND TASK: AUTO-SPAM ADMIN
+# 6. ADMIN PANEL (COMMAND CENTER)
 # ==============================================================================
-async def alarm_pesanan_pending(bot_instance: Bot):
-    await asyncio.sleep(60)
+@router.callback_query(F.data == "admin_panel")
+async def admin_main(callback: CallbackQuery):
+    if str(callback.from_user.id) != str(ADMIN_ID): return
+    
+    # Ambil Statistik Singkat
+    if supabase:
+        orders = supabase.table("orders").select("id").eq("status", "Menunggu Pembayaran").execute()
+        pending = len(orders.data or [])
+    else: pending = 0
+    
+    text = (
+        f"⚡ <b>BABA ADMIN COMMAND CENTER</b>\n\n"
+        f"Pesanan Pending: <b>{pending} Order</b>\n"
+        f"Status Server: 🟢 <b>ONLINE</b>\n\n"
+        f"Gunakan menu di bawah untuk mengontrol sistem bot:"
+    )
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📢 Broadcast Pesan", callback_data="admin_broadcast")],
+        [InlineKeyboardButton(text="📊 Lihat Stok Menipis", callback_data="admin_low_stock")],
+        [InlineKeyboardButton(text="🔙 Menu User", callback_data="main_menu")]
+    ])
+    
+    await callback.message.edit_caption(caption=text, reply_markup=kb)
+
+# ==============================================================================
+# 7. BACKGROUND TASKS & HEALTH CHECK
+# ==============================================================================
+async def scheduler_pending_orders():
+    """Tugas latar belakang: Ingatkan Admin jika ada order lumutan"""
+    await asyncio.sleep(30) # Delay awal
     while True:
         try:
             if supabase and ADMIN_ID:
-                res = supabase.table("orders").select("id").eq("status", "Menunggu Pembayaran").execute()
-                pending_orders = res.data or []
-                if len(pending_orders) > 0:
-                    pesan_spam = (
-                        f"⚠️ <b>WAKE UP BOS! ADA {len(pending_orders)} PESANAN PENDING!</b> ⚠️\n\n"
-                        f"Customer nungguin tuh, buruan diproses di Dashboard Web biar duitnya cepet cair!\n"
+                res = supabase.table("orders").select("order_number, total_amount").eq("status", "Menunggu Pembayaran").execute()
+                orders = res.data or []
+                if len(orders) >= 3:
+                    msg = (
+                        f"⚠️ <b>WAKE UP BOS!</b>\n\n"
+                        f"Ada <b>{len(orders)}</b> pesanan yang belum lu konversi di Web.\n"
+                        f"Duitnya lumutan tuh, buruan diproses!"
                     )
-                    await bot_instance.send_message(chat_id=ADMIN_ID, text=pesan_spam)
+                    await bot.send_message(chat_id=ADMIN_ID, text=msg)
         except Exception as e:
-            logger.error(f"Error Background Task: {e}")
-        await asyncio.sleep(300)
+            logger.error(f"Scheduler Error: {e}")
+        await asyncio.sleep(1800) # Cek tiap 30 menit
+
+# ==============================================================================
+# 8. MAIN ENTRY POINT
+# ==============================================================================
+async def main():
+    # Set Menu Command
+    await bot.set_my_commands([
+        BotCommand(command="start", description="Menu Utama BABA"),
+        BotCommand(command="help", description="Bantuan & CS"),
+    ])
+    
+    dp.include_router(router)
+    
+    # Jalankan scheduler di background
+    asyncio.create_task(scheduler_pending_orders())
+    
+    logger.info("🚀 BABA Enterprise Bot is Starting...")
+    await dp.start_polling(bot)
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        logger.info("👋 Bot Stopped.")

@@ -174,7 +174,7 @@
             {% endif %}
 
             {% if active_role in ['super_admin', 'oprasional'] %}
-            <div class="my-6 border-t border-gray-800/60"></div>
+            <div class="my-6 border-t border-gray-800/60"></div
             <p class="px-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-3">Keuangan (Finance)</p>
 
             <a href="/admin/finance/aset" class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {% if '/admin/finance/aset' in current_path %}bg-brand-500/10 text-brand-400 font-semibold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium{% endif %}">
@@ -186,6 +186,13 @@
                 <i data-lucide="arrow-right-left" class="w-5 h-5 transition-transform group-hover:scale-110 {% if '/admin/finance/mutasi' in current_path %}text-brand-500{% endif %}"></i>
                 <span>Buku Besar (Ledger)</span>
             </a>
+
+            <!-- NEW MENU -->
+            <a href="/admin/finance/debts" class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {% if '/admin/finance/debts' in current_path %}bg-brand-500/10 text-brand-400 font-semibold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium{% endif %}">
+                <i data-lucide="hand-coins" class="w-5 h-5 transition-transform group-hover:scale-110 {% if '/admin/finance/debts' in current_path %}text-brand-500{% endif %}"></i>
+                <span>Hutang Piutang</span>
+            </a>
+
             {% endif %}
 
             {% if active_role == 'super_admin' %}

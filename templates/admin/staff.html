@@ -1,148 +1,505 @@
 {% extends 'admin/base.html' %}
-{% block title %}Manajemen Staff{% endblock %}
+{% block title %}Manajemen Karyawan Enterprise | BABA Parfume{% endblock %}
 {% block header %}Zona Dewa: Manajemen Staff{% endblock %}
+{% block breadcrumb %}Pengaturan / Manajemen Staff{% endblock %}
 
 {% block content %}
-<div x-data="{ isModalOpen: false }" class="animate-[fadeInUp_0.5s_ease-out]">
-    
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-            <h2 class="text-2xl font-black text-gray-900 tracking-tight">Daftar Admin & Staff</h2>
-            <p class="text-sm text-gray-500 font-medium mt-1">Atur siapa aja yang boleh ngendalikan sistem BABA Parfume.</p>
+<!-- 
+====================================================================================================
+BABA PARFUME ENTERPRISE - STAFF MANAGEMENT UI (V3.0 API DRIVEN)
+====================================================================================================
+Strategic Partner Build.
+Features: 
+- 100% API Driven (No Page Reloads on Errors)
+- AlpineJS Dynamic Modals (Add, Edit, Reset Password, Delete)
+- UI-Avatars Integration & Last Activity Tracker
+- Smooth Dropdown Management Menu & Glassmorphism Modals
+====================================================================================================
+-->
+
+<style>
+    .smooth-trans { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc; border-radius: 8px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+</style>
+
+<!-- ===========================================================================
+     TOAST NOTIFICATIONS SYSTEM
+============================================================================ -->
+<div x-data="{ toasts: [] }" @notify.window="toasts.push({ id: Date.now(), type: $event.detail.type, message: $event.detail.message }); setTimeout(() => toasts.shift(), 5000)" class="fixed bottom-6 right-6 z-[300] flex flex-col gap-4 pointer-events-none">
+    <template x-for="toast in toasts" :key="toast.id">
+        <div x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-8 scale-90" x-transition:enter-end="opacity-100 translate-y-0 scale-100" x-transition:leave="transition ease-in duration-200" class="min-w-[320px] max-w-md p-5 rounded-2xl shadow-2xl border flex items-start gap-4 pointer-events-auto smooth-trans bg-white/95 backdrop-blur-md" :class="toast.type === 'success' ? 'border-emerald-500/30' : 'border-red-500/30'">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-0.5 shadow-inner" :class="toast.type === 'success' ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white' : 'bg-gradient-to-br from-red-400 to-red-600 text-white'">
+                <i data-lucide="check-circle-2" x-show="toast.type === 'success'" class="w-5 h-5"></i>
+                <i data-lucide="alert-triangle" x-show="toast.type === 'error'" class="w-5 h-5"></i>
+            </div>
+            <div class="flex-1 pt-0.5">
+                <h4 class="text-sm font-black text-gray-900 tracking-tight" x-text="toast.type === 'success' ? 'Operasi Sukses!' : 'Peringatan Sistem!'"></h4>
+                <p class="text-[11px] text-gray-600 mt-1 font-bold leading-relaxed" x-text="toast.message"></p>
+            </div>
+            <button @click="toasts = toasts.filter(t => t.id !== toast.id)" class="text-gray-400 hover:text-gray-900 transition-colors p-1 bg-gray-50 rounded-full border border-gray-100"><i data-lucide="x" class="w-4 h-4"></i></button>
         </div>
-        <button @click="isModalOpen = true" class="bg-gradient-to-r from-gray-900 to-black text-yellow-400 font-black px-6 py-3 rounded-xl shadow-[0_8px_20px_-8px_rgba(0,0,0,0.5)] active:scale-95 transition-all flex items-center justify-center gap-2 hover:shadow-lg">
-            <i data-lucide="user-plus" class="w-4 h-4"></i> Tambah Karyawan
+    </template>
+</div>
+
+<!-- ===========================================================================
+     MAIN ALPINE WRAPPER
+============================================================================ -->
+<div x-data="staffEngine()" x-init="initData()" class="space-y-6 pb-24 relative">
+    
+    <!-- HEADER KONTROL -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-5 bg-white p-6 rounded-3xl border border-gray-200 shadow-sm relative z-20 overflow-hidden group">
+        <div class="absolute right-0 top-0 w-32 h-32 bg-gradient-to-bl from-yellow-50 to-transparent rounded-bl-full opacity-50 pointer-events-none"></div>
+        <div class="flex items-center gap-4 relative z-10">
+            <div class="w-14 h-14 bg-gray-900 rounded-2xl flex items-center justify-center text-yellow-400 shadow-lg border border-black group-hover:scale-105 smooth-trans">
+                <i data-lucide="users-2" class="w-7 h-7"></i>
+            </div>
+            <div>
+                <h2 class="text-2xl font-black text-gray-900 tracking-tight">Manajemen Karyawan</h2>
+                <p class="text-xs text-gray-500 font-bold mt-1 uppercase tracking-widest flex items-center gap-1.5"><i data-lucide="shield" class="w-3 h-3 text-brand-500"></i> Kontrol Hak Akses Sistem BABA</p>
+            </div>
+        </div>
+        <button @click="openCreateModal()" class="w-full md:w-auto bg-gray-900 hover:bg-black text-yellow-400 font-black px-8 py-3.5 rounded-xl shadow-lg hover:shadow-xl smooth-trans active:scale-95 flex items-center justify-center gap-2 relative z-10 border border-black">
+            <i data-lucide="user-plus" class="w-4 h-4"></i> Rekrut Karyawan Baru
         </button>
     </div>
 
-    <div class="bg-white rounded-[1.5rem] border border-gray-100 shadow-[0_10px_30px_-15px_rgba(0,0,0,0.05)] overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
+    <!-- TABEL KARYAWAN -->
+    <div class="bg-white rounded-3xl border border-gray-200 shadow-md overflow-hidden relative z-10">
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
-                    <tr class="bg-gray-50/50 border-b border-gray-100">
-                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Karyawan</th>
-                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Akses (Role)</th>
-                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Tgl Dibuat</th>
-                        <th class="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Aksi</th>
+                    <tr class="bg-gray-50 border-b border-gray-200 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">
+                        <th class="px-6 py-5 w-80">Profil Lengkap Karyawan</th>
+                        <th class="px-6 py-5">Jabatan (Role)</th>
+                        <th class="px-6 py-5">Aktivitas Terakhir Sistem</th>
+                        <th class="px-6 py-5 text-center w-32">Manajemen Opsi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100/80">
-                    <tr class="hover:bg-yellow-50/30 transition-colors group">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 bg-gradient-to-tr from-gray-900 to-black rounded-full flex items-center justify-center border-2 border-yellow-400 shadow-md">
-                                    <i data-lucide="crown" class="w-4 h-4 text-yellow-400"></i>
+                <tbody class="divide-y divide-gray-100 text-sm">
+                    
+                    <!-- THE IMMORTAL SUPER ADMIN (.env) -->
+                    <tr class="hover:bg-yellow-50/50 smooth-trans group">
+                        <td class="px-6 py-5">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-gray-900 rounded-2xl flex items-center justify-center border-2 border-yellow-400 shadow-md shrink-0 relative">
+                                    <i data-lucide="crown" class="w-6 h-6 text-yellow-400"></i>
+                                    <span class="absolute -top-1 -right-1 flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-yellow-500 border border-black"></span></span>
                                 </div>
                                 <div>
-                                    <p class="font-black text-gray-900 text-sm">Dewa BABA</p>
-                                    <p class="text-[11px] text-gray-500 font-bold mt-0.5">.env Configuration</p>
+                                    <p class="font-black text-gray-900 text-base">Dewa BABA</p>
+                                    <p class="text-[9px] text-gray-500 font-bold mt-1 tracking-[0.2em] uppercase border border-gray-200 px-2 py-0.5 rounded bg-white w-fit shadow-sm">.env Configuration</p>
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4">
-                            <span class="bg-red-100 text-red-700 text-[10px] font-black px-3 py-1 rounded-md uppercase tracking-wider border border-red-200 shadow-sm">Super Admin</span>
+                        <td class="px-6 py-5">
+                            <span class="bg-gray-900 text-yellow-400 text-[10px] font-black px-3 py-1.5 rounded-lg uppercase tracking-[0.2em] shadow-sm flex items-center gap-1.5 w-fit border border-black">
+                                <i data-lucide="shield-alert" class="w-3 h-3"></i> Super Admin
+                            </span>
                         </td>
-                        <td class="px-6 py-4 text-xs text-gray-500 font-medium">Bawaan Sistem</td>
-                        <td class="px-6 py-4 text-right">
-                            <span class="text-xs font-bold text-gray-400 italic">Immortal (Tak Terkalahkan)</span>
+                        <td class="px-6 py-5 align-top">
+                            <p class="text-xs font-black text-gray-900 mb-1 flex items-center gap-1.5"><i data-lucide="activity" class="w-3.5 h-3.5 text-emerald-500"></i> Always Active</p>
+                            <p class="text-[9px] text-gray-400 font-black uppercase tracking-widest mt-1">Pengendali Inti Sistem</p>
+                        </td>
+                        <td class="px-6 py-5 text-center align-middle">
+                            <span class="text-[10px] font-black text-gray-400 italic bg-gray-50 px-4 py-2 rounded-xl border border-gray-200 shadow-inner">Immortal</span>
                         </td>
                     </tr>
 
-                    {% for staff in staffs %}
-                    <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-3">
-                                <img src="https://ui-avatars.com/api/?name={{ staff.full_name | replace(' ', '+') }}&background=f3f4f6&color=374151&bold=true" class="w-10 h-10 rounded-full border border-gray-200">
-                                <div>
-                                    <p class="font-black text-gray-900 text-sm">{{ staff.full_name }}</p>
-                                    <p class="text-[11px] text-gray-500 font-bold mt-0.5">@{{ staff.username }}</p>
+                    <!-- DYNAMIC STAFF LIST FROM ALPINE -->
+                    <template x-for="staff in listStaff" :key="staff.id">
+                        <tr class="hover:bg-blue-50/20 smooth-trans group">
+                            <td class="px-6 py-5">
+                                <div class="flex items-center gap-4">
+                                    <img :src="`https://ui-avatars.com/api/?name=${staff.full_name}&background=f8fafc&color=0f172a&bold=true&rounded=true`" class="w-12 h-12 rounded-2xl border border-gray-200 shadow-sm shrink-0 group-hover:border-blue-300 smooth-trans">
+                                    <div>
+                                        <p class="font-black text-gray-900 text-sm group-hover:text-blue-700 smooth-trans" x-text="staff.full_name"></p>
+                                        <p class="text-[10px] text-gray-500 font-bold mt-1 tracking-widest uppercase border border-gray-100 px-2 py-0.5 bg-gray-50 rounded-lg w-fit flex items-center gap-1 group-hover:bg-white smooth-trans">
+                                            <i data-lucide="at-sign" class="w-2.5 h-2.5 text-gray-400"></i> <span x-text="staff.username"></span>
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4">
-                            {% if staff.role == 'oprasional' %}
-                                <span class="bg-blue-100 text-blue-700 text-[10px] font-black px-3 py-1 rounded-md uppercase tracking-wider border border-blue-200">Operasional</span>
-                            {% elif staff.role == 'marketing' %}
-                                <span class="bg-purple-100 text-purple-700 text-[10px] font-black px-3 py-1 rounded-md uppercase tracking-wider border border-purple-200">Marketing</span>
-                            {% elif staff.role == 'cs' %}
-                                <span class="bg-emerald-100 text-emerald-700 text-[10px] font-black px-3 py-1 rounded-md uppercase tracking-wider border border-emerald-200">Customer Service</span>
-                            {% else %}
-                                <span class="bg-gray-100 text-gray-600 text-[10px] font-black px-3 py-1 rounded-md uppercase tracking-wider border border-gray-200">Visitor</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 text-xs text-gray-500 font-medium">{{ staff.created_at | datetime }}</td>
-                        <td class="px-6 py-4 text-right">
-                            <a href="/admin/staff/delete/{{ staff.id }}" onclick="return confirm('Pecat karyawan ini bre?')" class="inline-flex items-center justify-center w-8 h-8 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors border border-red-100">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
+                            </td>
+                            <td class="px-6 py-5">
+                                <span class="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-[0.2em] border shadow-sm inline-flex items-center gap-1.5"
+                                      :class="{
+                                        'bg-blue-50 text-blue-700 border-blue-200': staff.role === 'oprasional',
+                                        'bg-purple-50 text-purple-700 border-purple-200': staff.role === 'marketing',
+                                        'bg-emerald-50 text-emerald-700 border-emerald-200': staff.role === 'cs',
+                                        'bg-gray-100 text-gray-600 border-gray-200': staff.role === 'visitor'
+                                      }">
+                                    <i data-lucide="badge-check" class="w-3 h-3"></i> <span x-text="staff.role"></span>
+                                </span>
+                            </td>
+                            <td class="px-6 py-5 align-top">
+                                <p class="text-[11px] font-black text-gray-900 mb-1 flex items-center gap-1.5">
+                                    <i data-lucide="clock" class="w-3.5 h-3.5 text-gray-400"></i> <span x-text="formatDateStr(staff.last_login)"></span>
+                                </p>
+                                <p class="text-[9px] font-bold text-gray-500 uppercase tracking-[0.1em] truncate max-w-[200px]" x-text="staff.last_activity_desc"></p>
+                            </td>
+                            <td class="px-6 py-5 text-center align-middle relative">
+                                <!-- Dropdown Manajemen Opsi via AlpineJS -->
+                                <div x-data="{ openOptions: false }" class="relative inline-block text-left">
+                                    <button @click="openOptions = !openOptions" @click.away="openOptions = false" class="p-2.5 bg-white border border-gray-200 hover:bg-gray-900 hover:text-white hover:border-gray-900 text-gray-600 rounded-xl smooth-trans shadow-sm active:scale-95">
+                                        <i data-lucide="settings-2" class="w-4 h-4"></i>
+                                    </button>
+                                    
+                                    <!-- Dropdown Menu -->
+                                    <div x-show="openOptions" x-transition.opacity class="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden p-1.5" style="display: none;">
+                                        <button @click="openEditModal(staff); openOptions = false" class="w-full text-left px-4 py-3 text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-blue-50 hover:text-blue-700 rounded-xl flex items-center gap-2.5 smooth-trans mb-1">
+                                            <i data-lucide="edit-3" class="w-4 h-4"></i> Edit Role
+                                        </button>
+                                        <button @click="openResetModal(staff); openOptions = false" class="w-full text-left px-4 py-3 text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-orange-50 hover:text-orange-700 rounded-xl flex items-center gap-2.5 smooth-trans">
+                                            <i data-lucide="key" class="w-4 h-4"></i> Reset Sandi
+                                        </button>
+                                        <div class="h-px bg-gray-100 my-1.5 mx-2"></div>
+                                        <button @click="submitDelete(staff); openOptions = false" class="w-full text-left px-4 py-3 text-[11px] font-black uppercase tracking-widest text-red-600 hover:bg-red-50 hover:text-red-700 rounded-xl flex items-center gap-2.5 smooth-trans group/btn">
+                                            <i data-lucide="user-x" class="w-4 h-4 group-hover/btn:scale-110 smooth-trans"></i> Pecat Akun
+                                        </button>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
                     
-                    {% if not staffs %}
-                    <tr>
-                        <td colspan="4" class="px-6 py-12 text-center">
-                            <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                                <i data-lucide="users" class="w-8 h-8 text-gray-300"></i>
-                            </div>
-                            <p class="text-gray-500 font-bold">Belum ada staff yang didaftarkan.</p>
-                        </td>
-                    </tr>
-                    {% endif %}
+                    <!-- EMPTY STATE -->
+                    <template x-if="listStaff.length === 0">
+                        <tr>
+                            <td colspan="4" class="px-6 py-20 text-center bg-gray-50/50">
+                                <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto mb-5 border border-gray-200 shadow-sm">
+                                    <i data-lucide="users" class="w-12 h-12 text-gray-300"></i>
+                                </div>
+                                <h4 class="font-black text-gray-900 text-xl tracking-tight">Belum Ada Staff Terdaftar</h4>
+                                <p class="text-xs font-bold text-gray-500 mt-2 max-w-sm mx-auto uppercase tracking-widest">Sistem enterprise ini sementara hanya diakses oleh Super Admin Utama.</p>
+                                <button @click="openCreateModal()" class="mt-6 px-6 py-3 bg-gray-900 text-white text-xs font-black rounded-xl hover:bg-black transition-colors shadow-md flex items-center gap-2 mx-auto">
+                                    <i data-lucide="plus" class="w-4 h-4"></i> Mulai Rekrut Karyawan
+                                </button>
+                            </td>
+                        </tr>
+                    </template>
                 </tbody>
             </table>
         </div>
     </div>
 
-    <div x-show="isModalOpen" style="display: none;" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
-        <div x-show="isModalOpen" x-transition.opacity class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" @click="isModalOpen = false"></div>
+    <!-- =======================================================================
+         KUMPULAN MODALS API-DRIVEN
+    ======================================================================== -->
+
+    <!-- MODAL 1: REKRUT BARU -->
+    <div x-show="createModalOpen" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div x-show="createModalOpen" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-sm" @click="if(!isSubmitting) createModalOpen = false"></div>
         
-        <div x-show="isModalOpen" 
-             x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-             x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100 translate-y-0" x-transition:leave-end="opacity-0 scale-95 translate-y-4"
-             class="bg-white rounded-[2rem] w-full max-w-lg relative z-10 shadow-2xl overflow-hidden border border-gray-100">
+        <div x-show="createModalOpen" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0" class="bg-white rounded-[2.5rem] w-full max-w-xl relative z-10 shadow-2xl overflow-hidden border border-gray-100">
             
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center"><i data-lucide="user-plus" class="w-5 h-5"></i></div>
-                    <h3 class="text-lg font-black text-gray-900">Rekrut Staff Baru</h3>
+            <div class="absolute top-0 left-0 w-full h-3 bg-gray-900"></div>
+
+            <div class="p-6 sm:p-8 border-b border-gray-100 flex justify-between items-start bg-gray-50">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 bg-white text-gray-900 border border-gray-200 rounded-2xl shadow-sm flex items-center justify-center"><i data-lucide="user-plus" class="w-7 h-7"></i></div>
+                    <div>
+                        <h3 class="text-2xl font-black text-gray-900 tracking-tight">Rekrut Staff Baru</h3>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mt-1">Pembuatan Kredensial Login</p>
+                    </div>
                 </div>
-                <button @click="isModalOpen = false" class="p-2 text-gray-400 hover:text-gray-600 bg-white border border-gray-200 rounded-full transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
+                <button @click="createModalOpen = false" :disabled="isSubmitting" class="p-2 text-gray-400 hover:text-red-500 bg-white border border-gray-200 rounded-full transition-colors disabled:opacity-50"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
 
-            <form action="/admin/staff/add" method="POST" class="p-6 space-y-4">
+            <form @submit.prevent="submitAddStaff" class="p-6 sm:p-8 space-y-6">
                 <div>
-                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 pl-1">Nama Lengkap</label>
-                    <input type="text" name="full_name" required placeholder="Cth: Andika Rahmadana" class="w-full bg-gray-50 border border-gray-200 px-4 py-3.5 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all">
+                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><i data-lucide="type" class="w-3.5 h-3.5"></i> Nama Lengkap</label>
+                    <input type="text" x-model="formAdd.full_name" required placeholder="Cth: Andika Rahmadana" class="w-full bg-gray-50 border border-gray-200 px-4 py-4 rounded-xl text-sm font-bold focus:ring-2 focus:ring-gray-900 focus:bg-white outline-none smooth-trans disabled:opacity-60 shadow-inner">
                 </div>
                 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
-                        <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 pl-1">Username Login</label>
-                        <input type="text" name="username" required placeholder="Cth: dika_op" class="w-full bg-gray-50 border border-gray-200 px-4 py-3.5 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all">
+                        <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><i data-lucide="at-sign" class="w-3.5 h-3.5"></i> Username Sistem</label>
+                        <input type="text" x-model="formAdd.username" required placeholder="dika_op" class="w-full bg-gray-50 border border-gray-200 px-4 py-4 rounded-xl text-sm font-bold focus:ring-2 focus:ring-gray-900 focus:bg-white outline-none smooth-trans disabled:opacity-60 lowercase shadow-inner">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 pl-1">Password</label>
-                        <input type="password" name="password" required placeholder="Bikin rahasia..." class="w-full bg-gray-50 border border-gray-200 px-4 py-3.5 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all">
+                        <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><i data-lucide="key-round" class="w-3.5 h-3.5"></i> Password Login</label>
+                        <input type="password" x-model="formAdd.password" required minlength="6" placeholder="Min. 6 Karakter" class="w-full bg-gray-50 border border-gray-200 px-4 py-4 rounded-xl text-sm font-bold focus:ring-2 focus:ring-gray-900 focus:bg-white outline-none smooth-trans disabled:opacity-60 shadow-inner">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 pl-1">Hak Akses Jabatan</label>
-                    <select name="role" required class="w-full bg-gray-50 border border-gray-200 px-4 py-3.5 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:bg-white transition-all appearance-none cursor-pointer">
-                        <option value="oprasional">📦 Operasional (Bisa akses Order & Stok)</option>
-                        <option value="marketing">🚀 Marketing (Bisa akses Customer & AI CS)</option>
-                        <option value="cs">💬 CS / AI Manager (Cuma bisa pantau AI CS)</option>
-                        <option value="visitor">👁️ Visitor (Cuma bisa liat dashboard)</option>
+                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 flex items-center gap-1.5"><i data-lucide="shield" class="w-3.5 h-3.5"></i> Hak Akses Jabatan (Role)</label>
+                    <select x-model="formAdd.role" required class="w-full bg-gray-50 border border-gray-200 px-4 py-4 rounded-xl text-sm font-bold focus:ring-2 focus:ring-gray-900 focus:bg-white outline-none smooth-trans cursor-pointer disabled:opacity-60 shadow-sm appearance-none">
+                        <option value="oprasional">📦 Operasional (Order & Stok Gudang)</option>
+                        <option value="marketing">🚀 Marketing (Customer & AI CS)</option>
+                        <option value="cs">💬 CS / Manager (Pemantauan AI CS)</option>
+                        <option value="visitor">👁️ Visitor (Hanya lihat dashboard Utama)</option>
                     </select>
                 </div>
 
-                <div class="pt-4 flex gap-3 mt-2">
-                    <button type="button" @click="isModalOpen = false" class="flex-1 py-3.5 bg-white border border-gray-200 text-gray-600 font-bold rounded-xl hover:bg-gray-50 transition-colors">Batal</button>
-                    <button type="submit" class="flex-1 py-3.5 bg-gray-900 text-yellow-400 font-black rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all">Simpan Karyawan</button>
+                <div class="pt-6 border-t border-gray-100">
+                    <button type="submit" :disabled="isSubmitting" class="w-full py-4 bg-gray-900 hover:bg-black text-white font-black rounded-xl shadow-xl shadow-gray-900/20 smooth-trans active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 group">
+                        <span x-show="!isSubmitting" class="flex items-center gap-2"><i data-lucide="check-circle-2" class="w-5 h-5 group-hover:scale-110 smooth-trans"></i> Daftarkan Kredensial Karyawan</span>
+                        <span x-show="isSubmitting" class="flex items-center gap-2" x-cloak><i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Memvalidasi Sistem...</span>
+                    </button>
                 </div>
             </form>
         </div>
     </div>
+
+    <!-- MODAL 2: EDIT PROFIL & ROLE -->
+    <div x-show="editModalOpen" x-cloak class="fixed inset-0 z-[110] flex items-center justify-center p-4">
+        <div x-show="editModalOpen" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="if(!isSubmitting) editModalOpen = false"></div>
+        
+        <div x-show="editModalOpen" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0" class="bg-white rounded-[2.5rem] w-full max-w-md relative z-10 shadow-2xl overflow-hidden border border-gray-100">
+            
+            <div class="absolute top-0 left-0 w-full h-2.5 bg-blue-500"></div>
+
+            <div class="p-6 border-b border-gray-100 flex justify-between items-start bg-blue-50/30">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-white text-blue-600 rounded-xl border border-blue-100 shadow-sm flex items-center justify-center"><i data-lucide="edit-3" class="w-5 h-5"></i></div>
+                    <div>
+                        <h3 class="text-xl font-black text-gray-900 tracking-tight">Edit Identitas</h3>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">Modifikasi akses sistem</p>
+                    </div>
+                </div>
+                <button @click="editModalOpen = false" :disabled="isSubmitting" class="p-2 text-gray-400 hover:text-red-500 bg-white border border-gray-200 rounded-full transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+
+            <form @submit.prevent="submitEdit" class="p-8 space-y-6">
+                <div>
+                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Nama Lengkap</label>
+                    <input type="text" x-model="formEdit.full_name" required :disabled="isSubmitting" class="w-full bg-gray-50 border border-gray-200 px-4 py-3.5 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none smooth-trans disabled:opacity-60">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Username Baru</label>
+                    <input type="text" x-model="formEdit.username" required :disabled="isSubmitting" class="w-full bg-gray-50 border border-gray-200 px-4 py-3.5 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none smooth-trans lowercase disabled:opacity-60">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Mutasi Hak Akses</label>
+                    <select x-model="formEdit.role" required :disabled="isSubmitting" class="w-full bg-gray-50 border border-gray-200 px-4 py-4 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none smooth-trans cursor-pointer disabled:opacity-60 appearance-none shadow-sm">
+                        <option value="oprasional">📦 Operasional</option>
+                        <option value="marketing">🚀 Marketing</option>
+                        <option value="cs">💬 CS / Manager</option>
+                        <option value="visitor">👁️ Visitor</option>
+                    </select>
+                </div>
+                <div class="pt-4 border-t border-gray-100">
+                    <button type="submit" :disabled="isSubmitting" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl shadow-lg shadow-blue-500/30 smooth-trans active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 group">
+                        <span x-show="!isSubmitting"><i data-lucide="save" class="w-4 h-4 inline pb-0.5 group-hover:scale-110 smooth-trans"></i> Update Kredensial</span>
+                        <span x-show="isSubmitting" x-cloak><i data-lucide="loader-2" class="w-4 h-4 animate-spin inline pb-0.5"></i> Memproses...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: RESET PASSWORD -->
+    <div x-show="resetModalOpen" x-cloak class="fixed inset-0 z-[120] flex items-center justify-center p-4">
+        <div x-show="resetModalOpen" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="if(!isSubmitting) resetModalOpen = false"></div>
+        
+        <div x-show="resetModalOpen" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0" class="bg-white rounded-[2rem] w-full max-w-sm relative z-10 shadow-2xl overflow-hidden border border-gray-100">
+            
+            <div class="absolute top-0 left-0 w-full h-2.5 bg-orange-500"></div>
+
+            <div class="p-6 border-b border-gray-100 flex justify-between items-start bg-orange-50/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-white text-orange-500 rounded-xl border border-orange-100 shadow-sm flex items-center justify-center"><i data-lucide="shield-alert" class="w-5 h-5"></i></div>
+                    <div>
+                        <h3 class="text-xl font-black text-gray-900 tracking-tight">Reset Sandi</h3>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">Pemaksaan sistem</p>
+                    </div>
+                </div>
+                <button @click="resetModalOpen = false" :disabled="isSubmitting" class="p-2 text-gray-400 hover:text-red-500 bg-white border border-gray-200 rounded-full transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+
+            <form @submit.prevent="submitResetPassword" class="p-6 space-y-6">
+                
+                <div class="bg-gray-900 p-4 rounded-xl text-center shadow-inner border border-gray-800">
+                    <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Target Akun</p>
+                    <p class="text-sm font-bold text-white tracking-widest" x-text="'@' + activeStaff.username"></p>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 text-center">Input Password Baru (Min 6)</label>
+                    <input type="password" x-model="formReset.password" required minlength="6" :disabled="isSubmitting" class="w-full bg-orange-50/50 border border-orange-200 px-4 py-4 rounded-xl text-xl tracking-[0.2em] font-black focus:ring-2 focus:ring-orange-500 focus:bg-white outline-none smooth-trans text-center shadow-inner" placeholder="••••••••">
+                </div>
+
+                <div class="pt-4 border-t border-gray-100">
+                    <button type="submit" :disabled="isSubmitting || !formReset.password || formReset.password.length < 6" class="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-xl shadow-lg shadow-orange-500/30 smooth-trans active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 group">
+                        <span x-show="!isSubmitting"><i data-lucide="key" class="w-4 h-4 inline pb-0.5 group-hover:scale-110 smooth-trans"></i> Eksekusi Ganti Sandi</span>
+                        <span x-show="isSubmitting" x-cloak><i data-lucide="loader-2" class="w-4 h-4 animate-spin inline pb-0.5"></i> Memproses...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 </div>
+
+<!-- ===========================================================================
+     SCRIPT ALPINE JS - ENGINE API STAFF
+============================================================================ -->
+<script>
+    function staffEngine() {
+        return {
+            // Data Injection dari Jinja2 Python
+            listStaff: [
+                {% for staff in staffs %}
+                {
+                    id: {{ staff.id }},
+                    username: "{{ staff.username }}",
+                    full_name: "{{ staff.full_name }}",
+                    role: "{{ staff.role }}",
+                    last_login: "{{ staff.last_login | default('', true) }}",
+                    last_activity_desc: "{{ staff.last_activity_desc | default('Belum ada aktivitas tercatat', true) }}"
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ],
+
+            // Modals Logic State
+            createModalOpen: false,
+            editModalOpen: false,
+            resetModalOpen: false,
+            isSubmitting: false,
+            
+            // Payload Forms
+            activeStaff: {},
+            formAdd: { full_name: '', username: '', password: '', role: 'oprasional' },
+            formEdit: { full_name: '', username: '', role: '' },
+            formReset: { password: '' },
+
+            initData() {
+                setTimeout(() => lucide.createIcons(), 50);
+            },
+
+            // Formatter Tanggal (Aman dari null database)
+            formatDateStr(isoString) {
+                if (!isoString || isoString === 'None' || isoString === 'null' || isoString === '') return 'Belum Pernah Login';
+                try {
+                    const d = new Date(isoString);
+                    if(isNaN(d)) return 'Belum Pernah Login';
+                    return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                } catch(e) { return 'Waktu tidak diketahui'; }
+            },
+
+            // ================== API ACTIONS ==================
+
+            openCreateModal() {
+                this.formAdd = { full_name: '', username: '', password: '', role: 'oprasional' };
+                this.createModalOpen = true;
+                document.body.style.overflow = 'hidden';
+                setTimeout(() => lucide.createIcons(), 50);
+            },
+
+            async submitAddStaff() {
+                if(this.isSubmitting) return;
+                this.isSubmitting = true;
+                try {
+                    const res = await fetch('/admin/staff/api/add', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(this.formAdd)
+                    });
+                    const data = await res.json();
+                    
+                    if(res.ok && data.status === 'success') {
+                        this.$dispatch('notify', { type: 'success', message: data.message });
+                        this.createModalOpen = false;
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else throw new Error(data.message || 'Gagal menambahkan karyawan. Cek koneksi.');
+                } catch(e) {
+                    this.$dispatch('notify', { type: 'error', message: e.message });
+                } finally {
+                    this.isSubmitting = false;
+                }
+            },
+
+            openEditModal(staff) {
+                this.activeStaff = staff;
+                this.formEdit = { full_name: staff.full_name, username: staff.username, role: staff.role };
+                this.editModalOpen = true;
+                document.body.style.overflow = 'hidden';
+                setTimeout(() => lucide.createIcons(), 50);
+            },
+
+            async submitEdit() {
+                if(this.isSubmitting) return;
+                this.isSubmitting = true;
+                try {
+                    const res = await fetch('/admin/staff/api/update', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            staff_id: this.activeStaff.id,
+                            full_name: this.formEdit.full_name,
+                            username: this.formEdit.username,
+                            role: this.formEdit.role
+                        })
+                    });
+                    const data = await res.json();
+                    if(res.ok && data.status === 'success') {
+                        this.$dispatch('notify', { type: 'success', message: 'Data kredensial staff berhasil diperbarui di server.' });
+                        this.editModalOpen = false;
+                        setTimeout(() => window.location.reload(), 1200);
+                    } else throw new Error(data.message || 'Gagal update data');
+                } catch(e) {
+                    this.$dispatch('notify', { type: 'error', message: e.message });
+                } finally {
+                    this.isSubmitting = false;
+                }
+            },
+
+            openResetModal(staff) {
+                this.activeStaff = staff;
+                this.formReset = { password: '' };
+                this.resetModalOpen = true;
+                document.body.style.overflow = 'hidden';
+                setTimeout(() => lucide.createIcons(), 50);
+            },
+
+            async submitResetPassword() {
+                if(this.isSubmitting) return;
+                this.isSubmitting = true;
+                try {
+                    const res = await fetch('/admin/staff/api/reset-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            staff_id: this.activeStaff.id,
+                            new_password: this.formReset.password
+                        })
+                    });
+                    const data = await res.json();
+                    if(res.ok && data.status === 'success') {
+                        this.$dispatch('notify', { type: 'success', message: 'Sistem berhasil memaksa penggantian password staff.' });
+                        this.resetModalOpen = false;
+                        setTimeout(() => window.location.reload(), 1200);
+                    } else throw new Error(data.message || 'Gagal mereset password');
+                } catch(e) {
+                    this.$dispatch('notify', { type: 'error', message: e.message });
+                } finally {
+                    this.isSubmitting = false;
+                }
+            },
+
+            async submitDelete(staff) {
+                // Confirm Dialog Klasik buat Keamanan Lapis Akhir
+                if(!confirm(`PERINGATAN KERAS DATABASE!\n\nYakin ingin menghapus secara permanen akun @${staff.username}?\n\nJika ia memiliki riwayat pencatatan transaksi mutasi, akunnya tidak bisa dihapus, disarankan Edit Role menjadi Visitor saja.`)) return;
+                
+                try {
+                    const res = await fetch('/admin/staff/api/delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ staff_id: staff.id })
+                    });
+                    const data = await res.json();
+                    if(res.ok && data.status === 'success') {
+                        this.$dispatch('notify', { type: 'success', message: `Karyawan @${staff.username} resmi dipecat dari sistem.` });
+                        setTimeout(() => window.location.reload(), 1200);
+                    } else throw new Error(data.message || 'Sistem menolak penghapusan.');
+                } catch(e) {
+                    this.$dispatch('notify', { type: 'error', message: e.message });
+                }
+            }
+        }
+    }
+</script>
 {% endblock %}

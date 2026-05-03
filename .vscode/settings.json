@@ -1,0 +1,10 @@
+{
+    "files.exclude": {
+        "**/venv": false,
+        "**/__pycache__": true
+    },
+    "search.exclude": {
+        "**/venv": false,
+        "**/__pycache__": true
+    }
+}
