@@ -1,7 +1,6 @@
 from typing import Optional
 from datetime import datetime
 import uuid, base64, asyncio
-import google.genai
 from pydantic import BaseModel
 from fastapi import APIRouter, Request, Depends, HTTPException, status, Form
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
@@ -9,7 +8,6 @@ from fastapi.templating import Jinja2Templates
 
 from routers.common import supabase, api_success, api_error, logger, require_admin_roles, render_admin_template, BOT_AVAILABLE
 from routers.schemas import AdminManualChatPayload
-
 
 # 1. Import Brankas Supabase
 try:
@@ -49,6 +47,7 @@ def get_pending_count() -> int:
 # ==============================================================================
 @router.get("/admin/cs", response_class=HTMLResponse)
 async def admin_cs_dashboard(request: Request):
+    # Menyambungkan backend ini ke template HTML cs_management.html
     return render_admin_template(request, "admin/cs_management.html", pending_count=get_pending_count())
 
 # ==============================================================================
@@ -60,7 +59,7 @@ async def api_admin_get_sessions():
     try:
         if not supabase: return api_success(sessions=[], admin_takes=0)
         
-        # 1. Tarik data sesi (TANPA JOIN LANGSUNG KARENA GA ADA FK DI DB)
+        # 1. Tarik data sesi
         res_sess = supabase.table("ai_chat_sessions").select("*").order("created_at", desc=True).execute()
         sessions = res_sess.data or []
         
