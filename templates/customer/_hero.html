@@ -1,0 +1,44 @@
+<!-- PROMO BANNERS CAROUSEL (HERO SECTION) -->
+<div class="flex overflow-x-auto hide-scrollbar space-x-4 mb-8 -mx-5 px-5 snap-x snap-mandatory animate-fade-in-up" style="animation-delay: 0.2s;">
+    
+    <!-- Banner 1: Signature (Dark Elegant) -->
+    <div class="snap-center shrink-0 w-[88vw] max-w-[350px] bg-[#0B1121] rounded-[2rem] p-6 text-white relative overflow-hidden shadow-2xl border border-gray-800">
+        <div class="absolute -right-10 -top-10 opacity-10"><i data-lucide="sparkles" class="w-56 h-56 text-brand-400"></i></div>
+        <div class="absolute bottom-0 right-0 w-32 h-32 bg-brand-500/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="relative z-10">
+            <span class="bg-brand-400 text-gray-900 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">BABA Signature</span>
+            <h2 class="font-black text-[26px] text-white tracking-tight mt-4 mb-2 leading-tight">Identity &<br>Confidence.</h2>
+            <p class="text-[12px] text-gray-400 leading-relaxed font-medium mb-5 pr-8">Extrait de Parfum dengan bibit import Paris. Tahan hingga 12 jam.</p>
+            <button @click="activeCategory = 'Top Seller'" class="text-[11px] font-black bg-white text-gray-900 px-5 py-3 rounded-xl shadow-lg active:scale-95 transition-transform flex items-center gap-2">
+                Jelajahi Koleksi <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Banner 2: AI Feature (Blue Modern) -->
+    <div @click="goToAI()" class="snap-center shrink-0 w-[88vw] max-w-[350px] bg-gradient-to-br from-blue-600 to-indigo-900 rounded-[2rem] p-6 text-white relative overflow-hidden shadow-2xl border border-blue-500 cursor-pointer active:scale-95 transition-transform">
+        <div class="absolute -right-4 -bottom-4 opacity-20"><i data-lucide="bot" class="w-48 h-48 text-white"></i></div>
+        <div class="relative z-10">
+            <span class="bg-white/20 text-white border border-white/30 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-sm backdrop-blur">AI Assistant</span>
+            <h2 class="font-black text-[26px] text-white tracking-tight mt-4 mb-2 leading-tight">Bingung<br>Pilih Wangi?</h2>
+            <p class="text-[12px] text-blue-100 leading-relaxed font-medium pr-8 mb-5">Tanya langsung ke Mimin AI BABA untuk rekomendasi wangi terbaikmu.</p>
+            <button class="text-[11px] font-black bg-white text-blue-700 px-5 py-3 rounded-xl shadow-lg flex items-center gap-2">
+                <i data-lucide="message-circle" class="w-4 h-4"></i> Chat Mimin Sekarang
+            </button>
+        </div>
+    </div>
+
+    <!-- Banner 3: Promo (Orange Vibrant) -->
+    <div class="snap-center shrink-0 w-[88vw] max-w-[350px] bg-gradient-to-br from-orange-500 to-red-600 rounded-[2rem] p-6 text-white relative overflow-hidden shadow-2xl border border-orange-400">
+        <div class="absolute -right-8 -bottom-8 opacity-20"><i data-lucide="truck" class="w-48 h-48 text-white"></i></div>
+        <div class="relative z-10">
+            <span class="bg-white text-orange-600 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">Spesial Promo</span>
+            <h2 class="font-black text-[26px] text-white tracking-tight mt-4 mb-2 leading-tight">Gratis<br>Ongkir Kamboja</h2>
+            <p class="text-[12px] text-orange-100 leading-relaxed font-medium pr-8 mb-5">Pengiriman aman via J&T Express & Vireak Buntham ke seluruh Kamboja.</p>
+            <button class="text-[11px] font-black bg-black/20 text-white px-5 py-3 rounded-xl backdrop-blur shadow-lg border border-white/10 flex items-center gap-2">
+                Pesan Sekarang <i data-lucide="shopping-bag" class="w-3.5 h-3.5"></i>
+            </button>
+        </div>
+    </div>
+
+</div>

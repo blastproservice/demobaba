@@ -1,339 +1,971 @@
 {% extends "admin/base.html" %}
 
-{% block title %}CRM & Data Pelanggan{% endblock %}
+{% block title %}CRM & Data Pelanggan Enterprise{% endblock %}
 {% block header %}Data Pelanggan (CRM){% endblock %}
+{% block breadcrumb %}CRM & Pelayanan / Data Pelanggan{% endblock %}
 
 {% block content %}
 <style>
+    /* ==========================================================================
+       ENTERPRISE CUSTOMER CRM DESIGN SYSTEM V11.0 (ULTRA SAAS)
+       ========================================================================== */
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 2px solid transparent; background-clip: content-box; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
     
-    .modal-enter { animation: modalFadeIn 0.3s ease-out forwards; }
-    .modal-leave { animation: modalFadeOut 0.2s ease-in forwards; }
-    @keyframes modalFadeIn { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
-    @keyframes modalFadeOut { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(20px) scale(0.95); } }
+    /* Advanced Modal Animations */
+    .modal-enter { animation: modalFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .modal-leave { animation: modalFadeOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes modalFadeIn { 
+        from { opacity: 0; transform: translateY(30px) scale(0.95); } 
+        to { opacity: 1; transform: translateY(0) scale(1); } 
+    }
+    @keyframes modalFadeOut { 
+        from { opacity: 1; transform: translateY(0) scale(1); } 
+        to { opacity: 0; transform: translateY(20px) scale(0.95); } 
+    }
     
     .backdrop-enter { animation: backdropIn 0.3s ease-out forwards; }
-    .backdrop-leave { animation: backdropOut 0.2s ease-in forwards; }
+    .backdrop-leave { animation: backdropOut 0.3s ease-in forwards; }
     @keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes backdropOut { from { opacity: 1; } to { opacity: 0; } }
+
+    /* Slide-over Animations for 360 Customer Detail */
+    .slide-over-enter { animation: slideOverIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .slide-over-leave { animation: slideOverOut 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes slideOverIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    @keyframes slideOverOut { from { transform: translateX(0); } to { transform: translateX(100%); } }
     
-    .hidden-force { display: none !important; }
+    /* Floating Bulk Action Bar */
+    .float-enter { animation: floatUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .float-leave { animation: floatDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes floatUp { from { opacity: 0; transform: translateY(80px) translateX(-50%); } to { opacity: 1; transform: translateY(0) translateX(-50%); } }
+    @keyframes floatDown { from { opacity: 1; transform: translateY(0) translateX(-50%); } to { opacity: 0; transform: translateY(80px) translateX(-50%); } }
+
+    .sort-icon { transition: transform 0.2s ease; opacity: 0.3; }
+    .sort-icon.active { opacity: 1; color: #ca8a04; }
+    .sort-icon.desc { transform: rotate(180deg); }
+
+    .pulse-ring {
+        animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse-ring {
+        0% { transform: scale(0.8); opacity: 0.5; }
+        100% { transform: scale(1.5); opacity: 0; }
+    }
+
+    [x-cloak] { display: none !important; }
 </style>
 
-{% set total_cust = pelanggan | length %}
-{% set total_vip = 0 %}
-{% set total_revenue_all = 0 %}
-{% for c in pelanggan %}
-    {% set total_revenue_all = total_revenue_all + (c.calc_total_spent | default(0)) %}
-    {% if (c.calc_total_spent | default(0)) >= 100 or (c.calc_total_orders | default(0)) >= 3 %}
-        {% set total_vip = total_vip + 1 %}
-    {% endif %}
-{% endfor %}
+<!-- Inject Backend Data securely -->
+<script>
+    window.CUSTOMER_DATA = {{ pelanggan | tojson | safe }};
+</script>
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-        <div>
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Pelanggan</p>
-            <h3 class="text-2xl font-black text-gray-900">{{ total_cust }} <span class="text-sm font-medium text-gray-500">Orang</span></h3>
-        </div>
-        <div class="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-        </div>
-    </div>
-    
-    <div class="bg-gradient-to-br from-gray-900 to-gray-800 p-5 rounded-xl shadow-sm border border-gray-800 flex items-center justify-between">
-        <div>
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Pelanggan VIP</p>
-            <h3 class="text-2xl font-black text-white">{{ total_vip }} <span class="text-sm font-medium text-gray-400">Sultan</span></h3>
-        </div>
-        <div class="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-yellow-400">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
-        </div>
+<!-- ====================================================================================
+     MAIN ALPINE SPA WRAPPER
+     ==================================================================================== -->
+<div x-data="customerCrmEngine()" x-init="initApp()" class="pb-32 space-y-8" x-cloak>
+
+    <!-- TOAST NOTIFICATIONS SYSTEM -->
+    <div class="fixed top-5 right-5 z-[9999] flex flex-col gap-3 pointer-events-none">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 scale-95" x-transition:enter-end="opacity-100 translate-y-0 scale-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+                 class="min-w-[320px] max-w-md p-5 rounded-3xl shadow-2xl border flex items-start gap-4 pointer-events-auto bg-white/95 backdrop-blur-2xl" 
+                 :class="toast.type === 'success' ? 'border-emerald-500/30' : (toast.type === 'warning' ? 'border-amber-500/30' : 'border-red-500/30')">
+                <div :class="toast.type === 'success' ? 'text-emerald-500 bg-emerald-50 p-2 rounded-xl' : (toast.type === 'warning' ? 'text-amber-500 bg-amber-50 p-2 rounded-xl' : 'text-red-500 bg-red-50 p-2 rounded-xl')">
+                    <i :data-lucide="toast.type === 'success' ? 'check-circle-2' : (toast.type === 'warning' ? 'alert-triangle' : 'alert-octagon')" class="w-6 h-6"></i>
+                </div>
+                <div class="flex-1 mt-0.5">
+                    <h4 class="text-sm font-black text-gray-900 tracking-tight" x-text="toast.title"></h4>
+                    <p class="text-xs text-gray-500 mt-1 font-medium leading-relaxed" x-text="toast.msg"></p>
+                </div>
+                <button @click="removeToast(toast.id)" class="text-gray-400 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 p-2 rounded-xl transition-colors"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+        </template>
     </div>
 
-    <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-        <div>
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Customer Lifetime Value</p>
-            <h3 class="text-2xl font-black text-emerald-600">{{ total_revenue_all | currency }}</h3>
+    <!-- ====================================================================================
+         1. TOP STATISTIC WIDGETS
+         ==================================================================================== -->
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 animate-slide-up">
+        
+        <!-- Widget: Total Pelanggan -->
+        <div class="bg-white p-7 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col relative overflow-hidden group hover:shadow-md transition-all">
+            <div class="absolute -right-8 -top-8 w-32 h-32 bg-blue-50/50 rounded-full group-hover:scale-[2] transition-transform duration-700 ease-out z-0"></div>
+            <div class="relative z-10 flex items-start justify-between">
+                <div>
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Total Pelanggan</p>
+                    <div class="flex items-baseline gap-2">
+                        <h3 class="text-4xl font-black text-gray-900 tracking-tighter" x-text="formatNum(stats.total)">0</h3>
+                        <span class="text-xs font-bold text-gray-500">Orang</span>
+                    </div>
+                </div>
+                <div class="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shadow-inner"><i data-lucide="users" class="w-6 h-6"></i></div>
+            </div>
+            <div class="mt-5 pt-4 border-t border-gray-100 relative z-10 flex gap-4">
+                <p class="text-[11px] font-bold text-gray-500 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-sm"></span> <span x-text="formatNum(stats.bot)"></span> Bot</p>
+                <p class="text-[11px] font-bold text-gray-500 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500 shadow-sm"></span> <span x-text="formatNum(stats.mtproto)"></span> MTProto</p>
+            </div>
         </div>
-        <div class="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        
+        <!-- Widget: VIP Customer -->
+        <div class="bg-gradient-to-br from-gray-900 to-gray-800 p-7 rounded-[2rem] shadow-xl shadow-gray-900/10 border border-gray-800 flex flex-col relative overflow-hidden group hover:shadow-2xl transition-all">
+            <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-yellow-500/10 rounded-full group-hover:scale-[2] transition-transform duration-700 ease-out z-0"></div>
+            <i data-lucide="crown" class="absolute right-4 bottom-4 w-24 h-24 text-white opacity-5"></i>
+            <div class="relative z-10 flex items-start justify-between">
+                <div>
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Pelanggan VIP</p>
+                    <div class="flex items-baseline gap-2">
+                        <h3 class="text-4xl font-black text-white tracking-tighter" x-text="formatNum(stats.vip)">0</h3>
+                        <span class="text-xs font-bold text-yellow-400 bg-yellow-400/10 px-2 py-1 rounded-lg">Sultan</span>
+                    </div>
+                </div>
+                <div class="w-14 h-14 rounded-2xl bg-white/10 text-yellow-400 flex items-center justify-center border border-white/10 backdrop-blur-sm shadow-inner"><i data-lucide="star" class="w-6 h-6"></i></div>
+            </div>
+            <div class="mt-5 pt-4 border-t border-gray-700 relative z-10">
+                <p class="text-[11px] font-medium text-gray-400 flex items-center gap-2">
+                    <i data-lucide="trending-up" class="w-3.5 h-3.5 text-yellow-500"></i> Order &ge; 3x atau Spend &ge; $100
+                </p>
+            </div>
+        </div>
+
+        <!-- Widget: Customer Lifetime Value (LTV) -->
+        <div class="bg-white p-7 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col relative overflow-hidden xl:col-span-2 group hover:shadow-md transition-all">
+            <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-emerald-50/50 rounded-full group-hover:scale-[2] transition-transform duration-700 ease-out z-0"></div>
+            <div class="relative z-10 flex items-start justify-between">
+                <div>
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Customer Lifetime Value (LTV)</p>
+                    <h3 class="text-5xl font-black text-emerald-600 tracking-tighter drop-shadow-sm" x-text="formatCurrency(stats.revenue)">$0.00</h3>
+                </div>
+                <div class="w-16 h-16 rounded-[1.5rem] bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shadow-inner"><i data-lucide="circle-dollar-sign" class="w-8 h-8"></i></div>
+            </div>
+            <div class="mt-6 pt-5 border-t border-gray-100 relative z-10 flex items-center justify-between">
+                <p class="text-[11px] font-bold text-gray-500 flex items-center gap-2">
+                    <i data-lucide="activity" class="w-4 h-4 text-emerald-500"></i> Total uang berputar dari seluruh pelanggan
+                </p>
+                <span class="text-[9px] bg-emerald-100 text-emerald-700 font-black px-3 py-1.5 rounded-lg uppercase tracking-widest shadow-sm">Real-time</span>
+            </div>
         </div>
     </div>
-</div>
 
-<div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-    <div class="relative w-full md:w-96">
-        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+    <!-- ====================================================================================
+         2. ADVANCED TOOLBAR (SEARCH, FILTER, SYNC, EXPORT)
+         ==================================================================================== -->
+    <div class="bg-white p-5 rounded-[2rem] border border-gray-200 shadow-sm flex flex-col xl:flex-row justify-between xl:items-center gap-5 animate-slide-up delay-100">
+        
+        <!-- Tab Source Filter -->
+        <div class="flex p-1.5 bg-gray-100/80 rounded-2xl w-full xl:w-auto overflow-x-auto custom-scrollbar shrink-0 border border-gray-200/50">
+            <button @click="filterSource = 'ALL'; currentPage = 1" 
+                    class="px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap"
+                    :class="filterSource === 'ALL' ? 'bg-white text-gray-900 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-900'">Semua Data</button>
+            <button @click="filterSource = 'BOT'; currentPage = 1" 
+                    class="px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2"
+                    :class="filterSource === 'BOT' ? 'bg-white text-blue-600 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-900'"><i data-lucide="bot" class="w-4 h-4"></i> Bot User</button>
+            <button @click="filterSource = 'MTPROTO'; currentPage = 1" 
+                    class="px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-2"
+                    :class="filterSource === 'MTPROTO' ? 'bg-white text-indigo-600 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-900'"><i data-lucide="smartphone" class="w-4 h-4"></i> MTProto</button>
         </div>
-        <input type="text" id="searchInput" placeholder="Cari nama, telegram ID, atau username..." class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent text-sm">
-    </div>
-    
-    <div class="flex space-x-2 w-full md:w-auto">
-        <button onclick="filterStatus('all')" class="status-filter-btn active px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium transition-colors">Semua</button>
-        <button onclick="filterStatus('vip')" class="status-filter-btn px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-lg text-sm font-medium transition-colors">VIP</button>
-        <div class="w-px bg-gray-200 mx-1"></div>
-        <button onclick="exportTableToCSV('Data_Pelanggan_BABA.csv')" class="w-full md:w-auto bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 px-4 py-2 rounded-lg font-bold flex items-center justify-center space-x-2 transition-colors shadow-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-            <span>Export CSV</span>
-        </button>
-    </div>
-</div>
 
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-    <div class="overflow-x-auto custom-scrollbar">
-        <table class="w-full whitespace-nowrap" id="customerTable">
-            <thead class="bg-gray-50/80 border-b border-gray-100">
-                <tr class="text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                    <th class="px-6 py-4">Profil Pelanggan</th>
-                    <th class="px-6 py-4">Kontak / Sosmed</th>
-                    <th class="px-6 py-4 text-center">Total Order</th>
-                    <th class="px-6 py-4">Total Belanja</th>
-                    <th class="px-6 py-4 text-center">Status</th>
-                    <th class="px-6 py-4 text-right">Aksi</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 text-sm">
-                
-                {% for c in pelanggan %}
-                {% set orders = c.calc_total_orders | default(0) %}
-                {% set spent = c.calc_total_spent | default(0) %}
-                
-                {% set crm_status = "Baru" %}
-                {% if orders > 0 %} {% set crm_status = "Aktif" %} {% endif %}
-                {% if spent >= 100 or orders >= 3 %} {% set crm_status = "VIP" %} {% endif %}
+        <div class="flex flex-col sm:flex-row gap-4 w-full xl:w-auto">
+            <!-- Filter Status -->
+            <div class="relative shrink-0">
+                <select x-model="filterStatus" @change="currentPage = 1" class="w-full sm:w-48 appearance-none px-5 py-3.5 bg-white border border-gray-200 rounded-2xl text-xs font-black text-gray-700 outline-none focus:ring-4 focus:ring-brand-500/20 focus:border-brand-500 transition-all cursor-pointer shadow-sm hover:border-gray-300">
+                    <option value="ALL">Semua Status</option>
+                    <option value="VIP">🌟 VIP Member</option>
+                    <option value="Aktif">✅ Aktif (Pernah Order)</option>
+                    <option value="Baru">🆕 Pelanggan Baru</option>
+                </select>
+                <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"></i>
+            </div>
 
-                <tr class="hover:bg-gray-50/50 transition-colors customer-row" data-name="{{ c.full_name | lower }}" data-username="{{ c.username | lower }}" data-status="{{ crm_status | lower }}">
+            <!-- Smart Search -->
+            <div class="relative w-full sm:w-64 xl:w-80 shrink-0">
+                <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+                <input type="text" x-model="searchQuery" @input="currentPage = 1" placeholder="Cari nama, ID, username..." class="w-full pl-12 pr-10 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all shadow-sm placeholder:text-gray-400 hover:border-gray-300">
+                <button x-show="searchQuery.length > 0" @click="searchQuery = ''; currentPage = 1" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors bg-gray-100 hover:bg-red-50 p-1 rounded-md">
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+
+            <!-- Sync Button -->
+            <button @click="syncData()" :disabled="isSyncing" class="w-full sm:w-auto px-6 py-3.5 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm disabled:opacity-50 shrink-0">
+                <i data-lucide="refresh-cw" class="w-4 h-4" :class="isSyncing ? 'animate-spin' : ''"></i> 
+                <span x-text="isSyncing ? 'Syncing...' : 'Sync Data'"></span>
+            </button>
+
+            <!-- Export Menu -->
+            <div class="relative shrink-0" x-data="{ exportOpen: false }" @click.outside="exportOpen = false">
+                <button @click="exportOpen = !exportOpen" class="w-full sm:w-auto px-6 py-3.5 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm">
+                    <i data-lucide="download-cloud" class="w-4 h-4"></i> Export
+                </button>
+                <div x-show="exportOpen" x-transition.opacity class="absolute right-0 mt-3 w-56 bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden py-2">
+                    <div class="px-4 py-2 border-b border-gray-100 mb-1"><p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Download Data</p></div>
+                    <button @click="exportData('csv'); exportOpen = false" class="w-full text-left px-5 py-3 text-sm font-bold text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors flex items-center gap-3">
+                        <div class="p-1.5 bg-emerald-100 rounded-lg"><i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-600"></i></div> Export as CSV
+                    </button>
+                    <button @click="exportData('json'); exportOpen = false" class="w-full text-left px-5 py-3 text-sm font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors flex items-center gap-3">
+                        <div class="p-1.5 bg-blue-100 rounded-lg"><i data-lucide="file-json" class="w-4 h-4 text-blue-600"></i></div> Export as JSON
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================================================
+         3. ENTERPRISE DATA TABLE
+         ==================================================================================== -->
+    <div class="bg-white rounded-[2rem] shadow-sm border border-gray-200 overflow-hidden animate-slide-up delay-200 flex flex-col relative min-h-[500px]">
+        
+        <!-- Loading State -->
+        <div x-show="isLoading" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-30 flex flex-col items-center justify-center">
+            <div class="relative w-16 h-16 mb-4">
+                <div class="absolute inset-0 border-4 border-gray-100 rounded-full"></div>
+                <div class="absolute inset-0 border-4 border-brand-500 rounded-full border-t-transparent animate-spin"></div>
+            </div>
+            <p class="text-xs font-black text-gray-600 uppercase tracking-widest">Memuat Database Pelanggan...</p>
+        </div>
+
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full whitespace-nowrap text-left">
+                <thead class="bg-gray-50/80 border-b border-gray-200 select-none">
+                    <tr class="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                        <th class="px-6 py-5 w-16 text-center">
+                            <!-- FIX: Inlined checkbox styles -->
+                            <input type="checkbox" x-model="selectAll" @change="toggleSelectAll()" class="w-5 h-5 border-2 border-gray-300 rounded-lg text-brand-600 focus:ring-brand-500 cursor-pointer transition-all bg-white hover:border-brand-400">
+                        </th>
+                        <!-- Sortable Headers -->
+                        <th class="px-5 py-5 cursor-pointer hover:bg-gray-100 transition-colors group" @click="sortBy('full_name')">
+                            <div class="flex items-center gap-2">Profil Pelanggan <i data-lucide="arrow-down" class="w-3.5 h-3.5 sort-icon" :class="getSortClass('full_name')"></i></div>
+                        </th>
+                        <th class="px-6 py-5 cursor-pointer hover:bg-gray-100 transition-colors group" @click="sortBy('source')">
+                            <div class="flex items-center gap-2">Kontak & Source <i data-lucide="arrow-down" class="w-3.5 h-3.5 sort-icon" :class="getSortClass('source')"></i></div>
+                        </th>
+                        <th class="px-6 py-5 text-center cursor-pointer hover:bg-gray-100 transition-colors group" @click="sortBy('calc_total_orders')">
+                            <div class="flex items-center justify-center gap-2">Total Order <i data-lucide="arrow-down" class="w-3.5 h-3.5 sort-icon" :class="getSortClass('calc_total_orders')"></i></div>
+                        </th>
+                        <th class="px-6 py-5 cursor-pointer hover:bg-gray-100 transition-colors group" @click="sortBy('calc_total_spent')">
+                            <div class="flex items-center gap-2">Total Belanja <i data-lucide="arrow-down" class="w-3.5 h-3.5 sort-icon" :class="getSortClass('calc_total_spent')"></i></div>
+                        </th>
+                        <th class="px-6 py-5 text-center">Status CRM</th>
+                        <th class="px-6 py-5 text-right">Manajemen</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-sm">
                     
-                    <td class="px-6 py-4">
-                        <div class="flex items-center space-x-4">
-                            <div class="relative">
-                                <img src="https://ui-avatars.com/api/?name={{ c.full_name | urlencode }}&background=random&color=fff&rounded=true&bold=true" class="w-10 h-10 rounded-full shadow-sm border border-gray-200">
-                                {% if crm_status == 'VIP' %}
-                                <div class="absolute -top-1 -right-1 bg-yellow-400 rounded-full p-0.5 border-2 border-white" title="VIP Customer">
-                                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                    <!-- Empty State -->
+                    <template x-if="!isLoading && paginatedData.length === 0">
+                        <tr>
+                            <td colspan="7" class="px-6 py-32 text-center">
+                                <div class="w-24 h-24 bg-gray-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border border-gray-200 shadow-inner">
+                                    <i data-lucide="users-2" class="w-10 h-10 text-gray-300"></i>
                                 </div>
-                                {% endif %}
+                                <h3 class="text-xl font-black text-gray-900 mb-2 tracking-tight">Tidak Ada Pelanggan</h3>
+                                <p class="text-sm font-medium text-gray-500 max-w-sm mx-auto">Database kosong atau filter pencarian tidak menemukan kecocokan data.</p>
+                                <button @click="resetFilters()" x-show="searchQuery !== '' || filterStatus !== 'ALL' || filterSource !== 'ALL'" class="mt-6 px-6 py-2.5 bg-gray-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all shadow-md active:scale-95"><i data-lucide="rotate-ccw" class="w-4 h-4 inline mr-2"></i> Reset Filter</button>
+                            </td>
+                        </tr>
+                    </template>
+
+                    <!-- Data Rows -->
+                    <template x-for="c in paginatedData" :key="c.id">
+                        <tr class="hover:bg-brand-50/30 transition-colors group" :class="selectedIds.includes(c.telegram_id) ? 'bg-brand-50/60 border-l-4 border-brand-500' : 'border-l-4 border-transparent'">
+                            
+                            <!-- Checkbox -->
+                            <td class="px-6 py-4 text-center">
+                                <!-- FIX: Inlined checkbox styles -->
+                                <input type="checkbox" :value="c.telegram_id" x-model="selectedIds" class="w-5 h-5 border-2 border-gray-300 rounded-lg text-brand-600 focus:ring-brand-500 cursor-pointer transition-all bg-white hover:border-brand-400">
+                            </td>
+
+                            <!-- Profil -->
+                            <td class="px-5 py-4 cursor-pointer" @click="viewCustomerDetail(c)">
+                                <div class="flex items-center gap-4">
+                                    <div class="relative shrink-0">
+                                        <img :src="`https://ui-avatars.com/api/?name=${encodeURIComponent(c.full_name)}&background=111827&color=facc15&bold=true&size=128`" class="w-12 h-12 rounded-2xl shadow-sm border border-gray-200 object-cover group-hover:shadow-md group-hover:scale-105 transition-all">
+                                        <template x-if="c.crm_status === 'VIP'">
+                                            <div class="absolute -top-2 -right-2 bg-gradient-to-br from-yellow-300 to-yellow-500 rounded-full p-1.5 border-2 border-white shadow-sm">
+                                                <i data-lucide="crown" class="w-3 h-3 text-white fill-current"></i>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <div>
+                                        <p class="font-black text-gray-900 text-[15px] group-hover:text-brand-600 transition-colors" x-text="c.full_name"></p>
+                                        <div class="flex items-center gap-2 mt-1">
+                                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">ID: <span class="text-gray-700" x-text="c.telegram_id"></span></p>
+                                            <span class="w-1 h-1 rounded-full bg-gray-300"></span>
+                                            <p class="text-[10px] font-bold text-gray-400" title="Interaksi Terakhir">Aktif: <span class="text-gray-500" x-text="formatDate(c.last_interaction || c.created_at)"></span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Kontak & Source Smart Badge -->
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col gap-2.5">
+                                    <span class="text-xs font-bold flex items-center gap-1.5" :class="isValidUsername(c.username) ? 'text-gray-800' : 'text-gray-400 italic'">
+                                        <i data-lucide="at-sign" class="w-3.5 h-3.5 text-gray-400"></i>
+                                        <span x-text="isValidUsername(c.username) ? c.username : 'No Username'"></span>
+                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        <template x-for="badge in c.badges" :key="badge">
+                                            <!-- FIX: Inlined badge styles -->
+                                            <span :class="badge === 'BOT' ? 'px-2 py-1 bg-blue-50 border border-blue-100 text-blue-600 rounded-md text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm' : 'px-2 py-1 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-md text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm'">
+                                                <i :data-lucide="badge === 'BOT' ? 'bot' : 'smartphone'" class="w-2.5 h-2.5"></i>
+                                                <span x-text="badge"></span>
+                                            </span>
+                                        </template>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Total Order -->
+                            <td class="px-6 py-4 text-center">
+                                <span class="text-lg font-black" :class="c.calc_total_orders > 0 ? 'text-gray-900' : 'text-gray-300'" x-text="c.calc_total_orders"></span>
+                            </td>
+
+                            <!-- Total Belanja -->
+                            <td class="px-6 py-4">
+                                <span class="text-sm font-black px-3.5 py-1.5 rounded-xl" :class="c.calc_total_spent > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'text-gray-400'" x-text="formatCurrency(c.calc_total_spent)"></span>
+                            </td>
+
+                            <!-- Status CRM -->
+                            <td class="px-6 py-4 text-center">
+                                <template x-if="c.crm_status === 'VIP'">
+                                    <span class="px-4 py-1.5 bg-gray-900 text-yellow-400 border border-gray-800 rounded-xl text-[10px] font-black tracking-widest shadow-lg uppercase inline-flex items-center gap-1.5"><i data-lucide="star" class="w-3 h-3 fill-current text-yellow-400"></i> VIP</span>
+                                </template>
+                                <template x-if="c.crm_status === 'Aktif'">
+                                    <span class="px-4 py-1.5 bg-white border border-gray-200 text-gray-800 rounded-xl text-[10px] font-black tracking-widest shadow-sm uppercase">AKTIF</span>
+                                </template>
+                                <template x-if="c.crm_status === 'Baru'">
+                                    <span class="px-4 py-1.5 bg-gray-50 border border-gray-200 text-gray-400 rounded-xl text-[10px] font-black tracking-widest uppercase">BARU</span>
+                                </template>
+                            </td>
+
+                            <!-- Aksi Management -->
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <!-- Action: Direct Telegram Chat -->
+                                    <a :href="getChatLink(c)" target="_blank" class="p-2.5 text-gray-500 hover:text-white bg-white hover:bg-blue-500 border border-gray-200 hover:border-blue-500 rounded-xl hover:shadow-lg hover:shadow-blue-500/20 transition-all tooltip-trigger" title="Chat via Telegram">
+                                        <i data-lucide="send" class="w-4 h-4"></i>
+                                    </a>
+                                    <!-- Action: Edit Profile -->
+                                    <button @click="openEditModal(c)" class="p-2.5 text-gray-500 hover:text-white bg-white hover:bg-gray-900 border border-gray-200 hover:border-gray-900 rounded-xl hover:shadow-lg transition-all tooltip-trigger" title="Edit Data Pelanggan">
+                                        <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </td>
+
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Footer -->
+        <div class="px-6 py-5 border-t border-gray-200 bg-gray-50/50 flex flex-col sm:flex-row justify-between items-center gap-4 mt-auto shrink-0">
+            <p class="text-xs font-bold text-gray-500">
+                Menampilkan <span class="text-gray-900" x-text="Math.min((currentPage - 1) * itemsPerPage + 1, filteredData.length) || 0"></span> - 
+                <span class="text-gray-900" x-text="Math.min(currentPage * itemsPerPage, filteredData.length)"></span> 
+                dari <span class="text-gray-900 font-black" x-text="filteredData.length"></span> pelanggan
+            </p>
+            <div class="flex items-center gap-2">
+                <button @click="currentPage--" :disabled="currentPage === 1" class="p-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50 disabled:hover:bg-white transition-all shadow-sm"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                <div class="flex items-center gap-1 font-black text-xs px-2">
+                    <template x-for="p in totalPages" :key="p">
+                        <button x-show="Math.abs(p - currentPage) < 2 || p === 1 || p === totalPages" 
+                                @click="currentPage = p" 
+                                class="w-9 h-9 rounded-xl flex items-center justify-center transition-all"
+                                :class="currentPage === p ? 'bg-gray-900 text-white shadow-md' : 'hover:bg-gray-200 text-gray-500 hover:text-gray-900'" x-text="p"></button>
+                    </template>
+                </div>
+                <button @click="currentPage++" :disabled="currentPage === totalPages" class="p-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50 disabled:hover:bg-white transition-all shadow-sm"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================================================
+         4. FLOATING BULK ACTION BAR (BROADCAST ENGINE)
+         ==================================================================================== -->
+    <div x-show="selectedIds.length > 0" x-cloak
+         class="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 float-enter"
+         :class="selectedIds.length > 0 ? 'float-enter' : 'float-leave'">
+        
+        <div class="bg-gray-900/95 backdrop-blur-xl text-white px-6 py-4 rounded-full shadow-[0_20px_40px_rgba(0,0,0,0.4)] flex items-center gap-6 border border-gray-700/50">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-full bg-brand-500 text-gray-900 flex items-center justify-center font-black text-base relative shadow-lg">
+                    <span class="absolute inset-0 rounded-full bg-brand-500 pulse-ring"></span>
+                    <span class="relative z-10" x-text="selectedIds.length"></span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 leading-none mb-1">Bulk Action</span>
+                    <span class="text-sm font-bold text-white leading-none">Pelanggan Dipilih</span>
+                </div>
+            </div>
+            
+            <div class="w-px h-10 bg-gray-700"></div>
+            
+            <div class="flex items-center gap-2">
+                <button @click="selectedIds = []; selectAll = false" class="text-[10px] font-black text-gray-400 hover:text-white uppercase tracking-widest px-4 py-3 rounded-xl hover:bg-gray-800 transition-colors">Batal</button>
+                <button @click="openBulkModal()" class="flex items-center gap-2 bg-brand-500 hover:bg-brand-400 text-gray-900 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-brand-500/20 active:scale-95 transition-all">
+                    <i data-lucide="radio" class="w-4 h-4"></i> Kirim Broadcast
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================================================
+         MODALS & OVERLAYS SYSTEM
+         ==================================================================================== -->
+    
+    <!-- Shared Backdrop for Modals -->
+    <div x-show="isEditModalOpen || isBulkModalOpen" class="fixed inset-0 bg-gray-900/70 backdrop-blur-sm z-[100] backdrop-enter" @click="closeModals()"></div>
+
+    <!-- 1. EDIT CUSTOMER MODAL -->
+    <div x-show="isEditModalOpen" class="fixed inset-0 z-[110] flex items-center justify-center p-4 pointer-events-none">
+        <div x-show="isEditModalOpen" class="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden pointer-events-auto modal-enter flex flex-col max-h-[90vh] border border-gray-100">
+            
+            <div class="px-8 py-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center shrink-0 relative overflow-hidden">
+                <div class="absolute -left-8 -top-8 w-24 h-24 bg-brand-500/10 rounded-full blur-2xl"></div>
+                <div class="flex items-center gap-4 relative z-10">
+                    <div class="w-12 h-12 bg-gray-900 text-white rounded-2xl flex items-center justify-center shadow-lg"><i data-lucide="user-cog" class="w-6 h-6"></i></div>
+                    <div>
+                        <h2 class="text-lg font-black text-gray-900 tracking-tight">Update Pelanggan</h2>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">ID: <span x-text="editForm.telegram_id"></span></p>
+                    </div>
+                </div>
+                <button @click="closeModals()" type="button" class="text-gray-400 hover:text-red-500 p-2 rounded-xl hover:bg-red-50 transition-colors relative z-10"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            
+            <form :action="`/admin/customers/edit/${editForm.id}`" method="POST" class="p-8 space-y-6 overflow-y-auto custom-scrollbar bg-white">
+                
+                <template x-if="editForm.is_mtproto_only">
+                    <div class="bg-amber-50 p-5 rounded-2xl border border-amber-200 flex gap-4 items-start shadow-sm">
+                        <div class="bg-amber-100 p-2 rounded-xl shrink-0"><i data-lucide="shield-alert" class="w-5 h-5 text-amber-600"></i></div>
+                        <div>
+                            <h4 class="text-sm font-black text-amber-900 mb-1">Status: MTProto Only</h4>
+                            <p class="text-xs font-medium text-amber-800 leading-relaxed">Pelanggan ini diimpor dari Telegram dan belum pernah berinteraksi via Bot. Profil terkunci.</p>
+                        </div>
+                    </div>
+                </template>
+
+                <div>
+                    <label class="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-2.5 ml-1">Nama Lengkap (Tampilan) <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <i data-lucide="user" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+                        <!-- FIX: Inlined glass-input -->
+                        <input type="text" name="full_name" x-model="editForm.full_name" required :disabled="editForm.is_mtproto_only" class="w-full px-5 py-3.5 bg-gray-50/80 border border-gray-200 rounded-2xl text-sm font-semibold text-gray-900 focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 outline-none transition-all shadow-sm focus:bg-white pl-12 disabled:opacity-50 disabled:bg-gray-100 disabled:cursor-not-allowed">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-2.5 ml-1">No WhatsApp / HP</label>
+                    <div class="relative">
+                        <i data-lucide="phone" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+                        <input type="text" name="phone" x-model="editForm.phone" placeholder="Cth: +62812345..." :disabled="editForm.is_mtproto_only" class="w-full px-5 py-3.5 bg-gray-50/80 border border-gray-200 rounded-2xl text-sm font-semibold text-gray-900 focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 outline-none transition-all shadow-sm focus:bg-white pl-12 disabled:opacity-50 disabled:bg-gray-100 disabled:cursor-not-allowed">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-2.5 ml-1">Alamat Pengiriman Utama</label>
+                    <textarea name="default_address" x-model="editForm.address" rows="4" placeholder="Alamat lengkap untuk mempermudah checkout..." :disabled="editForm.is_mtproto_only" class="w-full px-5 py-3.5 bg-gray-50/80 border border-gray-200 rounded-2xl text-sm font-semibold text-gray-900 focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 outline-none transition-all shadow-sm focus:bg-white resize-y disabled:opacity-50 disabled:bg-gray-100 disabled:cursor-not-allowed custom-scrollbar"></textarea>
+                </div>
+
+                <div class="pt-4 flex justify-end gap-3 border-t border-gray-100">
+                    <button type="button" @click="closeModals()" class="w-full sm:w-auto px-6 py-3.5 text-xs font-bold text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors uppercase tracking-widest">Tutup</button>
+                    <button type="submit" :disabled="editForm.is_mtproto_only" class="w-full sm:w-auto px-8 py-3.5 text-xs font-black text-brand-400 uppercase tracking-widest bg-gray-900 rounded-xl hover:bg-black shadow-lg shadow-gray-900/20 disabled:opacity-50 disabled:shadow-none transition-all flex justify-center items-center gap-2">
+                        <i data-lucide="save" class="w-4 h-4"></i> Simpan Data
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. BROADCAST (BULK MESSAGE) MODAL -->
+    <div x-show="isBulkModalOpen" class="fixed inset-0 z-[110] flex items-center justify-center p-4 pointer-events-none">
+        <div x-show="isBulkModalOpen" class="w-full max-w-3xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden pointer-events-auto modal-enter flex flex-col max-h-[90vh]">
+            
+            <div class="px-8 py-8 border-b border-gray-100 bg-gray-900 flex justify-between items-center shrink-0 relative overflow-hidden">
+                <div class="absolute -left-10 -bottom-10 w-40 h-40 bg-brand-500/20 rounded-full blur-3xl"></div>
+                <div class="flex items-center gap-5 relative z-10">
+                    <div class="w-16 h-16 bg-white/10 text-brand-400 rounded-2xl flex items-center justify-center border border-white/10 shadow-inner"><i data-lucide="radio" class="w-8 h-8"></i></div>
+                    <div>
+                        <h2 class="text-2xl font-black text-white tracking-tight">Kirim Pesan Massal</h2>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1.5">Broadcast ke <span class="text-brand-400 text-xs font-black px-1" x-text="selectedIds.length"></span> pelanggan terpilih</p>
+                    </div>
+                </div>
+                <button @click="closeModals()" class="text-gray-400 hover:text-white p-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition-colors relative z-10"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            
+            <div class="p-8 md:p-10 space-y-8 overflow-y-auto custom-scrollbar bg-white">
+                
+                <div class="bg-blue-50/80 p-6 rounded-[2rem] border border-blue-100 flex gap-5 items-start shadow-sm">
+                    <div class="bg-blue-100 p-3 rounded-2xl shrink-0"><i data-lucide="info" class="w-6 h-6 text-blue-600"></i></div>
+                    <div>
+                        <h4 class="text-base font-black text-blue-900 mb-1.5">Tips Broadcast Professional</h4>
+                        <p class="text-xs text-blue-800 font-medium leading-relaxed">Gunakan bahasa yang natural agar tidak di-flag spam oleh Telegram. Sistem akan mengirim pesan secara bertahap (Delay 1-3 detik antar pesan) untuk menjaga kesehatan akun MTProto Anda.</p>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-end mb-3 ml-1">
+                        <label class="block text-[11px] font-black text-gray-500 uppercase tracking-widest">Isi Pesan Broadcast <span class="text-red-500">*</span></label>
+                        <span class="text-[10px] font-bold" :class="bulkMessage.length > 500 ? 'text-amber-500' : 'text-gray-400'" x-text="bulkMessage.length + ' karakter'"></span>
+                    </div>
+                    <!-- FIX: Inlined glass-input -->
+                    <textarea x-model="bulkMessage" rows="8" placeholder="Contoh: Hallo kak gmna kabar nya hari ini? semoga wangi selalu ya^^" class="w-full px-5 py-4 bg-gray-50/80 border border-gray-200 rounded-[2rem] text-sm font-semibold text-gray-900 focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 outline-none transition-all shadow-sm focus:bg-white resize-y custom-scrollbar text-base"></textarea>
+                </div>
+
+                <div class="pt-6 flex flex-col sm:flex-row justify-end gap-4 border-t border-gray-100">
+                    <button @click="closeModals()" class="w-full sm:w-auto px-10 py-4 text-xs font-bold text-gray-600 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 transition-colors uppercase tracking-widest">Batal</button>
+                    <button @click="sendBulkMessage()" :disabled="isSendingBulk || bulkMessage.trim().length === 0" class="w-full sm:w-auto px-12 py-4 text-xs font-black text-gray-900 uppercase tracking-widest bg-brand-500 rounded-2xl hover:bg-brand-400 shadow-xl shadow-brand-500/20 disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+                        <span x-show="!isSendingBulk" class="flex items-center gap-2"><i data-lucide="send" class="w-4 h-4"></i> Mulai Broadcast</span>
+                        <span x-show="isSendingBulk" x-cloak class="flex items-center gap-2"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Memproses Antrean...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. CUSTOMER DETAIL 360 SLIDE-OVER (ENTERPRISE CRM PANEL) -->
+    <div x-show="isDetailOpen" class="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[100] backdrop-enter" @click="isDetailOpen = false"></div>
+    <div x-show="isDetailOpen" 
+         class="fixed inset-y-0 right-0 z-[110] w-full max-w-md bg-white shadow-[0_0_50px_rgba(0,0,0,0.2)] flex flex-col slide-over-enter border-l border-gray-200" x-cloak>
+        
+        <div class="px-6 py-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/80">
+            <h2 class="text-xs font-black uppercase tracking-widest text-gray-500 flex items-center gap-2"><i data-lucide="scan-face" class="w-4 h-4"></i> Customer 360&deg; View</h2>
+            <button @click="isDetailOpen = false" class="p-2 rounded-xl hover:bg-gray-200 text-gray-500 transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto custom-scrollbar p-6 bg-white">
+            <template x-if="activeDetail">
+                <div class="space-y-8">
+                    <!-- Profile Header -->
+                    <div class="flex flex-col items-center text-center pb-8 border-b border-gray-100 relative">
+                        <div class="absolute inset-0 bg-gradient-to-b from-gray-50 to-white -z-10 rounded-3xl -mx-4 -mt-4"></div>
+                        <div class="relative mb-5 mt-4">
+                            <img :src="`https://ui-avatars.com/api/?name=${encodeURIComponent(activeDetail.full_name)}&background=0B1121&color=facc15&bold=true&size=128`" class="w-32 h-32 rounded-[2rem] shadow-xl border-4 border-white object-cover">
+                            <template x-if="activeDetail.crm_status === 'VIP'">
+                                <div class="absolute -bottom-2 -right-2 bg-gradient-to-br from-yellow-300 to-yellow-500 p-2.5 rounded-2xl border-4 border-white shadow-sm"><i data-lucide="crown" class="w-6 h-6 text-white fill-current"></i></div>
+                            </template>
+                        </div>
+                        <h3 class="text-3xl font-black text-gray-900 mb-1.5 tracking-tight" x-text="activeDetail.full_name"></h3>
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6" x-text="isValidUsername(activeDetail.username) ? '@' + activeDetail.username : 'ID: ' + activeDetail.telegram_id"></p>
+                        
+                        <div class="flex items-center gap-3 justify-center w-full px-2">
+                            <a :href="getChatLink(activeDetail)" target="_blank" class="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-colors flex justify-center items-center gap-2 shadow-lg shadow-blue-500/20 active:scale-95"><i data-lucide="send" class="w-4 h-4"></i> Message</a>
+                            <button @click="openEditModal(activeDetail); isDetailOpen = false" class="px-5 py-3.5 bg-white border border-gray-200 text-gray-700 rounded-2xl hover:bg-gray-50 transition-colors shadow-sm active:scale-95"><i data-lucide="edit-3" class="w-5 h-5"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Lifetime Stats -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gray-50 rounded-3xl p-6 border border-gray-100 shadow-sm hover:border-blue-200 hover:bg-blue-50/30 transition-colors">
+                            <div class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-sm border border-gray-100"><i data-lucide="shopping-bag" class="w-6 h-6 text-blue-500"></i></div>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Order</p>
+                            <p class="text-3xl font-black text-gray-900 tracking-tight" x-text="activeDetail.calc_total_orders"></p>
+                        </div>
+                        <div class="bg-emerald-50/50 rounded-3xl p-6 border border-emerald-100 shadow-sm hover:border-emerald-200 hover:bg-emerald-50 transition-colors">
+                            <div class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-sm border border-emerald-50"><i data-lucide="circle-dollar-sign" class="w-6 h-6 text-emerald-500"></i></div>
+                            <p class="text-[10px] font-black text-emerald-600/70 uppercase tracking-widest mb-1">Lifetime Value</p>
+                            <p class="text-3xl font-black text-emerald-700 tracking-tighter" x-text="formatCurrency(activeDetail.calc_total_spent)"></p>
+                        </div>
+                    </div>
+
+                    <!-- Labels & Tags -->
+                    <div class="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-sm p-6 flex flex-wrap gap-2">
+                        <span class="px-3 py-1.5 rounded-lg bg-gray-100 border border-gray-200 text-gray-600 text-[10px] font-black uppercase tracking-widest shadow-sm" x-text="activeDetail.crm_status"></span>
+                        <template x-for="badge in activeDetail.badges" :key="badge">
+                            <!-- FIX: Inlined badge styles -->
+                            <span :class="badge === 'BOT' ? 'px-3 py-1.5 bg-blue-50 border border-blue-100 text-blue-600 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-sm' : 'px-3 py-1.5 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-sm'">
+                                <i :data-lucide="badge === 'BOT' ? 'bot' : 'smartphone'" class="w-3 h-3"></i>
+                                <span x-text="badge"></span>
+                            </span>
+                        </template>
+                        <template x-if="activeDetail.calc_total_spent >= 50">
+                            <span class="px-3 py-1.5 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-700 text-[10px] font-black uppercase tracking-widest shadow-sm"><i data-lucide="flame" class="w-3 h-3 inline"></i> High Spender</span>
+                        </template>
+                    </div>
+
+                    <!-- Contact Info -->
+                    <div class="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-sm">
+                        <div class="px-6 py-5 bg-gray-50/80 border-b border-gray-100 flex items-center justify-between">
+                            <h4 class="text-xs font-black text-gray-600 uppercase tracking-widest">Informasi Kontak</h4>
+                        </div>
+                        <div class="p-6 space-y-6">
+                            <div>
+                                <p class="text-[10px] font-bold text-gray-400 uppercase mb-2 flex items-center gap-1.5"><i data-lucide="phone" class="w-3.5 h-3.5"></i> WhatsApp / Telp</p>
+                                <p class="text-sm font-semibold text-gray-900 bg-gray-50 p-3.5 rounded-xl border border-gray-100" x-text="activeDetail.phone || 'Belum didaftarkan'"></p>
                             </div>
                             <div>
-                                <p class="font-bold text-gray-900">{{ c.full_name }}</p>
-                                <p class="text-[11px] text-gray-400">Join: {{ c.created_at | datetime }}</p>
-                                <span class="hidden-force csv-data">{{ c.full_name }},{{ c.telegram_id }},{{ c.username }},{{ c.phone }},{{ orders }},{{ spent }},{{ crm_status }}</span>
+                                <p class="text-[10px] font-bold text-gray-400 uppercase mb-2 flex items-center gap-1.5"><i data-lucide="map-pin" class="w-3.5 h-3.5"></i> Alamat Pengiriman</p>
+                                <p class="text-sm font-semibold text-gray-900 bg-gray-50 p-4 rounded-xl border border-gray-100 leading-relaxed" x-text="activeDetail.default_address || 'Belum didaftarkan'"></p>
+                            </div>
+                            <div class="pt-2 border-t border-gray-100">
+                                <p class="text-[10px] font-bold text-gray-400 uppercase mb-1.5 flex items-center gap-1.5"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> Bergabung Sejak</p>
+                                <p class="text-sm font-black text-gray-800" x-text="formatDateFull(activeDetail.created_at)"></p>
                             </div>
                         </div>
-                    </td>
-
-                    <td class="px-6 py-4">
-                        <div class="flex flex-col">
-                            <span class="text-sm font-medium text-gray-700 flex items-center gap-1">
-                                <svg class="w-3.5 h-3.5 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .24z"/></svg>
-                                {% if c.username %}@{{ c.username }}{% else %}<i>No Username</i>{% endif %}
-                            </span>
-                            <span class="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                                <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
-                                {{ c.phone | default('Belum diisi', true) }}
-                            </span>
-                        </div>
-                    </td>
-
-                    <td class="px-6 py-4 text-center">
-                        <span class="text-sm font-black {% if orders > 0 %}text-gray-900{% else %}text-gray-400{% endif %}">{{ orders }}</span>
-                    </td>
-
-                    <td class="px-6 py-4">
-                        <span class="text-sm font-bold {% if spent > 0 %}text-emerald-600{% else %}text-gray-400{% endif %}">{{ spent | currency }}</span>
-                    </td>
-
-                    <td class="px-6 py-4 text-center">
-                        {% if crm_status == 'VIP' %}
-                            <span class="px-3 py-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-white rounded-full text-[10px] font-black tracking-wider shadow-sm">VIP MEMBER</span>
-                        {% elif crm_status == 'Aktif' %}
-                            <span class="px-3 py-1 bg-blue-50 text-blue-600 border border-blue-200 rounded-full text-[11px] font-bold">Aktif</span>
-                        {% else %}
-                            <span class="px-3 py-1 bg-gray-100 text-gray-500 border border-gray-200 rounded-full text-[11px] font-bold">Baru</span>
-                        {% endif %}
-                    </td>
-
-                    <td class="px-6 py-4 text-right">
-                        <button onclick="openEditModal({{ c | tojson | forceescape }}, '{{ crm_status }}', {{ orders }}, {{ spent }})" class="p-2 text-gray-400 hover:text-amber-500 hover:bg-amber-50 rounded-lg transition-colors tooltip-trigger" title="Edit Data Pelanggan">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                        </button>
-                    </td>
-                </tr>
-                {% else %}
-                <tr id="emptyStateRow">
-                    <td colspan="6" class="px-6 py-16 text-center">
-                        <div class="flex flex-col items-center justify-center">
-                            <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                                <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                            </div>
-                            <h3 class="text-lg font-bold text-gray-900 mb-1">Belum Ada Pelanggan</h3>
-                            <p class="text-sm text-gray-500 max-w-sm mb-4">Orang yang klik /start di bot otomatis akan masuk ke sini.</p>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<div id="modalBackdrop" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-40 hidden-force transition-opacity duration-300"></div>
-
-<div id="modal-edit" class="fixed inset-0 z-50 hidden-force flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col relative modal-content">
-        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-            <h2 class="text-lg font-bold text-gray-900">Update Info Pelanggan</h2>
-            <button onclick="closeModal('modal-edit')" class="text-gray-400 hover:text-red-500 transition-colors">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-            </button>
+                    </div>
+                </div>
+            </template>
         </div>
-        
-        <form id="form-edit" method="POST" class="p-6 space-y-4">
-            <div class="bg-gray-50 p-3 rounded-lg border border-gray-100 mb-2 flex items-center gap-3">
-                <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold" id="edit_avatar">U</div>
-                <div>
-                    <p class="text-xs font-bold text-gray-500 uppercase">Telegram ID</p>
-                    <p class="text-sm font-black text-gray-900" id="edit_telegram_id">-</p>
-                </div>
-                <div class="ml-auto text-right">
-                    <p class="text-xs font-bold text-gray-500 uppercase">Status</p>
-                    <p class="text-sm font-black text-emerald-600" id="edit_status">-</p>
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Nama Lengkap</label>
-                <input type="text" name="full_name" id="edit_name" required class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Nomor Handphone / WhatsApp</label>
-                <input type="text" name="phone" id="edit_phone" placeholder="Cth: +62812..." class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Alamat Pengiriman (Default)</label>
-                <textarea name="default_address" id="edit_address" rows="3" class="w-full text-sm border-gray-300 rounded-md focus:ring-gray-900"></textarea>
-            </div>
-
-            <div class="pt-4 flex justify-end gap-3 border-t border-gray-100">
-                <button type="button" onclick="closeModal('modal-edit')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Batal</button>
-                <button type="submit" class="px-5 py-2 text-sm font-bold text-white bg-gray-900 rounded-lg hover:bg-gray-800 shadow-md">Simpan Data</button>
-            </div>
-        </form>
     </div>
+
 </div>
 
+<!-- ====================================================================================
+     ALPINE.JS CONTROLLER ENGINE
+     ==================================================================================== -->
 <script>
-    // --- MODAL LOGIC ---
-    const backdrop = document.getElementById('modalBackdrop');
-    
-    function openModal(modalId) {
-        const modal = document.getElementById(modalId);
-        const content = modal.querySelector('.modal-content');
-        backdrop.classList.remove('hidden-force', 'backdrop-leave');
-        backdrop.classList.add('backdrop-enter');
-        modal.classList.remove('hidden-force');
-        content.classList.remove('modal-leave');
-        content.classList.add('modal-enter');
-    }
-
-    function closeModal(modalId) {
-        const modal = document.getElementById(modalId);
-        const content = modal.querySelector('.modal-content');
-        backdrop.classList.remove('backdrop-enter');
-        backdrop.classList.add('backdrop-leave');
-        content.classList.remove('modal-enter');
-        content.classList.add('modal-leave');
-        setTimeout(() => {
-            modal.classList.add('hidden-force');
-            backdrop.classList.add('hidden-force');
-        }, 200);
-    }
-
-    function openEditModal(data, status, orders, spent) {
-        // Set action route ke backend
-        document.getElementById('form-edit').action = `/admin/customers/edit/${data.id}`;
-        
-        // Isi Form
-        document.getElementById('edit_avatar').innerText = data.full_name.charAt(0).toUpperCase();
-        document.getElementById('edit_telegram_id').innerText = data.telegram_id;
-        document.getElementById('edit_status').innerText = status;
-        document.getElementById('edit_name').value = data.full_name;
-        document.getElementById('edit_phone').value = data.phone || '';
-        document.getElementById('edit_address').value = data.default_address || '';
-        
-        openModal('modal-edit');
-    }
-
-    // --- SEARCH & FILTER LOGIC ---
-    let activeFilter = 'all';
-
-    function filterStatus(statusStr) {
-        activeFilter = statusStr;
-        
-        // Update Buttons UI
-        document.querySelectorAll('.status-filter-btn').forEach(btn => {
-            btn.classList.remove('bg-gray-900', 'text-white');
-            btn.classList.add('bg-white', 'text-gray-700');
-        });
-        event.currentTarget.classList.remove('bg-white', 'text-gray-700');
-        event.currentTarget.classList.add('bg-gray-900', 'text-white');
-
-        applyFilters();
-    }
-
-    document.getElementById('searchInput').addEventListener('input', applyFilters);
-
-    function applyFilters() {
-        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-        const rows = document.querySelectorAll('.customer-row');
-        
-        rows.forEach(row => {
-            const name = row.getAttribute('data-name');
-            const username = row.getAttribute('data-username');
-            const status = row.getAttribute('data-status');
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('customerCrmEngine', () => ({
+            rawData: [],
+            searchQuery: '',
+            filterSource: 'ALL',
+            filterStatus: 'ALL',
             
-            let matchSearch = name.includes(searchTerm) || username.includes(searchTerm);
-            let matchStatus = activeFilter === 'all' ? true : status === activeFilter;
+            // SMART SORTING: Default by Order (Desc), fallback to Joined Date (Desc)
+            sortCol: 'calc_total_orders',
+            sortAsc: false,
+            
+            selectedIds: [],
+            selectAll: false,
+            
+            currentPage: 1,
+            itemsPerPage: 15,
+            
+            // Modals State
+            isEditModalOpen: false,
+            editForm: { id: '', telegram_id: '', full_name: '', phone: '', address: '', is_mtproto_only: false },
+            
+            isBulkModalOpen: false,
+            bulkMessage: '',
+            isSendingBulk: false,
 
-            if (matchSearch && matchStatus) {
-                row.classList.remove('hidden-force');
-            } else {
-                row.classList.add('hidden-force');
+            // Slide-over State
+            isDetailOpen: false,
+            activeDetail: null,
+            
+            isLoading: true,
+            isSyncing: false,
+            toasts: [],
+            stats: { total: 0, bot: 0, mtproto: 0, vip: 0, revenue: 0 },
+
+            initApp() {
+                this.isLoading = true;
+                setTimeout(() => {
+                    const raw = window.CUSTOMER_DATA || [];
+                    this.rawData = raw.map(c => {
+                        const orders = c.calc_total_orders || 0;
+                        const spent = c.calc_total_spent || 0.0;
+                        
+                        let status = "Baru";
+                        if (orders > 0) status = "Aktif";
+                        if (spent >= 100 || orders >= 3) status = "VIP";
+                        
+                        // SMART BADGE: Membelah string source dari database
+                        let badges = [];
+                        let src = (c.source || 'bot').toLowerCase();
+                        
+                        // Jika ada kata bot, jadikan badge BOT
+                        if (src.includes('bot')) badges.push('BOT');
+                        // Jika ada kata mtproto, jadikan badge MTPROTO
+                        if (src.includes('mtproto')) badges.push('MTPROTO');
+                        
+                        return { ...c, crm_status: status, badges: badges };
+                    });
+
+                    this.calculateStats();
+                    this.isLoading = false;
+                    setTimeout(() => { if(typeof lucide !== 'undefined') lucide.createIcons(); }, 100);
+                }, 400); // Fake delay for UX smooth transition
+            },
+
+            calculateStats() {
+                this.stats.total = this.rawData.length;
+                this.stats.bot = this.rawData.filter(c => c.badges.includes('BOT')).length;
+                this.stats.mtproto = this.rawData.filter(c => c.badges.includes('MTPROTO')).length;
+                this.stats.vip = this.rawData.filter(c => c.crm_status === 'VIP').length;
+                this.stats.revenue = this.rawData.reduce((sum, c) => sum + (c.calc_total_spent || 0), 0);
+            },
+
+            get sortedAndFilteredData() {
+                let data = this.rawData;
+
+                // 1. Filter Source
+                if (this.filterSource !== 'ALL') {
+                    data = data.filter(c => c.badges.includes(this.filterSource));
+                }
+
+                // 2. Filter Status
+                if (this.filterStatus !== 'ALL') {
+                    data = data.filter(c => c.crm_status === this.filterStatus);
+                }
+
+                // 3. Search Query
+                if (this.searchQuery.trim() !== '') {
+                    const q = this.searchQuery.toLowerCase();
+                    data = data.filter(c => 
+                        (c.full_name && c.full_name.toLowerCase().includes(q)) || 
+                        (c.username && c.username.toLowerCase().includes(q)) ||
+                        (c.telegram_id && String(c.telegram_id).includes(q))
+                    );
+                }
+
+                // 4. Smart Sorting Engine
+                data = data.sort((a, b) => {
+                    // Logic Default: Order Terbanyak, lalu Interaksi/Join Terbaru
+                    if (this.sortCol === 'calc_total_orders' && !this.sortAsc) {
+                        if (b.calc_total_orders !== a.calc_total_orders) {
+                            return b.calc_total_orders - a.calc_total_orders;
+                        }
+                        // Priority to last_interaction over created_at
+                        const dateA = this.parseDateSafe(a.last_interaction || a.created_at).getTime();
+                        const dateB = this.parseDateSafe(b.last_interaction || b.created_at).getTime();
+                        return dateB - dateA; // Terbaru di atas
+                    }
+
+                    let valA = a[this.sortCol];
+                    let valB = b[this.sortCol];
+                    
+                    if (valA === undefined || valA === null) valA = '';
+                    if (valB === undefined || valB === null) valB = '';
+
+                    if (typeof valA === 'string' && typeof valB === 'string') {
+                        return this.sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                    }
+                    return this.sortAsc ? valA - valB : valB - valA;
+                });
+
+                return data;
+            },
+
+            get filteredData() { return this.sortedAndFilteredData; },
+            get totalPages() { return Math.max(1, Math.ceil(this.filteredData.length / this.itemsPerPage)); },
+
+            get paginatedData() {
+                const start = (this.currentPage - 1) * this.itemsPerPage;
+                const end = start + this.itemsPerPage;
+                const paginated = this.filteredData.slice(start, end);
+                
+                setTimeout(() => { if(typeof lucide !== 'undefined') lucide.createIcons(); }, 50);
+                return paginated;
+            },
+
+            // Sorting Logic
+            sortBy(col) {
+                if(this.sortCol === col) {
+                    this.sortAsc = !this.sortAsc;
+                } else {
+                    this.sortCol = col;
+                    this.sortAsc = true;
+                }
+                this.currentPage = 1;
+            },
+            getSortClass(col) {
+                if(this.sortCol !== col) return '';
+                return this.sortAsc ? 'active' : 'active desc';
+            },
+
+            resetFilters() {
+                this.searchQuery = '';
+                this.filterSource = 'ALL';
+                this.filterStatus = 'ALL';
+                this.sortCol = 'calc_total_orders';
+                this.sortAsc = false;
+                this.currentPage = 1;
+            },
+
+            // Checkbox Logic
+            toggleSelectAll() {
+                if (this.selectAll) {
+                    this.selectedIds = this.filteredData.map(c => c.telegram_id);
+                } else {
+                    this.selectedIds = [];
+                }
+            },
+
+            // View Details (Slide-over)
+            viewCustomerDetail(c) {
+                this.activeDetail = c;
+                this.isDetailOpen = true;
+                setTimeout(() => { if(typeof lucide !== 'undefined') lucide.createIcons(); }, 50);
+            },
+
+            // Modals Logic
+            openEditModal(c) {
+                let isImported = c.default_address && c.default_address.includes('Diimpor otomatis');
+                let isOnlyMtproto = c.id && c.id.toString().startsWith('mtproto_') || isImported;
+
+                this.editForm = {
+                    id: c.id,
+                    telegram_id: c.telegram_id,
+                    full_name: c.full_name || '',
+                    phone: c.phone || '',
+                    address: c.default_address || '',
+                    is_mtproto_only: isOnlyMtproto
+                };
+                this.isEditModalOpen = true;
+                setTimeout(() => { if(typeof lucide !== 'undefined') lucide.createIcons(); }, 50);
+            },
+            
+            openBulkModal() {
+                this.bulkMessage = '';
+                this.isBulkModalOpen = true;
+                setTimeout(() => { if(typeof lucide !== 'undefined') lucide.createIcons(); }, 50);
+            },
+
+            closeModals() {
+                this.isEditModalOpen = false;
+                this.isBulkModalOpen = false;
+            },
+
+            // Telegram Deep Link Generator (SAFE NATIVE & DESKTOP)
+            isValidUsername(uname) {
+                return uname && uname.trim() !== '' && uname.trim().toLowerCase() !== 'no username' && uname.trim().toLowerCase() !== 'null';
+            },
+            getChatLink(c) {
+                // 1. Prioritas Username
+                if (this.isValidUsername(c.username)) {
+                    let cleanUname = c.username.replace('@', '').trim();
+                    return `https://t.me/${cleanUname}`;
+                }
+                // 2. Prioritas No HP
+                if (c.phone && c.phone.trim() !== '') {
+                    let cleanPhone = c.phone.replace('+', '').trim();
+                    return `https://t.me/+${cleanPhone}`;
+                }
+                // 3. Fallback paling aman untuk Desktop/Mobile jika cuma punya ID
+                return `tg://openmessage?user_id=${c.telegram_id}`;
+            },
+
+            // API Calling (Broadcast)
+            async sendBulkMessage() {
+                if(this.selectedIds.length === 0) return this.notify('warning', 'Validasi Gagal', 'Pilih minimal 1 pelanggan.');
+                if(!this.bulkMessage.trim()) return this.notify('warning', 'Validasi Gagal', 'Pesan tidak boleh kosong.');
+                
+                this.isSendingBulk = true;
+                try {
+                    const res = await fetch('/admin/customers/bulk-message', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            telegram_ids: this.selectedIds,
+                            message: this.bulkMessage
+                        })
+                    });
+                    
+                    const response = await res.json();
+                    if(res.ok && response.status === 'success') {
+                        this.notify('success', 'Broadcast Diinisiasi', response.message);
+                        this.selectedIds = [];
+                        this.selectAll = false;
+                        this.closeModals();
+                    } else {
+                        this.notify('error', 'Broadcast Gagal', response.message || 'Gagal mengirim pesan.');
+                    }
+                } catch(e) {
+                    this.notify('error', 'Koneksi Terputus', 'Gagal menghubungi server backend.');
+                } finally {
+                    this.isSendingBulk = false;
+                }
+            },
+
+            // API Calling (Deep Sync MTProto)
+            async syncData() {
+                this.isSyncing = true;
+                try {
+                    const res = await fetch('/admin/customers/sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    
+                    const response = await res.json();
+                    if(res.ok && response.status === 'success') {
+                        this.notify('success', 'Sync Selesai', response.message);
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        this.notify('warning', 'Info Sync', response.message || 'Tidak ada data baru.');
+                    }
+                } catch(e) {
+                    this.notify('error', 'Koneksi Terputus', 'Gagal menghubungi server untuk sinkronisasi.');
+                } finally {
+                    this.isSyncing = false;
+                }
+            },
+
+            // Safe Date Parser (Fix Invalid Date dari Python/Supabase)
+            parseDateSafe(dateStr) {
+                if (!dateStr) return new Date(0);
+                try {
+                    // Normalisasi spasi jadi T buat kompatibilitas ISO
+                    let clean = dateStr.replace(' ', 'T');
+                    // Jika formatnya hanya yyyy-mm-dd HH:MM:SS tanpa timezone
+                    if (!clean.includes('Z') && !clean.includes('+') && !clean.includes('-')) {
+                        clean += 'Z'; 
+                    }
+                    const d = new Date(clean);
+                    return isNaN(d.getTime()) ? new Date(0) : d;
+                } catch(e) {
+                    return new Date(0);
+                }
+            },
+
+            // Utils & Formatters
+            formatNum(n) { return new Intl.NumberFormat('id-ID').format(n || 0); },
+            formatCurrency(n) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n || 0); },
+            
+            formatDate(dateStr) {
+                const d = this.parseDateSafe(dateStr);
+                if (d.getTime() === 0) return 'TIDAK DIKETAHUI';
+                return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+            },
+            
+            formatDateFull(dateStr) {
+                const d = this.parseDateSafe(dateStr);
+                if (d.getTime() === 0) return 'TIDAK DIKETAHUI';
+                return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute:'2-digit' }) + ' WIB';
+            },
+            
+            // Enterprise Export Engine
+            exportData(format) {
+                if (format === 'csv') {
+                    let csv = ["Badges,Nama Lengkap,Telegram ID,Username,No HP,Total Order,Total Belanja ($),Status CRM,Tanggal Terdaftar"];
+                    this.filteredData.forEach(c => {
+                        const row = [
+                            `"${c.badges.join(' & ')}"`, `"${c.full_name}"`, `"${c.telegram_id}"`,
+                            `"${c.username || '-'}"`, `"${c.phone || '-'}"`,
+                            c.calc_total_orders, c.calc_total_spent,
+                            `"${c.crm_status}"`, `"${this.formatDate(c.created_at)}"`
+                        ];
+                        csv.push(row.join(","));
+                    });
+                    
+                    const blob = new Blob([csv.join("\n")], {type: "text/csv;charset=utf-8;"});
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `Data_Pelanggan_BABA_${new Date().toISOString().slice(0,10)}.csv`;
+                    link.click();
+                    this.notify('success', 'Export Sukses', 'File CSV berhasil diunduh ke komputer Anda.');
+                } else if (format === 'json') {
+                    const jsonStr = JSON.stringify(this.filteredData, null, 2);
+                    const blob = new Blob([jsonStr], {type: "application/json;charset=utf-8;"});
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `Data_Pelanggan_BABA_${new Date().toISOString().slice(0,10)}.json`;
+                    link.click();
+                    this.notify('success', 'Export Sukses', 'File JSON siap untuk analisis lebih lanjut.');
+                }
+            },
+
+            removeToast(id) { this.toasts = this.toasts.filter(t => t.id !== id); },
+            notify(type, title, msg) {
+                const id = Date.now();
+                this.toasts.push({ id, type, title, msg });
+                setTimeout(() => this.removeToast(id), 5000);
             }
-        });
-    }
-
-    // --- EXPORT CSV ENGINE ---
-    function exportTableToCSV(filename) {
-        let csv = [];
-        // Header
-        csv.push("Nama Lengkap,Telegram ID,Username,No HP,Total Order,Total Belanja ($),Status CRM");
-        
-        // Ambil data yang hidden di dalam span "csv-data"
-        const rows = document.querySelectorAll('.csv-data');
-        
-        rows.forEach(row => {
-            csv.push(row.innerText);
-        });
-
-        downloadCSV(csv.join("\n"), filename);
-    }
-
-    function downloadCSV(csv, filename) {
-        let csvFile;
-        let downloadLink;
-        csvFile = new Blob([csv], {type: "text/csv"});
-        downloadLink = document.createElement("a");
-        downloadLink.download = filename;
-        downloadLink.href = window.URL.createObjectURL(csvFile);
-        downloadLink.style.display = "none";
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-    }
+        }));
+    });
 </script>
 {% endblock %}

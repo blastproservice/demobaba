@@ -1,1010 +1,173 @@
-<!DOCTYPE html>
-<html lang="id" class="scroll-smooth">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>BABA Parfume — Signature Scent</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+{% extends "customer/base.html" %}
 
-    <style>
-        /* SCROLLBAR HIDING FOR NATIVE APP FEEL */
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+{% block content %}
+
+    <!-- 1. HERO SECTION -->
+    {% include "customer/_hero.html" %}
+
+    <!-- 2. USP SECTION (Kenapa Pilih BABA?) -->
+    <div class="bg-white rounded-[2rem] p-1.5 border border-gray-100 shadow-sm mb-8 animate-fade-in-up" style="animation-delay: 0.3s;">
+        <button @click="showUSP = !showUSP" class="w-full bg-gray-50/50 hover:bg-gray-100 text-gray-800 px-5 py-4 rounded-[1.8rem] flex items-center justify-between transition-all">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 bg-gradient-to-tr from-yellow-100 to-yellow-50 text-yellow-600 rounded-full flex items-center justify-center border border-yellow-200"><i data-lucide="award" class="w-4 h-4"></i></div>
+                <span class="text-[15px] font-black tracking-wide">Kenapa Pilih BABA?</span>
+            </div>
+            <i data-lucide="chevron-down" class="w-5 h-5 text-gray-400 transition-transform duration-300 bg-white rounded-full shadow-sm" :class="showUSP ? 'rotate-180' : ''"></i>
+        </button>
         
-        /* BASE SETUP & SAFE AREA INSETS */
-        body { 
-            background-color: #F4F6F9; 
-            -webkit-tap-highlight-color: transparent; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            overscroll-behavior-y: none;
-            padding-bottom: env(safe-area-inset-bottom);
-        }
+        <div x-show="showUSP" x-collapse.duration.300ms class="p-5 space-y-5">
+            <div class="flex items-start">
+                <div class="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center mr-4 flex-shrink-0 border border-green-100"><i data-lucide="shield-check" class="w-5 h-5 text-green-500"></i></div>
+                <div><h4 class="font-bold text-gray-900 text-[14px] mb-0.5">Halal & BPOM</h4><p class="text-xs text-gray-500 font-medium leading-relaxed">Aman banget di kulit, ga bikin iritasi, dan pastinya nyaman dipakai untuk ibadah.</p></div>
+            </div>
+            <div class="flex items-start">
+                <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center mr-4 flex-shrink-0 border border-blue-100"><i data-lucide="droplet" class="w-5 h-5 text-blue-500"></i></div>
+                <div><h4 class="font-bold text-gray-900 text-[14px] mb-0.5">Bibit Import Paris</h4><p class="text-xs text-gray-500 font-medium leading-relaxed">Kualitas Sultan! Diracik dari 80% Bibit Asli Paris & 20% Turbo Expert.</p></div>
+            </div>
+            <div class="flex items-start">
+                <div class="w-10 h-10 rounded-full bg-yellow-50 flex items-center justify-center mr-4 flex-shrink-0 border border-yellow-100"><i data-lucide="clock" class="w-5 h-5 text-yellow-600"></i></div>
+                <div><h4 class="font-bold text-gray-900 text-[14px] mb-0.5">Ketahanan Extrait</h4><p class="text-xs text-gray-500 font-medium leading-relaxed">Wanginya nempel awet seharian, bahkan di baju bisa tahan sampai besoknya.</p></div>
+            </div>
+        </div>
+    </div>
 
-        /* CUSTOM ANIMATIONS */
-        @keyframes fadeInUp {
-            0% { opacity: 0; transform: translateY(20px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in-up { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    <!-- 3. KATALOG PRODUK HEADER & SORTER -->
+    <div class="flex items-center justify-between mb-4 animate-fade-in-up" style="animation-delay: 0.35s;">
+        <h3 class="text-xl font-black text-gray-900 flex items-center gap-2">
+            Koleksi BABA 
+            <span class="bg-gray-900 text-white text-[10px] px-2 py-0.5 rounded-md" x-text="filteredProducts().length"></span>
+        </h3>
         
-        @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.4); }
-            50% { box-shadow: 0 0 0 15px rgba(234, 179, 8, 0); }
-        }
-        .animate-pulse-glow { animation: pulse-glow 2s infinite; }
+        <div class="relative">
+            <select x-model="sortOrder" class="appearance-none bg-white border border-gray-200 text-gray-700 text-xs font-bold py-2 pl-3 pr-8 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-400 shadow-sm">
+                <option value="default">Paling Laris</option>
+                <option value="price_asc">Harga Terendah</option>
+                <option value="price_desc">Harga Tertinggi</option>
+                <option value="name_asc">Nama (A-Z)</option>
+            </select>
+            <i data-lucide="arrow-down-up" class="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+        </div>
+    </div>
+    <!-- 4. CATEGORY PILLS -->
+    <div class="overflow-x-auto hide-scrollbar flex space-x-2 pb-3 mb-4 -mx-5 px-5 animate-fade-in-up" style="animation-delay: 0.4s;">
+        <template x-for="cat in ['Semua', 'Top Seller', 'Woman', 'Man', 'Netral']">
+            <button @click="activeCategory = cat; showToast('Menampilkan: ' + cat, 'info')" 
+                    :class="activeCategory === cat ? 'bg-gradient-to-br from-gray-900 to-black text-white shadow-lg shadow-gray-900/20 ring-2 ring-gray-900 ring-offset-2 border-transparent' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'" 
+                    class="px-5 py-2.5 border rounded-full text-[13px] font-black transition-all whitespace-nowrap flex items-center shrink-0">
+                <template x-if="cat === 'Top Seller'"><i data-lucide="flame" class="w-4 h-4 mr-1.5" :class="activeCategory === cat ? 'text-yellow-400' : 'text-orange-500'"></i></template>
+                <span x-text="cat"></span>
+            </button>
+        </template>
+    </div>
 
-        @keyframes shimmer {
-            0% { background-position: -1000px 0; }
-            100% { background-position: 1000px 0; }
-        }
-        .skeleton {
-            background: #f6f7f8;
-            background-image: linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%);
-            background-repeat: no-repeat;
-            background-size: 1000px 100%;
-            animation: shimmer 1.5s infinite linear forwards;
-        }
-
-        /* GLASSMORPHISM & SHADOWS */
-        .glass-effect {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-        }
-        .glass-dark {
-            background: rgba(17, 24, 39, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-        }
-        
-        .soft-shadow { box-shadow: 0 4px 20px -5px rgba(0,0,0,0.05); }
-        .hard-shadow { box-shadow: 0 10px 40px -10px rgba(0,0,0,0.15); }
-        
-        /* TOAST ANIMATION */
-        .toast-enter { transform: translateY(-100%) scale(0.9); opacity: 0; }
-        .toast-enter-active { transform: translateY(0) scale(1); opacity: 1; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-        .toast-leave { transform: translateY(0) scale(1); opacity: 1; }
-        .toast-leave-active { transform: translateY(-100%) scale(0.9); opacity: 0; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-    </style>
-</head>
-
-<body x-data="babaStore()" x-init="initData()" class="text-gray-800" :class="isDetailModalOpen || isCartOpen || isConfirmModalOpen ? 'overflow-hidden' : ''">
-    <script id="initial-products-data" type="application/json">{{ produk | tojson | safe }}</script>
-    <script id="initial-settings-data" type="application/json">{{ settings | tojson | safe }}</script>
-
-    <div class="fixed top-safe-top left-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none mt-2">
-        <template x-for="toast in toasts" :key="toast.id">
-            <div class="flex items-center p-4 rounded-2xl shadow-2xl transform transition-all duration-400 pointer-events-auto border"
-                 :class="{
-                    'bg-gray-900 text-white border-gray-700': toast.type === 'success',
-                    'bg-red-500 text-white border-red-400': toast.type === 'error',
-                    'bg-blue-600 text-white border-blue-400': toast.type === 'info'
-                 }"
-                 x-show="toast.visible"
-                 x-transition:enter="transition ease-out duration-300"
-                 x-transition:enter-start="opacity-0 -translate-y-6 scale-90"
-                 x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-                 x-transition:leave="transition ease-in duration-200"
-                 x-transition:leave-start="opacity-100 translate-y-0 scale-100"
-                 x-transition:leave-end="opacity-0 -translate-y-6 scale-90">
-                <i :data-lucide="toast.type === 'success' ? 'check-circle' : (toast.type === 'error' ? 'alert-octagon' : 'info')" class="w-5 h-5 mr-3 flex-shrink-0"></i>
-                <p class="text-[13px] font-bold tracking-wide" x-text="toast.message"></p>
+    <!-- 5. LOADING SKELETON -->
+    <div x-show="isLoading" class="grid grid-cols-2 gap-4 mt-6">
+        <template x-for="i in 6">
+            <div class="bg-white rounded-[1.5rem] p-3 shadow-sm border border-gray-100">
+                <div class="w-full aspect-[4/5] rounded-[1rem] skeleton mb-3"></div>
+                <div class="h-4 w-3/4 skeleton rounded mb-2"></div>
+                <div class="h-3 w-1/2 skeleton rounded mb-4"></div>
+                <div class="h-5 w-1/3 skeleton rounded mb-3"></div>
+                <div class="h-10 w-full skeleton rounded-xl"></div>
             </div>
         </template>
     </div>
 
-    <header class="glass-effect px-5 pt-safe-top pb-6 rounded-b-[2.5rem] shadow-[0_10px_40px_-15px_rgba(0,0,0,0.06)] sticky top-0 z-30 border-b border-white">
-        <div class="flex justify-between items-center mt-4">
-            <div class="animate-fade-in-up" style="animation-delay: 0s;">
-                <h1 class="text-[26px] font-black tracking-tight text-gray-900 leading-none">Halo, <br><span x-text="checkoutForm.fullName || 'Kak'" class="text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-amber-500"></span>! ✨</h1>
-                <p class="text-[11px] text-gray-500 font-bold mt-1.5 tracking-widest uppercase">Temukan Signature Scent-mu</p>
-            </div>
-            
-            <div class="flex items-center gap-3 animate-fade-in-up" style="animation-delay: 0.1s;">
-                <button @click="goToAI()" class="w-10 h-10 bg-yellow-50 rounded-full flex items-center justify-center text-yellow-600 shadow-sm border border-yellow-200 active:scale-90 transition-transform relative">
-                    <i data-lucide="sparkles" class="w-5 h-5"></i>
-                    <span class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 border-2 border-white rounded-full animate-pulse"></span>
-                </button>
-
-                <div class="relative shadow-md rounded-full cursor-pointer active:scale-95 transition-transform" @click="showToast('Profil disinkronkan otomatis dari Telegram', 'info')">
-                    <template x-if="tgUser.photo_url">
-                        <img :src="tgUser.photo_url" class="w-12 h-12 rounded-full border-[3px] border-white shadow-sm object-cover">
-                    </template>
-                    <template x-if="!tgUser.photo_url">
-                        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-gray-900 to-gray-800 text-yellow-400 flex items-center justify-center font-black text-xl border-[3px] border-white shadow-sm" x-text="(checkoutForm.fullName || 'B').charAt(0).toUpperCase()"></div>
-                    </template>
-                    <span class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></span>
-                </div>
-            </div>
-        </div>
-
-        <div class="mt-6 relative animate-fade-in-up group" style="animation-delay: 0.2s;">
-            <i data-lucide="search" class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 group-focus-within:text-yellow-500 transition-colors"></i>
-            <input type="text" x-model="searchQuery" placeholder="Cari varian BABA favoritmu..." class="w-full bg-gray-100 text-[14px] font-medium pl-12 pr-10 py-4 rounded-2xl border border-gray-200 focus:border-yellow-400 focus:ring-4 focus:ring-yellow-400/20 focus:bg-white transition-all outline-none shadow-inner">
-            
-            <button x-show="searchQuery.length > 0" @click="searchQuery = ''" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 bg-gray-200 rounded-full p-1">
-                <i data-lucide="x" class="w-3 h-3"></i>
-            </button>
-        </div>
-    </header>
-
-    <main class="px-5 mt-6 pb-40">
-        <div class="flex overflow-x-auto hide-scrollbar space-x-4 mb-8 -mx-5 px-5 snap-x snap-mandatory animate-fade-in-up" style="animation-delay: 0.25s;">
-            <div class="snap-center shrink-0 w-[85vw] max-w-[340px] bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-[2rem] p-6 text-white relative overflow-hidden shadow-2xl border border-gray-800">
-                <div class="absolute -right-6 -top-6 opacity-20"><i data-lucide="sparkles" class="w-48 h-48 text-yellow-400"></i></div>
-                <div class="relative z-10">
-                    <span class="bg-yellow-500 text-gray-900 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">Premium</span>
-                    <h2 class="font-black text-[26px] text-white tracking-wide mt-4 mb-2 leading-tight">Signature<br>BABA Parfume</h2>
-                    <p class="text-xs text-gray-300 leading-relaxed font-medium mb-4 pr-6">Bukan sekadar wangi, ini adalah identitas dan rasa percaya diri yang menemanimu seharian.</p>
-                    <button @click="activeCategory = 'Top Seller'" class="text-[10px] font-bold bg-white/10 hover:bg-white/20 backdrop-blur px-4 py-2 rounded-xl transition-colors">Lihat Top Seller &rarr;</button>
-                </div>
-            </div>
-            
-            <div class="snap-center shrink-0 w-[85vw] max-w-[340px] bg-gradient-to-br from-amber-500 to-orange-600 rounded-[2rem] p-6 text-white relative overflow-hidden shadow-2xl">
-                <div class="absolute -right-4 -bottom-4 opacity-20"><i data-lucide="truck" class="w-40 h-40 text-white"></i></div>
-                <div class="relative z-10">
-                    <span class="bg-white text-orange-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">Promo</span>
-                    <h2 class="font-black text-[26px] text-white tracking-wide mt-4 mb-2 leading-tight">Gratis<br>Ongkir!</h2>
-                    <p class="text-xs text-white/90 leading-relaxed font-medium pr-6 mb-4">Spesial pengiriman ke seluruh wilayah Kamboja via J&T Express atau Vireak Buntham.</p>
-                    <button class="text-[10px] font-bold bg-black/20 hover:bg-black/30 backdrop-blur px-4 py-2 rounded-xl transition-colors">Syarat & Ketentuan</button>
-                </div>
-            </div>
-            
-            <div @click="goToAI()" class="snap-center shrink-0 w-[85vw] max-w-[340px] bg-gradient-to-br from-indigo-600 to-blue-800 rounded-[2rem] p-6 text-white relative overflow-hidden shadow-2xl cursor-pointer transform active:scale-95 transition-transform">
-                <div class="absolute -right-8 -top-8 opacity-20"><i data-lucide="bot" class="w-48 h-48 text-white"></i></div>
-                <div class="relative z-10">
-                    <span class="bg-blue-300/30 text-blue-100 border border-blue-300/50 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">Fitur Baru</span>
-                    <h2 class="font-black text-[26px] text-white tracking-wide mt-4 mb-2 leading-tight">Bingung<br>Pilih Wangi?</h2>
-                    <p class="text-xs text-white/90 leading-relaxed font-medium pr-6 mb-4">Tanya langsung ke Mimin AI! Dapatkan rekomendasi parfum sesuai karakter dan budgetmu.</p>
-                    <button class="text-[10px] font-bold bg-white text-blue-700 px-4 py-2 rounded-xl shadow-md flex items-center"><i data-lucide="message-circle" class="w-3 h-3 mr-1.5"></i> Chat Mimin Sekarang</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-[2rem] p-1.5 border border-gray-100 shadow-sm mb-8 animate-fade-in-up" style="animation-delay: 0.3s;">
-            <button @click="showUSP = !showUSP" class="w-full bg-gray-50/50 hover:bg-gray-100 text-gray-800 px-5 py-4 rounded-[1.8rem] flex items-center justify-between transition-all">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 bg-gradient-to-tr from-yellow-100 to-yellow-50 text-yellow-600 rounded-full flex items-center justify-center border border-yellow-200"><i data-lucide="award" class="w-4 h-4"></i></div>
-                    <span class="text-[15px] font-black tracking-wide">Kenapa Pilih BABA?</span>
-                </div>
-                <i data-lucide="chevron-down" class="w-5 h-5 text-gray-400 transition-transform duration-300 bg-white rounded-full shadow-sm" :class="showUSP ? 'rotate-180' : ''"></i>
-            </button>
-            
-            <div x-show="showUSP" x-collapse.duration.300ms class="p-5 space-y-5">
-                <div class="flex items-start">
-                    <div class="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center mr-4 flex-shrink-0 border border-green-100"><i data-lucide="shield-check" class="w-5 h-5 text-green-500"></i></div>
-                    <div><h4 class="font-bold text-gray-900 text-[14px] mb-0.5">Halal & BPOM</h4><p class="text-xs text-gray-500 font-medium leading-relaxed">Aman banget di kulit, ga bikin iritasi, dan pastinya nyaman dipakai untuk ibadah.</p></div>
-                </div>
-                <div class="flex items-start">
-                    <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center mr-4 flex-shrink-0 border border-blue-100"><i data-lucide="droplet" class="w-5 h-5 text-blue-500"></i></div>
-                    <div><h4 class="font-bold text-gray-900 text-[14px] mb-0.5">Bibit Import Paris</h4><p class="text-xs text-gray-500 font-medium leading-relaxed">Kualitas Sultan! Diracik dari 80% Bibit Asli Paris & 20% Turbo Expert.</p></div>
-                </div>
-                <div class="flex items-start">
-                    <div class="w-10 h-10 rounded-full bg-yellow-50 flex items-center justify-center mr-4 flex-shrink-0 border border-yellow-100"><i data-lucide="clock" class="w-5 h-5 text-yellow-600"></i></div>
-                    <div><h4 class="font-bold text-gray-900 text-[14px] mb-0.5">Ketahanan Extrait</h4><p class="text-xs text-gray-500 font-medium leading-relaxed">Wanginya nempel awet seharian, bahkan di baju bisa tahan sampai besoknya.</p></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="flex items-center justify-between mb-4 animate-fade-in-up" style="animation-delay: 0.35s;">
-            <h3 class="text-xl font-black text-gray-900 flex items-center gap-2">
-                Koleksi BABA 
-                <span class="bg-gray-900 text-white text-[10px] px-2 py-0.5 rounded-md" x-text="filteredProducts().length"></span>
-            </h3>
-            
-            <div class="relative">
-                <select x-model="sortOrder" class="appearance-none bg-white border border-gray-200 text-gray-700 text-xs font-bold py-2 pl-3 pr-8 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-400 shadow-sm">
-                    <option value="default">Paling Laris</option>
-                    <option value="price_asc">Harga Terendah</option>
-                    <option value="price_desc">Harga Tertinggi</option>
-                    <option value="name_asc">Nama (A-Z)</option>
-                </select>
-                <i data-lucide="arrow-down-up" class="w-3 h-3 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
-            </div>
-        </div>
-
-        <div class="overflow-x-auto hide-scrollbar flex space-x-3 pb-3 mb-4 -mx-5 px-5 animate-fade-in-up" style="animation-delay: 0.4s;">
-            <template x-for="cat in ['Semua', 'Top Seller', 'Woman', 'Man', 'Netral']">
-                <button @click="activeCategory = cat; showToast('Menampilkan: ' + cat, 'info')" 
-                        :class="activeCategory === cat ? 'bg-gradient-to-br from-gray-900 to-black text-white shadow-lg shadow-gray-900/20 ring-2 ring-gray-900 ring-offset-2 border-transparent' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'" 
-                        class="px-5 py-2.5 border rounded-full text-[13px] font-black transition-all whitespace-nowrap flex items-center shrink-0">
-                    <template x-if="cat === 'Top Seller'"><i data-lucide="flame" class="w-4 h-4 mr-1.5" :class="activeCategory === cat ? 'text-yellow-400' : 'text-orange-500'"></i></template>
-                    <span x-text="cat"></span>
-                </button>
-            </template>
-        </div>
-
-        <div x-show="isLoading" class="grid grid-cols-2 gap-4 mt-6">
-            <template x-for="i in 6">
-                <div class="bg-white rounded-[1.5rem] p-3 shadow-sm border border-gray-100">
-                    <div class="w-full aspect-[4/5] rounded-[1rem] skeleton mb-3"></div>
-                    <div class="h-4 w-3/4 skeleton rounded mb-2"></div>
-                    <div class="h-3 w-1/2 skeleton rounded mb-4"></div>
-                    <div class="h-5 w-1/3 skeleton rounded mb-3"></div>
-                    <div class="h-10 w-full skeleton rounded-xl"></div>
-                </div>
-            </template>
-        </div>
-
-        <div class="grid grid-cols-2 gap-x-3 gap-y-5" x-show="!isLoading" x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
-            
-            <template x-for="product in sortedProducts()" :key="product.id">
-                <div class="bg-white rounded-[1.8rem] p-3 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.06)] border border-gray-100 flex flex-col h-full relative transition-all duration-300 hover:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)] hover:-translate-y-1"
-                     :class="product.stock_quantity <= 0 ? 'opacity-60 grayscale-[50%]' : ''">
-                    
-                    <div class="cursor-pointer group flex-1 flex flex-col" @click="openDetail(product)">
-                        <div class="absolute top-4 left-4 z-10 flex flex-col gap-1.5">
-                            <template x-if="product.category_id === 1 && product.stock_quantity > 0">
-                                <span class="bg-gradient-to-r from-yellow-400 to-amber-400 text-gray-900 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded shadow-md flex items-center gap-1 border border-yellow-200">
-                                    <i data-lucide="zap" class="w-2.5 h-2.5"></i> Hot
-                                </span>
-                            </template>
-                            <template x-if="product.stock_quantity > 0 && product.stock_quantity <= 5">
-                                <span class="bg-red-500 text-white text-[9px] font-black uppercase px-2.5 py-1 rounded shadow-md animate-pulse border border-red-400">
-                                    Sisa <span x-text="product.stock_quantity"></span>!
-                                </span>
-                            </template>
-                        </div>
-
-                        <div class="w-full aspect-[4/5] rounded-[1.2rem] bg-gray-50 mb-3 overflow-hidden relative group-hover:ring-2 ring-yellow-400/50 transition-all">
-                            <img :src="product.image_url" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" onerror="this.src='https://placehold.co/400x500/f3f4f6/a1a1aa?text=BABA'">
-                            
-                            <template x-if="product.stock_quantity <= 0">
-                                <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-20">
-                                    <span class="bg-red-600 text-white px-5 py-2 rounded-xl text-[11px] font-black tracking-widest uppercase shadow-2xl transform -rotate-12 border-2 border-white/50">HABIS</span>
-                                </div>
-                            </template>
-                            
-                            <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center justify-center">
-                                <div class="bg-white/90 backdrop-blur rounded-full p-2 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
-                                    <i data-lucide="maximize-2" class="w-5 h-5 text-gray-900"></i>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex-1 flex flex-col">
-                            <div class="flex items-center gap-0.5 mb-1.5 text-yellow-400">
-                                <i data-lucide="star" class="w-3 h-3 fill-current"></i>
-                                <i data-lucide="star" class="w-3 h-3 fill-current"></i>
-                                <i data-lucide="star" class="w-3 h-3 fill-current"></i>
-                                <i data-lucide="star" class="w-3 h-3 fill-current"></i>
-                                <i data-lucide="star" class="w-3 h-3 fill-current"></i>
-                                <span class="text-[9px] text-gray-400 ml-1 font-bold">(5.0)</span>
-                            </div>
-                            
-                            <h3 class="text-[14px] font-black text-gray-900 leading-tight line-clamp-2" x-text="product.name"></h3>
-                            <p class="text-[10px] text-gray-400 mt-1 line-clamp-1 font-medium" x-text="product.tagline"></p>
-                            
-                            <div class="mt-auto pt-2 flex flex-col">
-                                <p class="text-[10px] text-gray-400 line-through font-bold" x-show="product.original_price > product.discounted_price" x-text="formatMoney(product.original_price)"></p>
-                                <p class="text-[16px] font-black text-emerald-600" x-text="formatMoney(product.discounted_price)"></p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button @click.stop="addToCart(product)" 
-                            :disabled="product.stock_quantity <= 0"
-                            :class="product.stock_quantity <= 0 ? 'bg-gray-100 text-gray-400 border border-gray-200' : 'bg-gradient-to-r from-gray-900 to-black text-yellow-400 active:scale-95 shadow-[0_5px_15px_-5px_rgba(0,0,0,0.4)] hover:shadow-lg'"
-                            class="w-full mt-3 py-3 rounded-[1rem] text-[13px] font-black transition-all duration-200 flex items-center justify-center space-x-2 relative overflow-hidden group">
-                        
-                        <div class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite]"></div>
-                        
-                        <i data-lucide="shopping-cart" class="w-4 h-4"></i>
-                        <span x-text="product.stock_quantity <= 0 ? 'Kosong' : '+ Keranjang'"></span>
-                    </button>
-                </div>
-            </template>
-            
-            <div x-show="sortedProducts().length === 0 && !isLoading" class="col-span-2 text-center py-20 bg-white rounded-[2.5rem] border border-dashed border-gray-300 shadow-sm mt-4">
-                <div class="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-5 border border-gray-100 shadow-inner">
-                    <i data-lucide="search-x" class="w-12 h-12 text-gray-300"></i>
-                </div>
-                <p class="font-black text-gray-900 text-xl mb-1">Aroma Tidak Ditemukan</p>
-                <p class="text-[13px] text-gray-500 mt-1 font-medium px-10 leading-relaxed">Maaf kak, varian yang dicari belum ada. Coba kata kunci atau kategori lain ya.</p>
-                <button @click="searchQuery = ''; activeCategory = 'Semua'" class="mt-6 px-6 py-2.5 bg-gray-900 text-white rounded-full text-xs font-bold shadow-md hover:bg-gray-800 transition-colors">Reset Filter</button>
-            </div>
-        </div>
-
-        <div class="mt-12 mb-10 animate-fade-in-up" style="animation-delay: 0.5s;" x-show="!isLoading">
-            <h3 class="text-xl font-black text-gray-900 mb-5 text-center flex items-center justify-center gap-2">
-                <i data-lucide="message-square-heart" class="w-6 h-6 text-pink-500"></i> Kata Mereka
-            </h3>
-            <div class="bg-white p-6 rounded-[2.5rem] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.05)] border border-gray-100 relative overflow-hidden">
-                <div class="absolute -right-10 -top-10 w-32 h-32 bg-pink-50 rounded-full blur-3xl opacity-50"></div>
-                
-                <i data-lucide="quote" class="absolute top-5 right-5 w-10 h-10 text-gray-100"></i>
-                <div class="flex items-center gap-1 mb-3 text-yellow-400">
-                    <i data-lucide="star" class="w-5 h-5 fill-current"></i><i data-lucide="star" class="w-5 h-5 fill-current"></i><i data-lucide="star" class="w-5 h-5 fill-current"></i><i data-lucide="star" class="w-5 h-5 fill-current"></i><i data-lucide="star" class="w-5 h-5 fill-current"></i>
-                </div>
-                <p class="text-[14px] text-gray-600 font-medium italic mb-5 leading-relaxed relative z-10">"Gila sih, wanginya awet banget dari pagi sampe malem! Temen kantor pada nanyain pake parfum apa. BABA emang mantep, next order lagi ah!"</p>
-                <div class="flex items-center gap-3 border-t border-gray-50 pt-4 relative z-10">
-                    <div class="w-10 h-10 rounded-full bg-gray-200 overflow-hidden border-2 border-white shadow-sm"><img src="https://i.pravatar.cc/100?img=1" class="w-full h-full object-cover"></div>
-                    <div><p class="text-[13px] font-black text-gray-900">Dika S.</p><p class="text-[10px] text-emerald-500 font-bold uppercase tracking-widest flex items-center"><i data-lucide="check-circle-2" class="w-3 h-3 mr-1"></i> Verified Buyer</p></div>
-                </div>
-            </div>
-        </div>
-
-        <footer class="mt-14 text-center pb-2 border-t border-gray-200 pt-10" x-show="!isLoading">
-            <div class="w-12 h-12 bg-gray-900 text-white rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg rotate-3">
-                <i data-lucide="droplets" class="w-6 h-6 text-yellow-400"></i>
-            </div>
-            <h2 class="font-black text-2xl text-gray-300 tracking-widest mb-2">BABA PARFUME</h2>
-            <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">© 2026 BABA Parfume Enterprise.</p>
-            <p class="text-[11px] text-gray-400">Preah Sihanouk, Cambodia.</p>
-        </footer>
-    </main>
-
-    <nav class="fixed bottom-0 left-0 right-0 glass-effect border-t border-white shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-40 pb-safe-bottom">
-        <div class="flex justify-around items-center h-16 px-2">
-            <button @click="window.scrollTo({top:0, behavior:'smooth'})" class="flex flex-col items-center justify-center w-full h-full text-gray-900 transition-colors">
-                <i data-lucide="home" class="w-6 h-6 mb-1"></i>
-                <span class="text-[9px] font-black">Home</span>
-            </button>
-            
-            <div class="relative -top-5">
-                <button @click="goToAI()" class="w-14 h-14 bg-gradient-to-tr from-gray-900 via-gray-800 to-black text-yellow-400 rounded-full flex flex-col items-center justify-center shadow-[0_10px_25px_-5px_rgba(0,0,0,0.5)] border-4 border-[#F4F6F9] active:scale-95 transition-transform animate-pulse-glow group">
-                    <i data-lucide="sparkles" class="w-6 h-6 group-hover:scale-110 transition-transform"></i>
-                </button>
-                <span class="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-black text-gray-900 bg-yellow-100 px-2 py-0.5 rounded shadow-sm">Tanya AI</span>
-            </div>
-
-            <button @click="isCartOpen = true" class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-gray-900 transition-colors relative">
-                <div class="relative">
-                    <i data-lucide="shopping-bag" class="w-6 h-6 mb-1"></i>
-                    <span x-show="cartTotalItems > 0" x-transition class="absolute -top-1.5 -right-2 bg-red-500 text-white text-[10px] font-black w-4 h-4 flex items-center justify-center rounded-full border-2 border-white" x-text="cartTotalItems"></span>
-                </div>
-                <span class="text-[9px] font-bold">Keranjang</span>
-            </button>
-        </div>
-    </nav>
-
-    <div x-show="cartTotalItems > 0 && !isDetailModalOpen && !isCartOpen && !isConfirmModalOpen" 
-         x-transition:enter="transition ease-out duration-400" x-transition:enter-start="translate-y-[150%] opacity-0" x-transition:enter-end="translate-y-0 opacity-100"
-         x-transition:leave="transition ease-in duration-300" x-transition:leave-start="translate-y-0 opacity-100" x-transition:leave-end="translate-y-[150%] opacity-0"
-         class="fixed bottom-[80px] left-4 right-4 bg-gradient-to-r from-gray-900 to-black text-white rounded-2xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.4)] p-3.5 flex items-center justify-between z-30 border border-gray-800">
-        <div class="flex items-center space-x-3 pl-2">
-            <div class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-yellow-400 backdrop-blur-sm">
-                <i data-lucide="shopping-bag" class="w-5 h-5"></i>
-            </div>
-            <div>
-                <p class="text-[9px] text-gray-400 uppercase font-black tracking-widest mb-0.5"><span x-text="cartTotalItems"></span> Barang</p>
-                <p class="text-lg font-black text-yellow-400 leading-none" x-text="formatMoney(cartTotalPrice)"></p>
-            </div>
-        </div>
-        <button @click="isCartOpen = true" class="bg-white text-gray-900 px-5 py-3 rounded-xl text-[13px] font-black active:scale-95 transition-transform flex items-center shadow-lg">
-            Checkout <i data-lucide="chevron-right" class="w-4 h-4 ml-1"></i>
-        </button>
-    </div>
-
-    <div x-show="isDetailModalOpen" style="display: none;" class="fixed inset-0 z-[60] flex flex-col justify-end">
-        <div x-show="isDetailModalOpen" x-transition.opacity class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" @click="isDetailModalOpen = false"></div>
+    <!-- 6. PRODUCT GRID -->
+    <div class="grid grid-cols-2 gap-x-3 gap-y-5" x-show="!isLoading" x-transition:enter="transition ease-out duration-500" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
         
-        <div x-show="isDetailModalOpen"
-             x-transition:enter="transition ease-out duration-400" x-transition:enter-start="translate-y-full" x-transition:enter-end="translate-y-0"
-             x-transition:leave="transition ease-in duration-300" x-transition:leave-start="translate-y-0" x-transition:leave-end="translate-y-full"
-             class="bg-white w-full h-[92vh] sm:max-w-md sm:mx-auto sm:h-[90vh] sm:rounded-[2.5rem] rounded-t-[2.5rem] flex flex-col relative z-10 shadow-2xl overflow-hidden">
-            
-            <div class="absolute top-0 left-0 right-0 h-12 flex justify-center items-center z-50 bg-gradient-to-b from-black/50 to-transparent pointer-events-none">
-                <div class="w-12 h-1.5 bg-white/50 rounded-full backdrop-blur"></div>
-            </div>
-
-            <button @click="isDetailModalOpen = false" class="absolute top-4 right-4 z-50 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 active:scale-90 transition-transform">
-                <i data-lucide="x" class="w-5 h-5"></i>
-            </button>
-
-            <div class="flex-1 overflow-y-auto hide-scrollbar pb-32">
+        <template x-for="product in sortedProducts()" :key="product.id">
+            <div class="bg-white rounded-[1.8rem] p-3 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.06)] border border-gray-100 flex flex-col h-full relative transition-all duration-300 hover:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)] hover:-translate-y-1"
+                 :class="product.stock_quantity <= 0 ? 'opacity-60 grayscale-[50%]' : ''">
                 
-                <div class="w-full aspect-[4/5] bg-gray-100 relative">
-                    <img :src="selectedProductForDetail.image_url" class="w-full h-full object-cover">
-                    <div class="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent"></div>
+                <div class="cursor-pointer group flex-1 flex flex-col" @click="openDetail(product)">
+                    <div class="absolute top-4 left-4 z-10 flex flex-col gap-1.5">
+                        <template x-if="product.category_id === 1 && product.stock_quantity > 0">
+                            <span class="bg-gradient-to-r from-yellow-400 to-amber-400 text-gray-900 text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded shadow-md flex items-center gap-1 border border-yellow-200">
+                                <i data-lucide="zap" class="w-2.5 h-2.5"></i> Hot
+                            </span>
+                        </template>
+                        <template x-if="product.stock_quantity > 0 && product.stock_quantity <= 5">
+                            <span class="bg-red-500 text-white text-[9px] font-black uppercase px-2.5 py-1 rounded shadow-md animate-pulse border border-red-400">
+                                Sisa <span x-text="product.stock_quantity"></span>!
+                            </span>
+                        </template>
+                    </div>
+
+                    <div class="w-full aspect-[4/5] rounded-[1.2rem] bg-gray-50 mb-3 overflow-hidden relative group-hover:ring-2 ring-yellow-400/50 transition-all">
+                        <img :src="product.image_url" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" onerror="this.src='https://placehold.co/400x500/f3f4f6/a1a1aa?text=BABA'">
+                        
+                        <template x-if="product.stock_quantity <= 0">
+                            <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-20">
+                                <span class="bg-red-600 text-white px-5 py-2 rounded-xl text-[11px] font-black tracking-widest uppercase shadow-2xl transform -rotate-12 border-2 border-white/50">HABIS</span>
+                            </div>
+                        </template>
+                        
+                        <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center justify-center">
+                            <div class="bg-white/90 backdrop-blur rounded-full p-2 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                                <i data-lucide="maximize-2" class="w-5 h-5 text-gray-900"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 flex flex-col">
+                        <div class="flex items-center gap-0.5 mb-1.5 text-yellow-400">
+                            <i data-lucide="star" class="w-3 h-3 fill-current"></i>
+                            <i data-lucide="star" class="w-3 h-3 fill-current"></i>
+                            <i data-lucide="star" class="w-3 h-3 fill-current"></i>
+                            <i data-lucide="star" class="w-3 h-3 fill-current"></i>
+                            <i data-lucide="star" class="w-3 h-3 fill-current"></i>
+                            <span class="text-[9px] text-gray-400 ml-1 font-bold">(5.0)</span>
+                        </div>
+                        
+                        <h3 class="text-[14px] font-black text-gray-900 leading-tight line-clamp-2" x-text="product.name"></h3>
+                        <p class="text-[10px] text-gray-400 mt-1 line-clamp-1 font-medium" x-text="product.tagline"></p>
+                        
+                        <div class="mt-auto pt-2 flex flex-col">
+                            <p class="text-[10px] text-gray-400 line-through font-bold" x-show="product.original_price > product.discounted_price" x-text="formatMoney(product.original_price)"></p>
+                            <p class="text-[16px] font-black text-emerald-600" x-text="formatMoney(product.discounted_price)"></p>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="px-6 relative z-20 -mt-6">
-                    <div class="mb-5">
-                        <div class="flex items-center gap-2 mb-3">
-                            <template x-if="selectedProductForDetail.category_id === 1">
-                                <span class="bg-gradient-to-r from-yellow-400 to-amber-400 text-gray-900 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-md shadow-sm border border-yellow-200">Hot Item</span>
-                            </template>
-                            <span class="bg-gray-100 text-gray-600 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-md border border-gray-200" x-text="'Sisa Stok: ' + selectedProductForDetail.stock_quantity"></span>
-                        </div>
-                        <h2 class="text-[32px] font-black text-gray-900 leading-tight tracking-tight" x-text="selectedProductForDetail.name"></h2>
-                        <p class="text-[14px] text-gray-500 mt-1 font-medium leading-relaxed" x-text="selectedProductForDetail.tagline"></p>
-                    </div>
-
-                    <div class="flex items-center justify-between mb-8 p-5 bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 shadow-sm">
-                        <div>
-                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Harga Spesial</p>
-                            <div class="flex items-end gap-3">
-                                <p class="text-3xl font-black text-emerald-600 leading-none" x-text="formatMoney(selectedProductForDetail.discounted_price)"></p>
-                                <p class="text-[13px] text-gray-400 line-through font-bold pb-0.5" x-text="formatMoney(selectedProductForDetail.original_price)"></p>
-                            </div>
-                        </div>
-                        <div class="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center border border-emerald-100">
-                            <i data-lucide="tag" class="w-5 h-5 text-emerald-500"></i>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3 mb-8">
-                        <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-[0_4px_15px_rgba(0,0,0,0.03)] flex flex-col">
-                            <div class="w-10 h-10 bg-yellow-50 rounded-full flex items-center justify-center mb-3"><i data-lucide="clock" class="w-5 h-5 text-yellow-600"></i></div>
-                            <p class="text-[9px] text-gray-400 font-black uppercase tracking-widest">Ketahanan</p>
-                            <p class="text-[15px] font-black text-gray-900 mt-0.5" x-text="selectedProductForDetail.longevity || '8-12 Jam'"></p>
-                        </div>
-                        <div class="bg-white p-4 rounded-2xl border border-gray-200 shadow-[0_4px_15px_rgba(0,0,0,0.03)] flex flex-col">
-                            <div class="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center mb-3"><i data-lucide="sun-moon" class="w-5 h-5 text-blue-600"></i></div>
-                            <p class="text-[9px] text-gray-400 font-black uppercase tracking-widest">Rekomendasi</p>
-                            <p class="text-[15px] font-black text-gray-900 mt-0.5" x-text="selectedProductForDetail.recommendation || 'Seharian'"></p>
-                        </div>
-                    </div>
-
-                    <div class="bg-gradient-to-br from-gray-900 to-black rounded-[2rem] p-6 text-white mb-8 relative overflow-hidden shadow-xl border border-gray-800">
-                        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-yellow-500/10 rounded-full blur-3xl pointer-events-none"></div>
-                        <i data-lucide="wind" class="absolute right-4 top-4 w-20 h-20 text-gray-800 opacity-40"></i>
-                        
-                        <h3 class="text-[15px] font-black text-white mb-6 flex items-center relative z-10"><i data-lucide="flask-conical" class="w-4 h-4 mr-2 text-yellow-400"></i> Piramida Aroma</h3>
-                        
-                        <div class="space-y-5 relative z-10">
-                            <div>
-                                <p class="text-[10px] font-black text-yellow-400/80 uppercase mb-2 tracking-widest">Top Notes (Semprotan Pertama)</p>
-                                <div class="flex flex-wrap gap-2">
-                                    <template x-for="note in selectedProductForDetail.top_notes">
-                                        <span class="px-3.5 py-1.5 bg-gray-800/80 backdrop-blur border border-gray-700 rounded-xl text-[12px] font-bold text-gray-200 shadow-sm" x-text="note"></span>
-                                    </template>
-                                </div>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-black text-yellow-400/80 uppercase mb-2 tracking-widest">Heart Notes (Aroma Tengah)</p>
-                                <div class="flex flex-wrap gap-2">
-                                    <template x-for="note in selectedProductForDetail.heart_notes">
-                                        <span class="px-3.5 py-1.5 bg-gray-800/80 backdrop-blur border border-gray-700 rounded-xl text-[12px] font-bold text-gray-200 shadow-sm" x-text="note"></span>
-                                    </template>
-                                </div>
-                            </div>
-                            <div>
-                                <p class="text-[10px] font-black text-yellow-400/80 uppercase mb-2 tracking-widest">Base Notes (Karakter Asli)</p>
-                                <div class="flex flex-wrap gap-2">
-                                    <template x-for="note in selectedProductForDetail.base_notes">
-                                        <span class="px-3.5 py-1.5 bg-gray-800/80 backdrop-blur border border-gray-700 rounded-xl text-[12px] font-bold text-gray-200 shadow-sm" x-text="note"></span>
-                                    </template>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <h3 class="text-[15px] font-black text-gray-900 mb-3 flex items-center"><i data-lucide="align-left" class="w-4 h-4 mr-2 text-gray-400"></i> Deskripsi Racikan</h3>
-                    <p class="text-[14px] text-gray-600 leading-relaxed font-medium bg-white p-5 rounded-[1.5rem] border border-gray-200 shadow-sm" x-text="selectedProductForDetail.description || 'Varian eksklusif dari BABA Parfume yang diracik khusus untuk memancarkan aura signature kamu di setiap langkah. Paduan harmonis antara kesegaran dan kemewahan yang tak terlupakan.'"></p>
-                </div>
-            </div>
-
-            <div class="absolute bottom-0 left-0 right-0 p-5 bg-white/80 backdrop-blur-xl border-t border-gray-200 z-30 pb-safe-bottom shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
-                <button @click="addToCart(selectedProductForDetail); isDetailModalOpen = false;" 
-                        :disabled="selectedProductForDetail.stock_quantity <= 0"
-                        :class="selectedProductForDetail.stock_quantity <= 0 ? 'bg-gray-200 text-gray-400' : 'bg-gradient-to-r from-gray-900 to-black text-yellow-400 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] active:scale-95 hover:shadow-xl'"
-                        class="w-full py-4 rounded-[1.5rem] font-black text-[15px] transition-all flex justify-center items-center space-x-2">
-                    <i data-lucide="shopping-bag" class="w-5 h-5"></i>
-                    <span x-text="selectedProductForDetail.stock_quantity <= 0 ? 'Waduh, Stok Habis Kak' : 'Tambah ke Keranjang'"></span>
+                <button @click.stop="addToCart(product)" 
+                        :disabled="product.stock_quantity <= 0"
+                        :class="product.stock_quantity <= 0 ? 'bg-gray-100 text-gray-400 border border-gray-200' : 'bg-gradient-to-r from-gray-900 to-black text-yellow-400 active:scale-95 shadow-[0_5px_15px_-5px_rgba(0,0,0,0.4)] hover:shadow-lg'"
+                        class="w-full mt-3 py-3 rounded-[1rem] text-[13px] font-black transition-all duration-200 flex items-center justify-center space-x-2 relative overflow-hidden group">
+                    
+                    <div class="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                    
+                    <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+                    <span x-text="product.stock_quantity <= 0 ? 'Kosong' : '+ Keranjang'"></span>
                 </button>
             </div>
-        </div>
-    </div>
-
-    <div x-show="isCartOpen" style="display: none;" class="fixed inset-0 z-[70] flex items-end sm:items-center justify-center">
-        <div x-show="isCartOpen" x-transition.opacity class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" @click="isCartOpen = false"></div>
+        </template>
         
-        <div x-show="isCartOpen" 
-             x-transition:enter="transition ease-out duration-400" x-transition:enter-start="translate-y-full" x-transition:enter-end="translate-y-0"
-             x-transition:leave="transition ease-in duration-300" x-transition:leave-start="translate-y-0" x-transition:leave-end="translate-y-full"
-             class="bg-white w-full sm:max-w-md rounded-t-[2.5rem] sm:rounded-3xl p-6 relative z-10 max-h-[92vh] flex flex-col shadow-2xl pb-safe-bottom">
-            
-            <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6"></div>
-
-            <div class="flex justify-between items-center mb-6 px-1">
-                <h2 class="text-[24px] font-black text-gray-900">Keranjang 🛍️</h2>
-                <button @click="isCartOpen = false" class="p-2 bg-gray-100 text-gray-600 rounded-full active:scale-90 transition-transform hover:bg-gray-200"><i data-lucide="x" class="w-5 h-5"></i></button>
+        <!-- EMPTY STATE SEARCH -->
+        <div x-show="sortedProducts().length === 0 && !isLoading" class="col-span-2 text-center py-20 bg-white rounded-[2.5rem] border border-dashed border-gray-300 shadow-sm mt-4">
+            <div class="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-5 border border-gray-100 shadow-inner">
+                <i data-lucide="search-x" class="w-12 h-12 text-gray-300"></i>
             </div>
-
-            <div x-show="cart.length === 0" class="flex-1 py-12 flex flex-col items-center justify-center text-center">
-                <div class="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-5 border border-gray-100 shadow-inner"><i data-lucide="shopping-cart" class="w-10 h-10 text-gray-300"></i></div>
-                <h3 class="font-black text-gray-900 text-[18px]">Keranjang Masih Kosong</h3>
-                <p class="text-[13px] text-gray-500 mt-2 font-medium px-8 leading-relaxed">Yuk cari wangi signature kamu dan tampil beda hari ini!</p>
-                <button @click="isCartOpen = false" class="mt-8 bg-gray-900 text-white px-8 py-3.5 rounded-full text-[13px] font-black shadow-lg active:scale-95">Mulai Belanja</button>
-            </div>
-
-            <div x-show="cart.length > 0" class="flex-1 overflow-y-auto hide-scrollbar mb-6 -mx-2 px-2 space-y-4 pb-4">
-                
-                <template x-for="item in cart" :key="item.product.id">
-                    <div class="flex items-center space-x-4 bg-white p-3.5 rounded-[1.8rem] border border-gray-100 shadow-[0_4px_15px_-5px_rgba(0,0,0,0.05)] relative group">
-                        
-                        <button @click="updateQuantity(item.product.id, -99)" class="absolute -top-2 -right-2 w-7 h-7 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-full flex items-center justify-center border border-white shadow-sm transition-colors active:scale-90">
-                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                        </button>
-                        
-                        <div class="relative w-20 h-20 shrink-0">
-                            <img :src="item.product.image_url" class="w-full h-full rounded-[1.2rem] object-cover bg-gray-50 border border-gray-100">
-                        </div>
-                        
-                        <div class="flex-1 min-w-0 py-1">
-                            <h4 class="font-black text-gray-900 text-[14px] truncate" x-text="item.product.name"></h4>
-                            <p class="text-emerald-600 font-black text-[15px] mt-1" x-text="formatMoney(item.product.discounted_price)"></p>
-                        </div>
-                        
-                        <div class="flex flex-col items-center bg-gray-50 border border-gray-200 rounded-[1.2rem] p-1 shrink-0">
-                            <button @click="updateQuantity(item.product.id, 1)" class="w-7 h-7 flex items-center justify-center text-gray-900 hover:bg-white rounded-full shadow-sm transition-colors active:scale-90"><i data-lucide="plus" class="w-3.5 h-3.5"></i></button>
-                            <span class="w-7 py-1 text-center text-[13px] font-black text-gray-900" x-text="item.quantity"></span>
-                            <button @click="updateQuantity(item.product.id, -1)" class="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-white rounded-full shadow-sm transition-colors active:scale-90"><i data-lucide="minus" class="w-3.5 h-3.5"></i></button>
-                        </div>
-                    </div>
-                </template>
-                
-                <div class="border-t border-gray-200 border-dashed my-6"></div>
-
-                <div class="bg-gray-50 p-5 rounded-[2rem] border border-gray-100">
-                    <h3 class="font-black text-gray-900 mb-4 flex items-center text-[15px]"><i data-lucide="map-pin" class="w-4 h-4 mr-2 text-yellow-500"></i> Info Pengiriman</h3>
-                    
-                    <div class="space-y-4 mb-2">
-                        <div>
-                            <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 block pl-1">Nama Penerima <span class="text-red-500">*</span></label>
-                            <div class="relative">
-                                <i data-lucide="user" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
-                                <input type="text" x-model="checkoutForm.fullName" placeholder="Nama Lengkap" class="w-full bg-white border border-gray-200 pl-11 pr-4 py-3.5 rounded-xl text-[14px] font-medium focus:outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-100 transition-colors shadow-sm" :class="formErrors.name ? 'border-red-400 bg-red-50' : ''">
-                            </div>
-                            <p x-show="formErrors.name" class="text-[11px] text-red-500 font-bold mt-1.5 pl-1 flex items-center"><i data-lucide="alert-circle" class="w-3 h-3 mr-1"></i>Nama wajib diisi ya kak!</p>
-                        </div>
-
-                        <div>
-                            <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5 block pl-1">Alamat Lengkap <span class="text-red-500">*</span></label>
-                            <textarea x-model="checkoutForm.address" rows="3" placeholder="Nama Jalan, Patokan, Kota, Provinsi..." class="w-full bg-white border border-gray-200 p-4 rounded-xl text-[14px] font-medium focus:outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-100 transition-colors shadow-sm resize-none" :class="formErrors.address ? 'border-red-400 bg-red-50' : ''"></textarea>
-                            <p x-show="formErrors.address" class="text-[11px] text-red-500 font-bold mt-1.5 pl-1 flex items-center"><i data-lucide="alert-circle" class="w-3 h-3 mr-1"></i>Alamat pengiriman ga boleh kosong!</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mt-6">
-                    <h3 class="font-black text-gray-900 mb-3 flex items-center text-[15px] px-1"><i data-lucide="wallet" class="w-4 h-4 mr-2 text-yellow-500"></i> Pembayaran</h3>
-                    <p x-show="formErrors.payment" class="text-[11px] text-red-500 font-bold mb-3 pl-1 flex items-center"><i data-lucide="alert-circle" class="w-3 h-3 mr-1"></i>Kakak belum pilih cara bayar nih.</p>
-                    
-                    <div class="space-y-3">
-                        <label class="flex items-center p-4 border rounded-[1.5rem] cursor-pointer transition-all hover:shadow-md" :class="checkoutForm.paymentMethod === 'COD' ? 'border-yellow-500 bg-yellow-50 ring-2 ring-yellow-100' : 'border-gray-200 bg-white'">
-                            <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 flex-shrink-0" :class="checkoutForm.paymentMethod === 'COD' ? 'border-yellow-500' : 'border-gray-300'">
-                                <div class="w-2.5 h-2.5 bg-yellow-500 rounded-full transition-transform duration-200" :class="checkoutForm.paymentMethod === 'COD' ? 'scale-100' : 'scale-0'"></div>
-                            </div>
-                            <input type="radio" value="COD" x-model="checkoutForm.paymentMethod" @change="saveCart()" class="hidden">
-                            <div class="flex-1">
-                                <p class="font-black text-gray-900 text-[14px]">Cash on Delivery (COD)</p>
-                                <p class="text-[11px] text-gray-500 font-medium mt-0.5">Bayar cash langsung ke kurir.</p>
-                            </div>
-                            <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center"><i data-lucide="truck" class="w-5 h-5 text-yellow-600"></i></div>
-                        </label>
-
-                        <label class="flex items-center p-4 border rounded-[1.5rem] cursor-pointer transition-all hover:shadow-md" :class="checkoutForm.paymentMethod === 'BCA' ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-100' : 'border-gray-200 bg-white'">
-                            <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 flex-shrink-0" :class="checkoutForm.paymentMethod === 'BCA' ? 'border-blue-500' : 'border-gray-300'">
-                                <div class="w-2.5 h-2.5 bg-blue-500 rounded-full transition-transform duration-200" :class="checkoutForm.paymentMethod === 'BCA' ? 'scale-100' : 'scale-0'"></div>
-                            </div>
-                            <input type="radio" value="BCA" x-model="checkoutForm.paymentMethod" @change="saveCart()" class="hidden">
-                            <div class="flex-1">
-                                <p class="font-black text-gray-900 text-[14px]">Transfer Bank (BCA)</p>
-                                <p class="text-[11px] text-gray-500 font-medium mt-0.5">Rekening Rupiah (IDR).</p>
-                            </div>
-                            <div class="text-blue-800 font-black italic text-[14px] tracking-tighter bg-blue-100 px-3 py-1.5 rounded-lg">BCA</div>
-                        </label>
-
-                        <label class="flex items-center p-4 border rounded-[1.5rem] cursor-pointer transition-all hover:shadow-md" :class="checkoutForm.paymentMethod === 'ABA' ? 'border-teal-500 bg-teal-50 ring-2 ring-teal-100' : 'border-gray-200 bg-white'">
-                            <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 flex-shrink-0" :class="checkoutForm.paymentMethod === 'ABA' ? 'border-teal-500' : 'border-gray-300'">
-                                <div class="w-2.5 h-2.5 bg-teal-500 rounded-full transition-transform duration-200" :class="checkoutForm.paymentMethod === 'ABA' ? 'scale-100' : 'scale-0'"></div>
-                            </div>
-                            <input type="radio" value="ABA" x-model="checkoutForm.paymentMethod" @change="saveCart()" class="hidden">
-                            <div class="flex-1">
-                                <p class="font-black text-gray-900 text-[14px]">ABA Bank (Kamboja)</p>
-                                <p class="text-[11px] text-gray-500 font-medium mt-0.5">Transfer USD via ABA Mobile.</p>
-                            </div>
-                            <div class="bg-teal-600 text-white font-bold text-[11px] px-3 py-1.5 rounded-lg uppercase tracking-wider">ABA</div>
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            <div x-show="cart.length > 0" class="bg-white pt-4 border-t border-gray-100 mt-auto shrink-0">
-                <div class="flex justify-between items-end mb-4 px-1">
-                    <div>
-                        <span class="text-gray-400 font-black text-[10px] uppercase tracking-widest block mb-1">Total Tagihan</span>
-                        <span class="text-[13px] font-bold text-gray-500"><span x-text="cartTotalItems"></span> Item</span>
-                    </div>
-                    <span class="text-[28px] font-black text-emerald-600 leading-none" x-text="formatMoney(cartTotalPrice)"></span>
-                </div>
-                <button @click="validateCheckout()" class="w-full bg-gradient-to-r from-gray-900 to-black text-white py-4 rounded-[1.5rem] font-black text-[16px] active:scale-95 transition-all flex justify-center items-center space-x-2 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)]">
-                    <span>Lanjut Konfirmasi</span>
-                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
-                </button>
-            </div>
+            <p class="font-black text-gray-900 text-xl mb-1">Aroma Tidak Ditemukan</p>
+            <p class="text-[13px] text-gray-500 mt-1 font-medium px-10 leading-relaxed">Maaf kak, varian yang dicari belum ada. Coba kata kunci atau kategori lain ya.</p>
+            <button @click="searchQuery = ''; activeCategory = 'Semua'" class="mt-6 px-6 py-2.5 bg-gray-900 text-white rounded-full text-xs font-bold shadow-md hover:bg-gray-800 transition-colors">Reset Filter</button>
         </div>
     </div>
 
-    <div x-show="isConfirmModalOpen" style="display: none;" class="fixed inset-0 z-[80] flex items-center justify-center p-5">
-        <div x-show="isConfirmModalOpen" x-transition.opacity class="fixed inset-0 bg-gray-900/80 backdrop-blur-md" @click="isConfirmModalOpen = false"></div>
-        
-        <div x-show="isConfirmModalOpen" 
-             x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-90 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0"
-             x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100 translate-y-0" x-transition:leave-end="opacity-0 scale-90 translate-y-4"
-             class="bg-white rounded-[2rem] p-6 w-full max-w-sm relative z-10 text-center shadow-2xl border border-gray-100">
-            
-            <div class="w-24 h-24 bg-gradient-to-tr from-yellow-100 to-amber-50 rounded-full flex items-center justify-center mx-auto mb-5 border-4 border-white shadow-[0_10px_20px_-10px_rgba(234,179,8,0.5)] -mt-16">
-                <i data-lucide="bell-ring" class="w-10 h-10 text-yellow-600 animate-bounce"></i>
-            </div>
-            
-            <h3 class="text-[22px] font-black text-gray-900 mb-2">Proses Pesanan?</h3>
-            <p class="text-[13px] text-gray-500 mb-6 font-medium leading-relaxed px-2">Pesanan bakal langsung dikirim ke sistem. Admin BABA akan segera ngehubungin kakak via Telegram.</p>
-            
-            <div class="bg-gray-50 rounded-2xl p-5 mb-8 text-left border border-gray-200 shadow-inner">
-                <div class="flex justify-between items-center mb-3 pb-3 border-b border-gray-200">
-                    <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest">Penerima</p>
-                    <p class="font-black text-gray-900 text-[13px] truncate max-w-[150px]" x-text="checkoutForm.fullName"></p>
-                </div>
-                <div class="flex justify-between items-center mb-3 pb-3 border-b border-gray-200">
-                    <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest">Total Tagihan</p>
-                    <p class="font-black text-emerald-600 text-lg" x-text="formatMoney(cartTotalPrice)"></p>
-                </div>
-                <div class="flex justify-between items-center">
-                    <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest">Metode</p>
-                    <p class="font-black text-gray-900 text-[12px] bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm" x-text="checkoutForm.paymentMethod"></p>
-                </div>
-            </div>
+    <!-- 7. TESTIMONI SECTION -->
+    {% include "customer/_testimoni.html" %}
 
-            <div class="flex space-x-3">
-                <button @click="isConfirmModalOpen = false" class="flex-1 py-4 bg-gray-100 text-gray-600 font-black text-[13px] rounded-[1.2rem] hover:bg-gray-200 transition-colors active:scale-95">Cek Lagi</button>
-                <button @click="processFinalCheckout($event)" class="flex-1 py-4 bg-gradient-to-r from-gray-900 to-black text-yellow-400 font-black text-[13px] rounded-[1.2rem] transition-all shadow-[0_10px_20px_-10px_rgba(0,0,0,0.4)] active:scale-95 flex justify-center items-center">
-                    <span>Kirim Pesanan</span>
-                </button>
-            </div>
+    <!-- 8. FAQ SECTION -->
+    {% include "customer/_faq.html" %}
+
+    <!-- 9. FOOTER -->
+    <footer class="mt-14 text-center pb-2 border-t border-gray-200 pt-10" x-show="!isLoading">
+        <div class="w-12 h-12 bg-gray-900 text-white rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg rotate-3">
+            <i data-lucide="droplets" class="w-6 h-6 text-yellow-400"></i>
         </div>
-    </div>
+        <h2 class="font-black text-2xl text-gray-300 tracking-widest mb-2">BABA PARFUME</h2>
+        <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">© 2026 BABA Parfume Enterprise.</p>
+        <p class="text-[11px] text-gray-400">Preah Sihanouk, Cambodia.</p>
+    </footer>
 
-
-    <script>
-        function babaStore() {
-            return {
-                // Core States
-                products: [],
-                cart: [],
-                searchQuery: '',
-                activeCategory: 'Semua',
-                sortOrder: 'default', // Fitur Sortir Baru
-                isLoading: true,
-                
-                // Toast System
-                toasts: [],
-                toastIdCounter: 0,
-                
-                // UI Modals & Toggles
-                isCartOpen: false,
-                isDetailModalOpen: false,
-                isConfirmModalOpen: false,
-                showUSP: false,
-                selectedProductForDetail: {},
-                
-                // Forms
-                checkoutForm: { fullName: '', address: '', paymentMethod: '' },
-                formErrors: { name: false, address: false, payment: false },
-                
-                // User & Config
-                tgUser: { first_name: 'Kamu', username: '', photo_url: '', id: '' },
-                settings: {},
-
-                /** Navigation helper untuk pergi ke halaman AI Chat (Mimin) */
-                goToAI() {
-                    this.showToast('Menuju ruangan Mimin...', 'info');
-                    // Tunggu toast muncul bentar baru pindah
-                    setTimeout(() => {
-                        window.location.href = '/cs';
-                    }, 500);
-                },
-
-                /** Helper aman ambil data JSON dari template Jinja2 */
-                readInitialData(elementId, fallback) {
-                    const node = document.getElementById(elementId);
-                    if (!node) return fallback;
-                    try { return JSON.parse(node.textContent || 'null') ?? fallback; } 
-                    catch (_) { return fallback; }
-                },
-
-                /** Inisialisasi utama saat aplikasi dimuat */
-                initData() {
-                    // 1. Setup Telegram Web App API
-                    if (window.Telegram && window.Telegram.WebApp) {
-                        const tg = window.Telegram.WebApp;
-                        tg.ready();
-                        tg.expand();
-                        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                            this.tgUser = tg.initDataUnsafe.user;
-                            this.checkoutForm.fullName = this.tgUser.first_name + (this.tgUser.last_name ? ' ' + this.tgUser.last_name : '');
-                        }
-                    }
-
-                    // 2. Load Cart dari Local Storage (Anti Hilang)
-                    this.loadCart();
-
-                    // 3. Load Pre-fetched Data
-                    this.products = this.readInitialData('initial-products-data', []);
-                    this.settings = this.readInitialData('initial-settings-data', {});
-
-                    // 4. Fetch Live Catalog dari Backend
-                    fetch('/api/v1/products/live')
-                        .then(async (res) => {
-                            const data = await res.json();
-                            if (!res.ok || data.status !== 'success') throw new Error(data.message || data.error || 'Katalog tidak tersedia');
-                            this.products = data.data || [];
-                            this.syncCartWithLiveProducts(); // Sinkronin stok keranjang sama database live
-                        })
-                        .catch((err) => {
-                            if (!this.products.length) this.showToast(err.message || 'Gagal memuat katalog parfum', 'error');
-                        })
-                        .finally(() => {
-                            setTimeout(() => {
-                                this.isLoading = false;
-                                setTimeout(() => lucide.createIcons(), 50);
-                            }, 800); // Simulasi loading biar skeleton keliatan mulus
-                        });
-                },
-
-                // --- ENTERPRISE TOAST NOTIFICATION ---
-                showToast(message, type = 'success') {
-                    const id = this.toastIdCounter++;
-                    this.toasts.push({ id, message, type, visible: true });
-                    
-                    if (window.Telegram && window.Telegram.WebApp.HapticFeedback) {
-                        if(type === 'success') window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                        else if(type === 'error') window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
-                        else window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
-                    }
-
-                    setTimeout(() => {
-                        const index = this.toasts.findIndex(t => t.id === id);
-                        if (index > -1) {
-                            this.toasts[index].visible = false;
-                            setTimeout(() => { this.toasts = this.toasts.filter(t => t.id !== id); }, 300);
-                        }
-                    }, 3000);
-                },
-
-                // --- FILTERING & SORTING LOGIC ---
-                filteredProducts() {
-                    let result = this.products;
-
-                    // 1. Kategori Filter
-                    if (this.activeCategory !== 'Semua') {
-                        if (this.activeCategory === 'Top Seller') {
-                            result = result.filter(p => p.category_id === 1 || (p.tags && p.tags.some(t => t.toLowerCase() === 'top seller')));
-                        } else {
-                            result = result.filter(p => p.tags && p.tags.some(tag => tag.toLowerCase() === this.activeCategory.toLowerCase()));
-                        }
-                    }
-
-                    // 2. Search Query Filter
-                    if (this.searchQuery) {
-                        const q = this.searchQuery.toLowerCase();
-                        result = result.filter(p => 
-                            p.name.toLowerCase().includes(q) || 
-                            (p.top_notes && p.top_notes.join(' ').toLowerCase().includes(q)) ||
-                            (p.tagline && p.tagline.toLowerCase().includes(q))
-                        );
-                    }
-                    return result;
-                },
-
-                sortedProducts() {
-                    let result = [...this.filteredProducts()];
-                    
-                    // 3. Sorting Engine (Harga, Nama, Stok)
-                    return result.sort((a, b) => {
-                        const aHasStock = a.stock_quantity > 0;
-                        const bHasStock = b.stock_quantity > 0;
-                        
-                        // Selalu taruh barang habis di paling bawah
-                        if (aHasStock && !bHasStock) return -1;
-                        if (!aHasStock && bHasStock) return 1;
-
-                        // Eksekusi pilihan dropdown sort
-                        if (this.sortOrder === 'price_asc') return a.discounted_price - b.discounted_price;
-                        if (this.sortOrder === 'price_desc') return b.discounted_price - a.discounted_price;
-                        if (this.sortOrder === 'name_asc') return a.name.localeCompare(b.name);
-
-                        // Default Sort (Top Seller di atas)
-                        if (this.activeCategory === 'Semua') {
-                            const aIsTop = (a.category_id === 1) ? 1 : 0;
-                            const bIsTop = (b.category_id === 1) ? 1 : 0;
-                            if (aIsTop !== bIsTop) return bIsTop - aIsTop;
-                        }
-                        // Default fallback: urut berdasarkan sisa stok terbanyak
-                        return b.stock_quantity - a.stock_quantity;
-                    });
-                },
-
-                // --- UI INTERACTION ---
-                openDetail(product) {
-                    this.selectedProductForDetail = product;
-                    this.isDetailModalOpen = true;
-                    setTimeout(() => lucide.createIcons(), 50);
-                },
-
-                // --- PERSISTENT CART LOGIC (LOCAL STORAGE) ---
-                loadCart() {
-                    try {
-                        const saved = localStorage.getItem('baba_cart_v1');
-                        if (saved) this.cart = JSON.parse(saved);
-                        
-                        const savedForm = localStorage.getItem('baba_form_v1');
-                        if(savedForm) {
-                            const parsed = JSON.parse(savedForm);
-                            if(parsed.address) this.checkoutForm.address = parsed.address;
-                            if(parsed.paymentMethod) this.checkoutForm.paymentMethod = parsed.paymentMethod;
-                        }
-                    } catch(e) { console.error("Gagal load cart", e); }
-                },
-
-                saveCart() {
-                    try {
-                        localStorage.setItem('baba_cart_v1', JSON.stringify(this.cart));
-                        localStorage.setItem('baba_form_v1', JSON.stringify({
-                            address: this.checkoutForm.address,
-                            paymentMethod: this.checkoutForm.paymentMethod
-                        }));
-                    } catch(e) {}
-                },
-
-                // Sinkronisasi keranjang dengan data stok asli server terbaru
-                syncCartWithLiveProducts() {
-                    let changed = false;
-                    this.cart = this.cart.filter(cartItem => {
-                        const liveProduct = this.products.find(p => p.id === cartItem.product.id);
-                        if (!liveProduct || liveProduct.stock_quantity <= 0) {
-                            changed = true; return false; // Barang udah dihapus atau habis dari server
-                        }
-                        // Update detail harga dsb
-                        cartItem.product = liveProduct;
-                        if (cartItem.quantity > liveProduct.stock_quantity) {
-                            cartItem.quantity = liveProduct.stock_quantity;
-                            changed = true;
-                        }
-                        return true;
-                    });
-                    if(changed) this.saveCart();
-                },
-
-                addToCart(product) {
-                    if(product.stock_quantity <= 0) {
-                        this.showToast('Maaf kak, stok varian ini lagi kosong!', 'error');
-                        return;
-                    }
-                    
-                    const existing = this.cart.find(item => item.product.id === product.id);
-                    if (existing) {
-                        if (existing.quantity < product.stock_quantity) {
-                            existing.quantity++;
-                            this.showToast('+1 ditambahkan ke keranjang', 'success');
-                        } else {
-                            this.showToast('Maksimal beli ' + product.stock_quantity + ' pcs!', 'error');
-                        }
-                    } else {
-                        this.cart.push({ product: product, quantity: 1 });
-                        this.showToast(product.name + ' masuk keranjang!', 'success');
-                    }
-                    this.saveCart(); // Simpan perubahan
-                },
-
-                updateQuantity(productId, delta) {
-                    const index = this.cart.findIndex(item => item.product.id === productId);
-                    if (index > -1) {
-                        const item = this.cart[index];
-                        const newQ = item.quantity + delta;
-                        
-                        // Kode rahasia -99 untuk hapus tong sampah
-                        if (delta === -99) { 
-                            this.cart.splice(index, 1);
-                            this.showToast('Varian dihapus dari keranjang', 'info');
-                            if(this.cart.length === 0) this.isCartOpen = false;
-                        } else if (newQ > 0 && newQ <= item.product.stock_quantity) {
-                            item.quantity = newQ;
-                        } else if (newQ > item.product.stock_quantity) {
-                            this.showToast('Stok cuma sisa ' + item.product.stock_quantity, 'error');
-                        } else if (newQ <= 0) {
-                            this.cart.splice(index, 1);
-                            if(this.cart.length === 0) this.isCartOpen = false;
-                        }
-                        this.saveCart(); // Simpan perubahan
-                    }
-                },
-
-                get cartTotalItems() { return this.cart.reduce((total, item) => total + item.quantity, 0); },
-                get cartTotalPrice() { return this.cart.reduce((total, item) => total + (item.product.discounted_price * item.quantity), 0); },
-                formatMoney(amount) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount); },
-
-                // --- CHECKOUT LOGIC ---
-                validateCheckout() {
-                    // Update ke local storage sekalian validasi
-                    this.saveCart();
-
-                    this.formErrors.name = this.checkoutForm.fullName.trim() === '';
-                    this.formErrors.address = this.checkoutForm.address.trim() === '';
-                    this.formErrors.payment = this.checkoutForm.paymentMethod === '';
-
-                    if (!this.formErrors.name && !this.formErrors.address && !this.formErrors.payment) {
-                        this.isConfirmModalOpen = true;
-                        if (window.Telegram && window.Telegram.WebApp.HapticFeedback) {
-                            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                        }
-                    } else {
-                        this.showToast('Lengkapi data pengiriman & pembayaran ya kak!', 'error');
-                        // Auto scroll ke bagian bawah modal keranjang
-                        const cartContent = document.querySelector('.overflow-y-auto');
-                        if(cartContent) cartContent.scrollTo({top: cartContent.scrollHeight, behavior: 'smooth'});
-                    }
-                },
-
-                processFinalCheckout(event) {
-                    const payload = {
-                        action: 'checkout',
-                        customer: {
-                            // FIX: Kasih angka random kalau dibuka di luar Telegram biar satpam backend gak ngamuk
-                            id: this.tgUser.id || Math.floor(Math.random() * 1000000), 
-                            username: this.tgUser.username || 'guest',
-                            first_name: this.tgUser.first_name || 'Guest',
-                            full_name: this.checkoutForm.fullName,
-                            address: this.checkoutForm.address
-                        },
-                        items: this.cart.map(i => ({
-                            id: i.product.id,
-                            name: i.product.name,
-                            qty: i.quantity,
-                            price: i.product.discounted_price
-                        })),
-                        payment_method: this.checkoutForm.paymentMethod,
-                        total_amount: this.cartTotalPrice
-                    };
-
-                    const btn = event.currentTarget || event.target;
-                    const originalText = btn.innerHTML;
-                    btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin mr-2"></i> Memproses...';
-                    lucide.createIcons();
-                    btn.disabled = true;
-
-                    fetch('/api/v1/checkout', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    })
-                    .then(async (response) => ({ response, data: await response.json() }))
-                    .then(({ response, data }) => {
-                        if (response.ok && data.status === 'success') {
-                            if (window.Telegram && window.Telegram.WebApp.HapticFeedback) {
-                                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                            }
-                            
-                            // Hapus Local Storage karena order udah sukses
-                            localStorage.removeItem('baba_cart_v1');
-                            
-                            if (window.Telegram && window.Telegram.WebApp) {
-                                window.Telegram.WebApp.close();
-                            } else {
-                                this.showToast('Mantap! Pesanan Berhasil: ' + data.order_number, 'success');
-                                this.isConfirmModalOpen = false;
-                                this.isCartOpen = false;
-                                this.cart = [];
-                            }
-                        } else {
-                            throw new Error(data.message || data.error || 'Gagal diproses di server');
-                        }
-                    })
-                    .catch(error => {
-                        this.showToast('Sistem sibuk: ' + error.message, 'error');
-                        btn.innerHTML = originalText;
-                        btn.disabled = false;
-                    });
-                }
-            }
-        }
-    </script>
-</body>
-</html>
+{% endblock %}

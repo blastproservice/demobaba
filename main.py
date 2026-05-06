@@ -5,8 +5,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
+# ==============================================================================
+# IMPORT SISTEM KEAMANAN & ENGINE BOT
+# ==============================================================================
+from security import apply_enterprise_security
+from bot import main as start_telegram_bot
 
 # ==============================================================================
 # IMPORT SEMUA KOMANDAN (ROUTERS)
@@ -15,9 +20,18 @@ from routers.admin import (
     auth, cs_management, dashboard, stock, finance, orders, 
     customers, settings, staff, profile
 )
-from routers.customer import store
+from routers.customer import cs, store, profile as cust_profile
 
-# Setup Logger (Biar gampang pantau error di VPS)
+# IMPORT ROUTER CRM & AUTOMATION
+from routers.crm import (
+    dashboard as crm_dashboard,
+    sessions,
+    templates,
+    auto_reply,
+    broadcast
+)
+
+# Setup Logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("baba.engine")
 
@@ -28,22 +42,23 @@ logger = logging.getLogger("baba.engine")
 async def lifespan(app: FastAPI):
     logger.info("[SYSTEM] BABA Enterprise Engine Starting...")
     
-    # TODO: Nanti kita nyalain logic Aiogram Bot Telegram lu di sini
-    # bot_task = asyncio.create_task(start_bot())
-    # logger.info("[SYSTEM] Telegram Bot Standby!")
+    # Nyalain logic Aiogram Bot Telegram jadi satu komando sama Web FastAPI
+    bot_task = asyncio.create_task(start_telegram_bot())
+    logger.info("[SYSTEM] Telegram Bot Standby & Polling Aktif!")
     
     yield # Di titik ini, web lu jalan ngelayanin customer
     
     logger.info("[SYSTEM] Shutting down...")
-    # if bot_task:
-    #     bot_task.cancel()
+    if bot_task:
+        logger.info("[SYSTEM] Mematikan Bot Telegram...")
+        bot_task.cancel()
 
 # ==============================================================================
 # INISIASI APLIKASI UTAMA (SANG JENDERAL)
 # ==============================================================================
 app = FastAPI(
     title="BABA Parfume Enterprise",
-    description="Core Engine for BABA Parfume Management & Bot",
+    description="Core Engine for BABA Parfume Management, CRM, & Bot",
     version="2.0.0",
     lifespan=lifespan,
     docs_url=None, # Matiin docs bawaan buat security
@@ -51,15 +66,10 @@ app = FastAPI(
 )
 
 # ==============================================================================
-# TAMENG KEAMANAN & MIDDLEWARE (CORS)
+# TAMENG KEAMANAN (ENTERPRISE SHIELD)
 # ==============================================================================
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"], # Nanti ganti pake domain asli lu pas naik VPS
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Menggantikan CORS bawaan dengan pengamanan 3 Lapis dari security.py
+apply_enterprise_security(app)
 
 # ==============================================================================
 # MOUNT FOLDER STATIC (CSS, JS, GAMBAR)
@@ -95,9 +105,18 @@ app.include_router(settings.router)
 app.include_router(staff.router)
 app.include_router(cs_management.router)
 app.include_router(profile.router)
+app.include_router(cs.router)
 
 # 2. Router Customer Zone (Web Store BABA)
 app.include_router(store.router)
+app.include_router(cust_profile.router)
+
+# 3. Router CRM & Automation Zone
+app.include_router(crm_dashboard.router)
+app.include_router(sessions.router)
+app.include_router(templates.router)
+app.include_router(auto_reply.router)
+app.include_router(broadcast.router)
 
 # ==============================================================================
 # ENGINE RUNNER (Buat testing lokal)

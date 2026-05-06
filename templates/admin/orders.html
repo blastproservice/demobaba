@@ -299,6 +299,7 @@ BABA PARFUME ENTERPRISE - ORDER MANAGEMENT UI (V5.0 DYNAMIC FINANCE ROUTING)
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     
                     <!-- Kiri: Pilih Status -->
+                    <!-- Kiri: Pilih Status -->
                     <div class="lg:col-span-5">
                         <label class="block text-[11px] font-black text-gray-500 uppercase tracking-[0.15em] mb-3 flex items-center gap-1.5"><i data-lucide="git-merge" class="w-4 h-4"></i> 1. Update Status Logistik</label>
                         <select name="status" id="form_status" onchange="toggleFinanceSection()" class="w-full bg-white border border-gray-300 text-gray-900 text-sm font-black tracking-wide rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-gray-900 py-4 px-4 outline-none appearance-none cursor-pointer shadow-sm hover:border-gray-400 smooth-trans">
@@ -308,6 +309,17 @@ BABA PARFUME ENTERPRISE - ORDER MANAGEMENT UI (V5.0 DYNAMIC FINANCE ROUTING)
                             <option value="Dibatalkan">❌ DIBATALKAN (Restock)</option>
                         </select>
                         <p class="text-[10px] text-gray-400 font-bold mt-3 bg-gray-50 p-2.5 rounded-lg border border-gray-100"><i data-lucide="info" class="w-3 h-3 inline"></i> Bot akan memberi info otomatis ke Telegram pelanggan saat status diubah.</p>
+                        
+                        <!-- NEW: Form Alasan Batal (Hanya muncul jika Dibatalkan) -->
+                        <div id="cancel_reason_section" class="mt-4 hidden smooth-trans bg-red-50 border border-red-200 p-4 rounded-xl">
+                            <label class="flex items-start gap-2 cursor-pointer mb-3">
+                                <input type="checkbox" name="send_cancel_reason" id="send_cancel_reason" onchange="toggleCancelInput()" class="mt-0.5 w-4 h-4 text-red-600 border-red-300 rounded focus:ring-red-500 cursor-pointer">
+                                <span class="text-[11px] font-black uppercase tracking-widest text-red-800">Sertakan Alasan Batal</span>
+                            </label>
+                            <div id="cancel_reason_input_wrapper" class="hidden smooth-trans">
+                                <textarea name="cancel_reason" id="cancel_reason" rows="2" placeholder="Ketik alasan pembatalan (cth: Stok varian ini habis)..." class="w-full bg-white border border-red-200 text-gray-900 text-xs font-medium rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 p-3 outline-none resize-none shadow-sm"></textarea>
+                            </div>
+                        </div>
                     </div>
                     
                     <!-- Kanan: Smart Finance Routing (Hanya Muncul saat 'Selesai') -->
@@ -405,13 +417,33 @@ BABA PARFUME ENTERPRISE - ORDER MANAGEMENT UI (V5.0 DYNAMIC FINANCE ROUTING)
     function toggleFinanceSection() {
         const status = document.getElementById('form_status').value;
         const financeSec = document.getElementById('finance_conversion_section');
+        const cancelSec = document.getElementById('cancel_reason_section');
         
+        // Logika Finansial (Selesai)
         if(status === 'Selesai') {
             financeSec.classList.remove('hidden');
             setTimeout(() => { financeSec.style.opacity = '1'; financeSec.style.transform = 'translateY(0)'; }, 10);
-            toggleRateInput(); // Cek input rate pas pertama buka
+            toggleRateInput(); 
         } else {
             financeSec.classList.add('hidden');
+        }
+
+        // Logika Alasan Pembatalan (Batal)
+        if(status === 'Dibatalkan') {
+            cancelSec.classList.remove('hidden');
+            setTimeout(() => { cancelSec.style.opacity = '1'; cancelSec.style.transform = 'translateY(0)'; }, 10);
+        } else {
+            cancelSec.classList.add('hidden');
+        }
+    }
+
+    function toggleCancelInput() {
+        const cb = document.getElementById('send_cancel_reason');
+        const wrapper = document.getElementById('cancel_reason_input_wrapper');
+        if(cb.checked) {
+            wrapper.classList.remove('hidden');
+        } else {
+            wrapper.classList.add('hidden');
         }
     }
 
@@ -520,6 +552,14 @@ BABA PARFUME ENTERPRISE - ORDER MANAGEMENT UI (V5.0 DYNAMIC FINANCE ROUTING)
         if(orderData.payment_method === 'BCA') bankSelect.value = 'BCA';
         else if(orderData.payment_method === 'COD') bankSelect.value = 'Cash Rill';
         else bankSelect.value = 'Dolar Wings';
+
+        // Reset state input pembatalan
+        const cancelCb = document.getElementById('send_cancel_reason');
+        if(cancelCb) {
+            cancelCb.checked = false;
+            document.getElementById('cancel_reason').value = '';
+            toggleCancelInput();
+        }
 
         // Update view awal
         toggleFinanceSection();

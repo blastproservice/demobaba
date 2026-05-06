@@ -43,6 +43,72 @@ CREATE TABLE public.categories (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT categories_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.crm_auto_replies (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  keyword character varying NOT NULL,
+  reply_text text NOT NULL,
+  match_type character varying DEFAULT 'exact'::character varying,
+  is_active boolean DEFAULT true,
+  created_by bigint NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT crm_auto_replies_pkey PRIMARY KEY (id),
+  CONSTRAINT crm_auto_replies_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.admins(id)
+);
+CREATE TABLE public.crm_blast_logs (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  campaign_id uuid NOT NULL,
+  target_id character varying NOT NULL,
+  status character varying NOT NULL,
+  error_message text,
+  sent_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT crm_blast_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT crm_blast_logs_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.crm_campaigns(id)
+);
+CREATE TABLE public.crm_campaigns (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  campaign_name character varying NOT NULL,
+  sender_type character varying NOT NULL,
+  session_id bigint,
+  message_template_id uuid NOT NULL,
+  target_template_id uuid NOT NULL,
+  status character varying DEFAULT 'PENDING'::character varying,
+  scheduled_at timestamp with time zone,
+  created_by bigint NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  frequency character varying DEFAULT 'ONCE'::character varying,
+  interval_days integer DEFAULT 2,
+  max_cycles integer DEFAULT 7,
+  current_cycle integer DEFAULT 0,
+  humanized_config jsonb DEFAULT '{}'::jsonb,
+  total_target_cache integer DEFAULT 0,
+  error_message text,
+  CONSTRAINT crm_campaigns_pkey PRIMARY KEY (id),
+  CONSTRAINT crm_campaigns_msg_tpl_fkey FOREIGN KEY (message_template_id) REFERENCES public.crm_templates(id),
+  CONSTRAINT crm_campaigns_tgt_tpl_fkey FOREIGN KEY (target_template_id) REFERENCES public.crm_templates(id),
+  CONSTRAINT crm_campaigns_session_fkey FOREIGN KEY (session_id) REFERENCES public.crm_telegram_sessions(id),
+  CONSTRAINT crm_campaigns_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.admins(id)
+);
+CREATE TABLE public.crm_telegram_sessions (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  admin_id bigint NOT NULL,
+  phone_number character varying NOT NULL UNIQUE,
+  session_string text NOT NULL,
+  ai_reply_active boolean DEFAULT false,
+  status character varying DEFAULT 'active'::character varying,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT crm_telegram_sessions_pkey PRIMARY KEY (id),
+  CONSTRAINT crm_telegram_sessions_admin_id_fkey FOREIGN KEY (admin_id) REFERENCES public.admins(id)
+);
+CREATE TABLE public.crm_templates (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name character varying NOT NULL,
+  type character varying NOT NULL,
+  content text NOT NULL,
+  created_by bigint NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT crm_templates_pkey PRIMARY KEY (id),
+  CONSTRAINT crm_templates_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.admins(id)
+);
 CREATE TABLE public.customers (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   telegram_id bigint NOT NULL UNIQUE,
@@ -54,6 +120,9 @@ CREATE TABLE public.customers (
   total_spent numeric DEFAULT 0.00,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  source character varying DEFAULT 'bot'::character varying,
+  last_interaction timestamp with time zone DEFAULT now(),
+  loyalty_points integer DEFAULT 0,
   CONSTRAINT customers_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.finance_accounts (
@@ -112,6 +181,16 @@ CREATE TABLE public.finance_mutations (
   CONSTRAINT finance_mutations_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.admins(id),
   CONSTRAINT finance_mutations_reference_debt_id_fkey FOREIGN KEY (reference_debt_id) REFERENCES public.finance_debts(id)
 );
+CREATE TABLE public.loyalty_logs (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  customer_id uuid NOT NULL,
+  transaction_type character varying NOT NULL,
+  points integer NOT NULL,
+  description text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT loyalty_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT loyalty_logs_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id)
+);
 CREATE TABLE public.order_items (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   order_id uuid,
@@ -167,6 +246,9 @@ CREATE TABLE public.stock_logs (
   final_stock integer NOT NULL,
   reason text,
   created_at timestamp with time zone DEFAULT now(),
+  reference_type character varying DEFAULT 'ADJUSTMENT'::character varying,
+  reference_id uuid,
+  status character varying DEFAULT 'COMPLETED'::character varying,
   CONSTRAINT stock_logs_pkey PRIMARY KEY (id),
   CONSTRAINT stock_logs_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id)
 );
@@ -198,6 +280,17 @@ CREATE TABLE public.stock_purchases (
   CONSTRAINT stock_purchases_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.finance_accounts(id),
   CONSTRAINT stock_purchases_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.admins(id)
 );
+CREATE TABLE public.store_rewards (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  name character varying NOT NULL,
+  description text,
+  cost_in_points integer NOT NULL,
+  icon_name character varying DEFAULT 'gift'::character varying,
+  is_active boolean DEFAULT true,
+  stock_limit integer DEFAULT '-1'::integer,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT store_rewards_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.store_settings (
   id integer NOT NULL DEFAULT 1 CHECK (id = 1),
   store_name character varying DEFAULT 'BABA Parfume'::character varying,
@@ -205,5 +298,19 @@ CREATE TABLE public.store_settings (
   checkout_message text,
   is_bot_active boolean DEFAULT true,
   updated_at timestamp with time zone DEFAULT now(),
+  ai_system_prompt text,
+  store_email character varying,
+  store_address text,
+  maintenance_mode boolean DEFAULT false,
   CONSTRAINT store_settings_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.testimonials (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  customer_id uuid NOT NULL,
+  rating integer NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  review_text text,
+  is_approved boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT testimonials_pkey PRIMARY KEY (id),
+  CONSTRAINT testimonials_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id)
 );

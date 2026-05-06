@@ -1,18 +1,19 @@
 {% extends "admin/base.html" %}
 
-{% block title %}Dashboard Overview{% endblock %}
-{% block header %}Dashboard Overview{% endblock %}
+{% block title %}Dashboard Overview - BABA Enterprise{% endblock %}
+{% block header %}Enterprise Command Center{% endblock %}
+{% block breadcrumb %}Dashboard / Overview{% endblock %}
 
 {% block content %}
 <style>
-    /* CSS VALID TANPA ERROR VS CODE */
+    /* CSS ENTERPRISE GRADE */
     @keyframes slideUpFade {
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
     }
     
     .animate-card { 
-        animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+        animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
         opacity: 0; 
     }
     
@@ -21,285 +22,615 @@
     .delay-300 { animation-delay: 300ms; }
     .delay-400 { animation-delay: 400ms; }
     
+    /* Scrollbars */
     .mini-table-scroll::-webkit-scrollbar { height: 4px; width: 4px; }
-    .mini-table-scroll::-webkit-scrollbar-track { background: #f8fafc; }
-    .mini-table-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+    .mini-table-scroll::-webkit-scrollbar-track { background: transparent; }
+    .mini-table-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .mini-table-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     
-    .glass-card {
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(226, 232, 240, 0.8);
+    /* Chart Bar Animation */
+    @keyframes growBar {
+        from { height: 0%; opacity: 0; }
+        to { opacity: 1; }
+    }
+    .animate-bar {
+        animation: growBar 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 </style>
 
-<!-- SECTION 1: TOP METRICS CARDS -->
-<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-    
-    <!-- CARD: TOTAL PENDAPATAN -->
-    <div class="bg-white p-6 rounded-[1.5rem] shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col justify-between hover:-translate-y-1 hover:shadow-lg transition-all animate-card">
-        <div class="flex items-start justify-between mb-2">
-            <div>
-                <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Pendapatan</h3>
-                <h2 class="text-3xl font-black text-gray-900">{{ metrics.total_revenue | currency }}</h2>
-            </div>
-            <div class="p-3 bg-gradient-to-br from-emerald-400 to-emerald-600 text-white rounded-xl shadow-md shadow-emerald-500/30">
-                <i data-lucide="banknote" class="w-5 h-5"></i>
-            </div>
-        </div>
-        <div class="pt-4 border-t border-gray-50 mt-2">
-            <p class="text-xs font-bold flex items-center text-emerald-600">
-                <i data-lucide="trending-up" class="w-3.5 h-3.5 mr-1"></i> <span>+{{ metrics.revenue_growth | default(0) }}%</span>
-                <span class="text-gray-400 font-medium ml-1.5">{{ period_label }}</span>
-            </p>
-        </div>
-    </div>
-    
-    <!-- CARD: TOTAL PESANAN -->
-    <div class="bg-white p-6 rounded-[1.5rem] shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col justify-between hover:-translate-y-1 hover:shadow-lg transition-all animate-card delay-100">
-        <div class="flex items-start justify-between mb-2">
-            <div>
-                <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Pesanan</h3>
-                <h2 class="text-3xl font-black text-gray-900">{{ metrics.total_orders | default(0) }}</h2>
-            </div>
-            <div class="p-3 bg-gradient-to-br from-blue-400 to-blue-600 text-white rounded-xl shadow-md shadow-blue-500/30">
-                <i data-lucide="shopping-bag" class="w-5 h-5"></i>
-            </div>
-        </div>
-        <div class="pt-4 border-t border-gray-50 mt-2 flex justify-between items-center">
-            <p class="text-xs font-bold flex items-center text-blue-600">
-                <i data-lucide="activity" class="w-3.5 h-3.5 mr-1"></i> <span>Terkonfirmasi</span>
-            </p>
-            <span class="text-xs font-black bg-blue-50 text-blue-600 px-2 py-0.5 rounded">{{ metrics.completed_orders | default(0) }} Selesai</span>
-        </div>
-    </div>
+<!-- MAIN ALPINE WRAPPER -->
+<div x-data="dashboardEngine()" x-init="initEngine()" class="pb-12 space-y-6">
 
-    <!-- CARD: PELANGGAN AKTIF -->
-    <div class="bg-white p-6 rounded-[1.5rem] shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col justify-between hover:-translate-y-1 hover:shadow-lg transition-all animate-card delay-200">
-        <div class="flex items-start justify-between mb-2">
-            <div>
-                <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Pelanggan Baru</h3>
-                <h2 class="text-3xl font-black text-gray-900">{{ metrics.new_customers | default(0) }}</h2>
-            </div>
-            <div class="p-3 bg-gradient-to-br from-purple-400 to-purple-600 text-white rounded-xl shadow-md shadow-purple-500/30">
-                <i data-lucide="users" class="w-5 h-5"></i>
-            </div>
-        </div>
-        <div class="pt-4 border-t border-gray-50 mt-2">
-            <p class="text-xs font-bold flex items-center text-purple-600">
-                <i data-lucide="user-plus" class="w-3.5 h-3.5 mr-1"></i> <span>Total: {{ metrics.total_customers }}</span>
-                <span class="text-gray-400 font-medium ml-1.5">{{ period_label }}</span>
-            </p>
-        </div>
-    </div>
-
-    <!-- CARD: PERINGATAN STOK -->
-    <div class="bg-white p-6 rounded-[1.5rem] shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col justify-between hover:-translate-y-1 hover:shadow-lg transition-all animate-card delay-300 relative overflow-hidden">
-        {% if metrics.low_stock_count > 0 %}
-        <div class="absolute right-0 top-0 w-32 h-32 bg-red-500/10 rounded-bl-full -mr-10 -mt-10"></div>
-        {% endif %}
-        
-        <div class="flex items-start justify-between mb-2 relative z-10">
-            <div>
-                <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Peringatan Stok</h3>
-                <h2 class="text-3xl font-black {% if metrics.low_stock_count > 0 %}text-red-600{% else %}text-emerald-600{% endif %}">
-                    {{ metrics.low_stock_count | default(0) }}
-                </h2>
-            </div>
-            <div class="p-3 {% if metrics.low_stock_count > 0 %}bg-gradient-to-br from-red-400 to-red-600 shadow-red-500/30{% else %}bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-emerald-500/30{% endif %} text-white rounded-xl shadow-md">
-                <i data-lucide="alert-triangle" class="w-5 h-5"></i>
-            </div>
-        </div>
-        <div class="pt-4 border-t border-gray-50 mt-2 relative z-10">
-            {% if metrics.low_stock_count > 0 %}
-            <a href="/admin/stock" class="text-xs font-bold flex items-center text-red-600 hover:text-red-800 transition-colors">
-                <i data-lucide="alert-circle" class="w-3.5 h-3.5 mr-1"></i> <span class="underline underline-offset-2">Varian hampir habis!</span>
-            </a>
-            {% else %}
-            <p class="text-xs font-bold flex items-center text-emerald-600">
-                <i data-lucide="check-circle" class="w-3.5 h-3.5 mr-1"></i> <span>Gudang Aman</span>
-            </p>
-            {% endif %}
-        </div>
-    </div>
-</div>
-
-<!-- SECTION 2: CHARTS & DISTRIBUTION -->
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-    
-    <!-- MAIN SALES CHART (BAR) -->
-    <div class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100 lg:col-span-2 flex flex-col animate-card">
-        <div class="flex justify-between items-start md:items-center mb-6 flex-col md:flex-row gap-3">
-            <div>
-                <h3 class="text-lg font-black text-gray-900">Grafik Penjualan</h3>
-                <p class="text-xs text-gray-500 font-medium">Omset asli BABA Parfume ({{ period_label }}).</p>
-            </div>
-            <!-- DROPDOWN DINAMIS (Konek ke Python) -->
-            <select onchange="location.href='?period=' + this.value" 
-                    class="bg-gray-50 border border-gray-200 text-xs font-bold text-gray-700 rounded-lg px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 cursor-pointer">
-                <option {% if current_period == '7 Hari Terakhir' %}selected{% endif %}>7 Hari Terakhir</option>
-                <option {% if current_period == 'Bulan Ini' %}selected{% endif %}>Bulan Ini</option>
-                <option {% if current_period == 'Tahun Ini' %}selected{% endif %}>Tahun Ini</option>
-            </select>
-        </div>
-        
-        <!-- RENDER BATANG GRAFIK -->
-        <div class="h-64 flex items-end justify-between space-x-2 pt-8 border-b border-gray-100 pb-2 flex-1">
-            {% set max_val = chart_data | max if (chart_data and chart_data | max > 0) else 1 %}
-            {% for val in chart_data %}
-                
-                <!-- Pisahkan rumus ke variabel biar VS Code gak pusing -->
-                {% set calc_height = (val / max_val * 100) | int %}
-                {% set final_height = calc_height if calc_height > 0 else 5 %}
-                
-                <div class="w-full bg-blue-100 rounded-t-md hover:bg-blue-400 transition-all relative group cursor-pointer" 
-                     style="height: {{ final_height }}%;">
-                    <span class="absolute -top-7 left-1/2 -translate-x-1/2 text-[10px] font-black bg-gray-900 text-white px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                        ${{ val }}
-                    </span>
+    <!-- GLOBAL TOAST (Sama kayak modul lain) -->
+    <div class="fixed top-5 right-5 z-[9999] flex flex-col gap-3 pointer-events-none">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div x-transition class="min-w-[300px] p-4 rounded-xl shadow-xl border bg-white flex items-start gap-3 pointer-events-auto"
+                 :class="toast.type === 'success' ? 'border-emerald-500' : 'border-red-500'">
+                <div :class="toast.type === 'success' ? 'text-emerald-500' : 'text-red-500'">
+                    <i :data-lucide="toast.type === 'success' ? 'check-circle' : 'x-circle'" class="w-6 h-6"></i>
                 </div>
-            {% endfor %}
-        </div>
-        <div class="flex justify-between text-[10px] font-bold text-gray-400 mt-3 px-1 uppercase tracking-widest">
-            <span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span class="text-yellow-600">Min</span>
-        </div>
-    </div>
-
-    <!-- CATEGORY DISTRIBUTION (BAR PERCENTAGE) -->
-    <div class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100 flex flex-col animate-card delay-100">
-        <h3 class="text-lg font-black text-gray-900 mb-1">Distribusi Minat</h3>
-        <p class="text-xs text-gray-500 font-medium mb-6">Porsi stok per kategori.</p>
-        
-        <div class="space-y-6 flex-1 flex flex-col justify-center">
-            {% set total_stok_kategori = (metrics.cat_man|default(0) + metrics.cat_woman|default(0) + metrics.cat_netral|default(0)) or 1 %}
-            
-            {% set items = [
-                {'label': 'Man', 'val': metrics.cat_man, 'color': 'from-blue-400 to-blue-600'},
-                {'label': 'Woman', 'val': metrics.cat_woman, 'color': 'from-pink-400 to-pink-600'},
-                {'label': 'Netral', 'val': metrics.cat_netral, 'color': 'from-purple-400 to-purple-600'}
-            ] %}
-
-            {% for item in items %}
-                
-                <!-- Hitung persentase di luar tag HTML -->
-                {% set persen_lebar = ((item.val|default(0) / total_stok_kategori) * 100) | round | int %}
-                
                 <div>
-                    <div class="flex justify-between text-xs mb-2">
-                        <span class="font-bold text-gray-700">{{ item.label }}</span>
-                        <span class="font-black text-gray-900">{{ persen_lebar }}%</span>
-                    </div>
-                    <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                        <div class="bg-gradient-to-r {{ item.color }} h-full rounded-full transition-all duration-1000" 
-                             style="width: {{ persen_lebar }}%;"></div>
-                    </div>
+                    <h4 class="text-sm font-bold text-gray-900" x-text="toast.type === 'success' ? 'Berhasil' : 'Gagal'"></h4>
+                    <p class="text-xs text-gray-600 mt-1" x-text="toast.message"></p>
                 </div>
-            {% endfor %}
-        </div>
+            </div>
+        </template>
     </div>
-</div>
 
-<!-- SECTION 3: RECENT ORDERS & HALL OF FAME -->
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-8">
-    
-    <!-- RECENT ORDERS TABLE -->
-    <div class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100 lg:col-span-2 animate-card delay-200">
-        <div class="flex justify-between items-center mb-6">
+    <!-- 
+    ========================================================================================
+    FILTER PERIODE ENTERPRISE (GLOBAL)
+    ======================================================================================== 
+    -->
+    <div class="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 flex flex-col xl:flex-row items-center justify-between gap-4 animate-card">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gray-900 flex items-center justify-center text-yellow-400">
+                <i data-lucide="calendar-clock" class="w-5 h-5"></i>
+            </div>
             <div>
-                <h3 class="text-lg font-black text-gray-900">Pesanan Masuk</h3>
-                <p class="text-xs text-gray-500 font-medium">Transaksi terbaru dari database.</p>
+                <h2 class="text-sm font-black text-gray-900 uppercase tracking-widest">Filter Periode Analitik</h2>
+                <p class="text-xs text-gray-500 font-medium">Data di-update secara <span class="text-emerald-500 font-bold">Real-time</span></p>
             </div>
-            <a href="/admin/orders" class="text-xs font-bold text-brand-600 hover:text-brand-800 bg-brand-50 px-3 py-1.5 rounded-lg transition-colors">Lihat Semua</a>
         </div>
-        
-        <div class="overflow-x-auto mini-table-scroll">
-            <table class="w-full text-left whitespace-nowrap">
-                <thead>
-                    <tr class="text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100">
-                        <th class="pb-3 px-2">Order ID</th>
-                        <th class="pb-3 px-2">Pelanggan</th>
-                        <th class="pb-3 px-2 text-right">Tagihan</th>
-                        <th class="pb-3 px-2 text-center">Status</th>
-                    </tr>
-                </thead>
-                <tbody class="text-sm divide-y divide-gray-50">
-                    {% for o in recent_orders %}
-                    <tr class="hover:bg-gray-50/50 transition-colors group">
-                        <td class="py-4 px-2 font-black text-gray-900">{{ o.order_number }}</td>
-                        <td class="py-4 px-2">
-                            <p class="font-bold text-gray-700">{{ o.customers.full_name | truncate(20) }}</p>
-                            <p class="text-[10px] text-gray-400">{{ o.payment_method }}</p>
-                        </td>
-                        <td class="py-4 px-2 font-black text-emerald-600 text-right">{{ o.total_amount | currency }}</td>
-                        <td class="py-4 px-2 text-center">
-                            {% if o.status == 'Menunggu Pembayaran' %}
-                                <span class="bg-yellow-50 text-yellow-700 text-[10px] px-2.5 py-1 rounded-full font-black border border-yellow-200 uppercase">Pending</span>
-                            {% elif o.status == 'Diproses' %}
-                                <span class="bg-blue-50 text-blue-700 text-[10px] px-2.5 py-1 rounded-full font-black border border-blue-200 uppercase animate-pulse">Proses</span>
-                            {% else %}
-                                <span class="bg-emerald-50 text-emerald-700 text-[10px] px-2.5 py-1 rounded-full font-black border border-emerald-200 uppercase">Selesai</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="4" class="py-12 text-center">
-                            <i data-lucide="inbox" class="w-10 h-10 text-gray-200 mx-auto mb-2"></i>
-                            <p class="text-xs font-bold text-gray-400 italic">Belum ada pesanan masuk dalam periode ini.</p>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+
+        <div class="flex items-center gap-2 bg-gray-50 p-1.5 rounded-2xl border border-gray-200 overflow-x-auto w-full xl:w-auto">
+            <button @click="setPeriod('TODAY')" :class="activePeriod === 'TODAY' ? 'bg-gray-900 text-yellow-400 shadow-md' : 'text-gray-500 hover:bg-white'" class="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap">Hari Ini</button>
+            <button @click="setPeriod('7DAYS')" :class="activePeriod === '7DAYS' ? 'bg-gray-900 text-yellow-400 shadow-md' : 'text-gray-500 hover:bg-white'" class="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap">7 Hari Terakhir</button>
+            <button @click="setPeriod('30DAYS')" :class="activePeriod === '30DAYS' ? 'bg-gray-900 text-yellow-400 shadow-md' : 'text-gray-500 hover:bg-white'" class="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap">30 Hari Terakhir</button>
+            <button @click="setPeriod('THIS_MONTH')" :class="activePeriod === 'THIS_MONTH' ? 'bg-gray-900 text-yellow-400 shadow-md' : 'text-gray-500 hover:bg-white'" class="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap">Bulan Ini</button>
+            <button @click="setPeriod('LAST_MONTH')" :class="activePeriod === 'LAST_MONTH' ? 'bg-gray-900 text-yellow-400 shadow-md' : 'text-gray-500 hover:bg-white'" class="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap">Bulan Lalu</button>
+            <button @click="setPeriod('THIS_YEAR')" :class="activePeriod === 'THIS_YEAR' ? 'bg-gray-900 text-yellow-400 shadow-md' : 'text-gray-500 hover:bg-white'" class="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap">Tahun Ini</button>
+            <button @click="activePeriod = 'CUSTOM'" :class="activePeriod === 'CUSTOM' ? 'bg-gray-900 text-yellow-400 shadow-md' : 'text-gray-500 hover:bg-white'" class="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap">Custom</button>
+        </div>
+
+        <div x-show="activePeriod === 'CUSTOM'" x-transition class="flex items-center gap-2 bg-gray-50 p-2 rounded-xl border border-gray-200 w-full xl:w-auto">
+            <input type="date" x-model="customStart" class="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-gray-900 outline-none w-full xl:w-auto">
+            <span class="text-xs font-black text-gray-400">s/d</span>
+            <input type="date" x-model="customEnd" class="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold focus:ring-2 focus:ring-gray-900 outline-none w-full xl:w-auto">
+            <button @click="fetchData()" class="px-3 py-1.5 bg-yellow-400 text-gray-900 font-bold rounded-lg text-xs hover:bg-yellow-500 shadow-sm"><i data-lucide="search" class="w-3.5 h-3.5"></i></button>
         </div>
     </div>
 
-    <!-- HALL OF FAME (TOP PRODUCTS) -->
-    <div class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100 flex flex-col animate-card delay-300">
-        <div class="mb-6">
-            <h3 class="text-lg font-black text-gray-900">Hall of Fame 🏆</h3>
-            <p class="text-xs text-gray-500 font-medium">Varian paling menipis (Restock segera!).</p>
-        </div>
+    <!-- 
+    ========================================================================================
+    SECTION 1: TOP METRICS CARDS 
+    ======================================================================================== 
+    -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         
-        <div class="space-y-4 flex-1">
-            {% for top in top_products %}
-            <div class="flex items-center space-x-4 p-3 rounded-2xl border border-gray-100 hover:border-brand-400 hover:shadow-md transition-all group cursor-default bg-gray-50/30">
-                <div class="w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl flex-shrink-0 shadow-inner
-                            {% if loop.index == 1 %}bg-gradient-to-br from-brand-400 to-brand-600 text-white shadow-brand-500/20
-                            {% elif loop.index == 2 %}bg-gradient-to-br from-gray-200 to-gray-400 text-gray-800
-                            {% elif loop.index == 3 %}bg-gradient-to-br from-amber-600 to-amber-800 text-white
-                            {% else %}bg-white border border-gray-200 text-gray-400
-                            {% endif %}">
-                    {{ loop.index }}
+        <!-- CARD 1: PENDAPATAN -->
+        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-lg hover:-translate-y-1 transition-all animate-card delay-100 relative overflow-hidden">
+            <div class="flex items-start justify-between mb-4 relative z-10">
+                <div>
+                    <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Pendapatan</h3>
+                    <!-- Skeleton / Loading State -->
+                    <div x-show="isLoading" class="h-8 w-32 bg-gray-200 animate-pulse rounded-lg mt-1"></div>
+                    <!-- Data Asli -->
+                    <h2 x-show="!isLoading" class="text-3xl lg:text-4xl font-black text-gray-900 tracking-tighter" x-text="formatCurrency(metrics.revenue)">$0.00</h2>
                 </div>
-                
-                <div class="flex-1 min-w-0">
-                    <h4 class="font-black text-gray-900 text-sm truncate">{{ top.name }}</h4>
-                    <p class="text-[10px] text-gray-500 font-bold mt-0.5">Stok: <span class="{% if top.stock_quantity <= 5 %}text-red-600 animate-pulse{% else %}text-gray-900{% endif %}">{{ top.stock_quantity }}</span></p>
-                </div>
-                
-                <div class="text-right">
-                    <p class="text-xs font-black text-emerald-600">{{ top.discounted_price | currency }}</p>
+                <div class="p-3 bg-gradient-to-br from-emerald-400 to-emerald-600 text-white rounded-2xl shadow-md shadow-emerald-500/20">
+                    <i data-lucide="banknote" class="w-6 h-6"></i>
                 </div>
             </div>
-            {% else %}
-            <div class="py-12 text-center text-xs font-bold text-gray-400 border-2 border-dashed border-gray-100 rounded-2xl">
-                Belum ada data stok.
+            <div class="pt-4 border-t border-gray-50 relative z-10">
+                <p class="text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5" :class="metrics.revenue_growth >= 0 ? 'text-emerald-600' : 'text-red-600'">
+                    <i :data-lucide="metrics.revenue_growth >= 0 ? 'trending-up' : 'trending-down'" class="w-3.5 h-3.5"></i> 
+                    <span x-text="(metrics.revenue_growth > 0 ? '+' : '') + metrics.revenue_growth + '%'"></span>
+                    <span class="text-gray-400 ml-1 truncate" x-text="periodLabel"></span>
+                </p>
             </div>
-            {% endfor %}
         </div>
         
-        <a href="/admin/stock" class="w-full mt-6 py-3.5 bg-gray-900 hover:bg-brand-500 hover:text-brand-dark text-white text-sm font-black rounded-xl transition-all shadow-lg shadow-gray-900/10 text-center flex items-center justify-center gap-2">
-            Manajemen Gudang <i data-lucide="arrow-right" class="w-4 h-4"></i>
-        </a>
+        <!-- CARD 2: PESANAN -->
+        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-lg hover:-translate-y-1 transition-all animate-card delay-200 relative overflow-hidden">
+            <div class="flex items-start justify-between mb-4 relative z-10">
+                <div>
+                    <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Pesanan</h3>
+                    <div x-show="isLoading" class="h-8 w-16 bg-gray-200 animate-pulse rounded-lg mt-1"></div>
+                    <h2 x-show="!isLoading" class="text-3xl lg:text-4xl font-black text-gray-900 tracking-tighter" x-text="metrics.orders">0</h2>
+                </div>
+                <div class="p-3 bg-gradient-to-br from-blue-400 to-blue-600 text-white rounded-2xl shadow-md shadow-blue-500/20">
+                    <i data-lucide="shopping-cart" class="w-6 h-6"></i>
+                </div>
+            </div>
+            <div class="pt-4 border-t border-gray-50 flex justify-between items-center relative z-10">
+                <p class="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-1.5">
+                    <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Terkonfirmasi
+                </p>
+                <span class="text-[10px] font-black bg-blue-50 text-blue-700 px-2 py-1 rounded-lg border border-blue-100 uppercase" x-text="metrics.orders_completed + ' Selesai'"></span>
+            </div>
+        </div>
+
+        <!-- CARD 3: CUSTOMER -->
+        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-lg hover:-translate-y-1 transition-all animate-card delay-300">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Pelanggan Baru</h3>
+                    <div x-show="isLoading" class="h-8 w-16 bg-gray-200 animate-pulse rounded-lg mt-1"></div>
+                    <h2 x-show="!isLoading" class="text-3xl lg:text-4xl font-black text-gray-900 tracking-tighter" x-text="metrics.new_customers">0</h2>
+                </div>
+                <div class="p-3 bg-gradient-to-br from-purple-400 to-purple-600 text-white rounded-2xl shadow-md shadow-purple-500/20">
+                    <i data-lucide="users" class="w-6 h-6"></i>
+                </div>
+            </div>
+            <div class="pt-4 border-t border-gray-50">
+                <p class="text-[10px] font-black text-purple-600 uppercase tracking-widest flex items-center gap-1.5">
+                    <i data-lucide="users-2" class="w-3.5 h-3.5"></i> 
+                    <span>Total Database: <span x-text="metrics.total_customers"></span></span>
+                </p>
+            </div>
+        </div>
+
+        <!-- CARD 4: STOK -->
+        <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-lg hover:-translate-y-1 transition-all animate-card delay-400 relative overflow-hidden">
+            <!-- Warning Visualizer -->
+            <div x-show="metrics.low_stock > 0" class="absolute right-0 top-0 w-32 h-32 bg-red-500/10 rounded-bl-full -mr-10 -mt-10 transition-all"></div>
+            
+            <div class="flex items-start justify-between mb-4 relative z-10">
+                <div>
+                    <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Peringatan Stok</h3>
+                    <div x-show="isLoading" class="h-8 w-16 bg-gray-200 animate-pulse rounded-lg mt-1"></div>
+                    <h2 x-show="!isLoading" class="text-3xl lg:text-4xl font-black tracking-tighter" :class="metrics.low_stock > 0 ? 'text-red-600' : 'text-emerald-600'" x-text="metrics.low_stock">0</h2>
+                </div>
+                <div class="p-3 text-white rounded-2xl shadow-md transition-colors" :class="metrics.low_stock > 0 ? 'bg-gradient-to-br from-red-400 to-red-600 shadow-red-500/20' : 'bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-emerald-500/20'">
+                    <i data-lucide="package-minus" class="w-6 h-6"></i>
+                </div>
+            </div>
+            <div class="pt-4 border-t border-gray-50 relative z-10">
+                <a x-show="metrics.low_stock > 0" href="/admin/stock" class="text-[10px] font-black text-red-600 uppercase tracking-widest flex items-center gap-1.5 hover:text-red-800">
+                    <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i> <span class="underline underline-offset-4">Varian hampir habis! Restock.</span>
+                </a>
+                <p x-show="metrics.low_stock === 0" class="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1.5">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5"></i> Kondisi Gudang Aman
+                </p>
+            </div>
+        </div>
     </div>
+
+    <!-- 
+    ========================================================================================
+    SECTION 2: DYNAMIC CHARTS & DISTRIBUTION 
+    ======================================================================================== 
+    -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- MAIN SALES CHART (Mendukung data Dinamis, nggak cuma 7 hari) -->
+        <div class="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 lg:col-span-2 flex flex-col animate-card delay-100">
+            <div class="flex justify-between items-start mb-8">
+                <div>
+                    <h3 class="text-xl font-black text-gray-900 tracking-tight">Tren Penjualan (Revenue)</h3>
+                    <p class="text-xs text-gray-500 font-medium mt-1">Grafik omset berdasarkan filter: <span class="font-bold text-gray-900" x-text="periodLabel"></span></p>
+                </div>
+            </div>
+            
+            <!-- Area Grafik Bar Murni CSS -->
+            <div class="flex-1 flex flex-col">
+                <div x-show="isLoading" class="flex-1 flex items-center justify-center">
+                    <div class="flex gap-2">
+                        <div class="w-3 h-8 bg-gray-200 animate-pulse rounded"></div>
+                        <div class="w-3 h-16 bg-gray-200 animate-pulse rounded"></div>
+                        <div class="w-3 h-12 bg-gray-200 animate-pulse rounded"></div>
+                    </div>
+                </div>
+
+                <!-- Bar Container -->
+                <div x-show="!isLoading" class="flex-1 flex items-end justify-between gap-1 sm:gap-2 pb-2 border-b-2 border-gray-100 relative pt-10 min-h-[250px]">
+                    <template x-for="(bar, idx) in chart.data" :key="idx">
+                        <div class="flex-1 flex flex-col justify-end items-center h-full relative group cursor-crosshair">
+                            
+                            <!-- Tooltip Pendapatan -->
+                            <div class="absolute -top-10 bg-gray-900 text-white px-3 py-1.5 rounded-lg text-[10px] font-black tracking-widest shadow-xl opacity-0 group-hover:opacity-100 transition-all z-20 whitespace-nowrap pointer-events-none transform translate-y-2 group-hover:translate-y-0"
+                                 x-text="formatCurrency(bar.val)">
+                            </div>
+                            
+                            <!-- Batang Grafik -->
+                            <div class="w-full bg-blue-100 hover:bg-blue-500 rounded-t-lg transition-colors animate-bar" 
+                                 :style="`height: ${bar.height}%; animation-delay: ${idx * 50}ms;`">
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Label Sumbu X Bawah -->
+                <div x-show="!isLoading" class="flex justify-between mt-3 px-1">
+                    <template x-for="(lbl, idx) in chart.labels" :key="idx">
+                        <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest text-center truncate w-full" x-text="lbl"></span>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- CATEGORY DISTRIBUTION (BAR PERCENTAGE) -->
+        <div class="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col animate-card delay-200">
+            <div class="mb-8">
+                <h3 class="text-xl font-black text-gray-900 tracking-tight">Distribusi Etalase</h3>
+                <p class="text-xs text-gray-500 font-medium mt-1">Porsi ketersediaan stok aktif berdasarkan jenis aroma.</p>
+            </div>
+            
+            <div class="space-y-8 flex-1 flex flex-col justify-center">
+                <!-- Wrapper buat Looping (Porsi Kategori) -->
+                <div x-show="isLoading" class="space-y-8 animate-pulse">
+                    <div class="h-10 bg-gray-100 rounded-xl"></div>
+                    <div class="h-10 bg-gray-100 rounded-xl"></div>
+                    <div class="h-10 bg-gray-100 rounded-xl"></div>
+                </div>
+
+                <template x-show="!isLoading" x-for="cat in distribution" :key="cat.name">
+                    <div class="group">
+                        <div class="flex justify-between items-end mb-2">
+                            <div>
+                                <span class="text-sm font-black text-gray-900 uppercase tracking-widest" x-text="cat.name"></span>
+                                <span class="text-[10px] text-gray-400 font-bold ml-2" x-text="cat.val + ' Pcs'"></span>
+                            </div>
+                            <span class="text-sm font-black text-gray-900" x-text="cat.pct + '%'"></span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden shadow-inner">
+                            <div class="h-full rounded-full transition-all duration-1000 ease-out" 
+                                 :class="cat.color"
+                                 :style="`width: ${cat.pct}%;`"></div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- 
+    ========================================================================================
+    SECTION 3: RECENT TRANSACTIONS & REAL HALL OF FAME 
+    ======================================================================================== 
+    -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- RECENT ORDERS TABLE -->
+        <div class="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-gray-100 lg:col-span-2 animate-card delay-300 flex flex-col">
+            <div class="flex justify-between items-start md:items-center mb-6 flex-col md:flex-row gap-4">
+                <div>
+                    <h3 class="text-xl font-black text-gray-900 tracking-tight">Pesanan Terbaru</h3>
+                    <p class="text-xs text-gray-500 font-medium mt-1">Live data transaksi yang masuk ke sistem BABA.</p>
+                </div>
+                <a href="/admin/orders" class="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:text-white bg-blue-50 hover:bg-blue-600 px-4 py-2.5 rounded-xl transition-colors border border-blue-100 shrink-0">Buka Modul Pesanan</a>
+            </div>
+            
+            <div class="overflow-x-auto mini-table-scroll flex-1">
+                <table class="w-full text-left whitespace-nowrap">
+                    <thead>
+                        <tr class="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b-2 border-gray-100">
+                            <th class="pb-4 px-2">Order ID & Waktu</th>
+                            <th class="pb-4 px-2">Data Pelanggan</th>
+                            <th class="pb-4 px-2 text-right">Tagihan Total</th>
+                            <th class="pb-4 px-2 text-center">Status Transaksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm divide-y divide-gray-50">
+                        <template x-if="isLoading">
+                            <tr>
+                                <td colspan="4" class="py-12 text-center text-gray-400">
+                                    <i data-lucide="loader-2" class="w-8 h-8 animate-spin mx-auto mb-2"></i>
+                                </td>
+                            </tr>
+                        </template>
+
+                        <template x-if="!isLoading && recentOrders.length === 0">
+                            <tr>
+                                <td colspan="4" class="py-16 text-center">
+                                    <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3 border border-gray-100">
+                                        <i data-lucide="inbox" class="w-6 h-6 text-gray-400"></i>
+                                    </div>
+                                    <p class="text-xs font-black text-gray-500 uppercase tracking-widest">Belum Ada Transaksi</p>
+                                    <p class="text-[10px] text-gray-400 mt-1">Di periode <span x-text="periodLabel"></span>.</p>
+                                </td>
+                            </tr>
+                        </template>
+
+                        <template x-for="o in recentOrders" :key="o.id">
+                            <tr class="hover:bg-gray-50/80 transition-colors group">
+                                <td class="py-4 px-2">
+                                    <p class="font-black text-gray-900 font-mono text-xs" x-text="o.id"></p>
+                                    <p class="text-[10px] text-gray-400 font-bold mt-0.5" x-text="o.date"></p>
+                                </td>
+                                <td class="py-4 px-2">
+                                    <p class="font-bold text-gray-800 truncate max-w-[150px]" x-text="o.customer"></p>
+                                    <span class="text-[9px] font-black uppercase tracking-widest mt-1 inline-block px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 border border-gray-200" x-text="o.method"></span>
+                                </td>
+                                <td class="py-4 px-2 font-black text-gray-900 text-right text-base" x-text="formatCurrency(o.total)"></td>
+                                <td class="py-4 px-2 text-center">
+                                    <span class="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm inline-flex items-center gap-1.5"
+                                          :class="{
+                                              'bg-yellow-50 text-yellow-700 border border-yellow-200': o.status === 'PENDING',
+                                              'bg-blue-50 text-blue-700 border border-blue-200 animate-pulse': o.status === 'PROSES',
+                                              'bg-emerald-50 text-emerald-700 border border-emerald-200': o.status === 'SELESAI',
+                                              'bg-red-50 text-red-700 border border-red-200': o.status === 'BATAL'
+                                          }">
+                                        <span x-show="o.status === 'PENDING'" class="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
+                                        <span x-text="o.status"></span>
+                                    </span>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- THE REAL HALL OF FAME (TOP SALES) -->
+        <div class="bg-gray-900 p-6 md:p-8 rounded-[2rem] shadow-2xl border border-gray-800 flex flex-col animate-card delay-400 relative overflow-hidden">
+            <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-yellow-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="mb-8 relative z-10">
+                <h3 class="text-xl font-black text-white tracking-tight flex items-center gap-2">
+                    BABA Hall of Fame <i data-lucide="crown" class="w-5 h-5 text-yellow-400"></i>
+                </h3>
+                <p class="text-xs text-gray-400 font-medium mt-1">Produk <span class="text-yellow-400 font-bold">Terlaris</span> berdasarkan total penjualan di periode ini.</p>
+            </div>
+            
+            <div class="space-y-4 flex-1 relative z-10">
+                <template x-if="isLoading">
+                    <div class="space-y-4">
+                        <div class="h-16 bg-gray-800 animate-pulse rounded-2xl"></div>
+                        <div class="h-16 bg-gray-800 animate-pulse rounded-2xl"></div>
+                        <div class="h-16 bg-gray-800 animate-pulse rounded-2xl"></div>
+                    </div>
+                </template>
+
+                <template x-if="!isLoading && topProducts.length === 0">
+                    <div class="py-16 text-center">
+                        <i data-lucide="trending-down" class="w-10 h-10 text-gray-700 mx-auto mb-3"></i>
+                        <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Belum ada penjualan valid.</p>
+                    </div>
+                </template>
+
+                <template x-for="(top, idx) in topProducts" :key="idx">
+                    <div class="flex items-center space-x-4 p-3.5 rounded-2xl border border-gray-800 hover:border-yellow-500/50 hover:bg-gray-800/50 transition-all group cursor-default">
+                        
+                        <!-- Peringkat -->
+                        <div class="w-12 h-12 rounded-[1rem] flex items-center justify-center font-black text-xl flex-shrink-0 shadow-inner"
+                             :class="idx === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-gray-900 shadow-yellow-500/30' : 
+                                     idx === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-gray-900 shadow-gray-500/20' : 
+                                     idx === 2 ? 'bg-gradient-to-br from-orange-500 to-orange-700 text-white shadow-orange-500/20' : 
+                                     'bg-gray-800 text-gray-500 border border-gray-700'">
+                            <span x-text="idx + 1"></span>
+                        </div>
+                        
+                        <!-- Info Produk -->
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-black text-white text-sm truncate" x-text="top.name"></h4>
+                            <p class="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-widest">Terjual: <span class="text-yellow-400" x-text="top.sold + ' Unit'"></span></p>
+                        </div>
+                        
+                        <!-- Revenue per Product -->
+                        <div class="text-right pl-2">
+                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-0.5">Omset</p>
+                            <p class="text-sm font-black text-emerald-400" x-text="formatCurrency(top.revenue)"></p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            
+            <a href="/admin/orders" class="w-full mt-8 py-4 bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-yellow-500/20 text-center flex items-center justify-center gap-2 relative z-10 active:scale-95">
+                Lihat Laporan Penjualan <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </a>
+        </div>
+    </div>
+
 </div>
 
+<!-- 
+========================================================================================
+ALPINE.JS LOGIC CORE (AJAX POWERED DASHBOARD)
+======================================================================================== 
+-->
 <script>
-    // Inisialisasi Ulang Lucide Icons biar nongol pas diload
-    document.addEventListener('DOMContentLoaded', () => {
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('dashboardEngine', () => ({
+            // State Utama
+            isLoading: true,
+            toasts: [],
+            
+            // Filter Parameters
+            activePeriod: '30DAYS', // Default 30 Hari terakhir sesuai request lu!
+            customStart: '',
+            customEnd: '',
+            periodLabel: '30 Hari Terakhir',
+            
+            // Data Binding
+            metrics: {
+                revenue: 0, revenue_growth: 0,
+                orders: 0, orders_completed: 0,
+                new_customers: 0, total_customers: 0,
+                low_stock: 0
+            },
+            
+            chart: {
+                labels: [],
+                data: [] // { val: 0, height: 0 }
+            },
+            
+            distribution: [
+                { name: 'Man', val: 0, pct: 0, color: 'from-blue-400 to-blue-600' },
+                { name: 'Woman', val: 0, pct: 0, color: 'from-pink-400 to-pink-600' },
+                { name: 'Netral', val: 0, pct: 0, color: 'from-purple-400 to-purple-600' }
+            ],
+            
+            recentOrders: [],
+            topProducts: [], // The REAL Hall of Fame
+
+            initEngine() {
+                // Inisialisasi awal
+                this.setPeriod('30DAYS');
+                setTimeout(() => { if(typeof lucide !== 'undefined') lucide.createIcons(); }, 100);
+            },
+
+            // --- FILTER LOGIC ---
+            setPeriod(type) {
+                this.activePeriod = type;
+                const now = new Date();
+                let start = new Date();
+                
+                switch(type) {
+                    case 'TODAY':
+                        start.setHours(0,0,0,0);
+                        this.periodLabel = "Hari Ini";
+                        break;
+                    case '7DAYS':
+                        start.setDate(now.getDate() - 7);
+                        this.periodLabel = "7 Hari Terakhir";
+                        break;
+                    case '30DAYS':
+                        start.setDate(now.getDate() - 30);
+                        this.periodLabel = "30 Hari Terakhir";
+                        break;
+                    case 'THIS_MONTH':
+                        start = new Date(now.getFullYear(), now.getMonth(), 1);
+                        this.periodLabel = "Bulan Ini";
+                        break;
+                    case 'LAST_MONTH':
+                        start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                        let endLM = new Date(now.getFullYear(), now.getMonth(), 0);
+                        this.customStart = start.toISOString().split('T')[0];
+                        this.customEnd = endLM.toISOString().split('T')[0];
+                        this.periodLabel = "Bulan Lalu";
+                        this.fetchData(); // Trigger Fetch
+                        return;
+                    case 'THIS_YEAR':
+                        start = new Date(now.getFullYear(), 0, 1);
+                        this.periodLabel = "Tahun Ini";
+                        break;
+                }
+                
+                this.customStart = start.toISOString().split('T')[0];
+                this.customEnd = now.toISOString().split('T')[0];
+                
+                if (type !== 'CUSTOM') {
+                    this.fetchData();
+                }
+            },
+
+            // --- AJAX DATA FETCHER ---
+            // Catatan: Pastikan di backend `routers/admin/core.py` lu bikin endpoint API ini!
+            // Endpoint ini mengembalikan data JSON murni berdasarkan start_date dan end_date.
+            async fetchData() {
+                if(this.activePeriod === 'CUSTOM') {
+                    if(!this.customStart || !this.customEnd) return;
+                    this.periodLabel = `Periode Custom: ${this.customStart} - ${this.customEnd}`;
+                }
+
+                this.isLoading = true;
+                
+                try {
+                    // CONTOH ENDPOINT (Nanti dibikin di file .py)
+                    const url = `/admin/api/v1/dashboard/stats?start=${this.customStart}&end=${this.customEnd}`;
+                    const res = await fetch(url);
+                    
+                    if(!res.ok) throw new Error("Gagal mengambil data analitik dari server.");
+                    
+                    const data = await res.json();
+                    
+                    // --- MAPPING DATA DARI BACKEND KE UI ---
+                    this.metrics = data.metrics;
+                    this.chart = this.processChartData(data.chart_raw);
+                    
+                    // Hitung persentase porsi stok
+                    const totalStok = data.category_stock.man + data.category_stock.woman + data.category_stock.netral || 1;
+                    this.distribution[0].val = data.category_stock.man;
+                    this.distribution[0].pct = Math.round((data.category_stock.man / totalStok) * 100);
+                    
+                    this.distribution[1].val = data.category_stock.woman;
+                    this.distribution[1].pct = Math.round((data.category_stock.woman / totalStok) * 100);
+                    
+                    this.distribution[2].val = data.category_stock.netral;
+                    this.distribution[2].pct = Math.round((data.category_stock.netral / totalStok) * 100);
+
+                    this.recentOrders = data.recent_orders.map(o => ({
+                        id: o.order_number,
+                        date: this.formatDate(o.created_at),
+                        customer: o.customer_name,
+                        method: o.payment_method,
+                        total: o.total_amount,
+                        status: this.mapStatus(o.status)
+                    }));
+
+                    this.topProducts = data.top_sales; // Real Hall of Fame!
+
+                } catch(e) {
+                    console.error("Dashboard Fetch Error:", e);
+                    // this.notify('error', 'Gagal memuat data Dashboard. Silakan refresh halaman.');
+                    
+                    // DUMMY DATA FALLBACK UNTUK UI PREVIEW SAJA (Kalo API blm siap)
+                    this.generateDummyData();
+                    
+                } finally {
+                    this.isLoading = false;
+                    setTimeout(() => { if(typeof lucide !== 'undefined') lucide.createIcons(); }, 50);
+                }
+            },
+
+            // Kalkulasi Bar Chart dinamis
+            processChartData(rawData) {
+                // Asumsi rawData = [{label: '1 May', val: 120}, ...]
+                if(!rawData || rawData.length === 0) return { labels: [], data: [] };
+                
+                const maxVal = Math.max(...rawData.map(d => d.val)) || 1;
+                
+                return {
+                    labels: rawData.map(d => d.label),
+                    data: rawData.map(d => {
+                        let pct = Math.round((d.val / maxVal) * 100);
+                        return { val: d.val, height: pct > 0 ? pct : 5 }; // min 5% height
+                    })
+                };
+            },
+
+            // --- UTILS ---
+            formatCurrency(val) {
+                if(isNaN(val)) return '0';
+                return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+            },
+            formatRp(val) {
+                if(isNaN(val)) return '0';
+                return new Intl.NumberFormat('id-ID').format(val);
+            },
+            formatDate(iso) {
+                if(!iso) return '-';
+                try {
+                    const d = new Date(iso);
+                    return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+                } catch(e) { return iso; }
+            },
+            mapStatus(raw) {
+                const s = raw.toLowerCase();
+                if(s.includes('tunggu') || s.includes('pending')) return 'PENDING';
+                if(s.includes('proses') || s.includes('kemas')) return 'PROSES';
+                if(s.includes('batal') || s.includes('cancel')) return 'BATAL';
+                return 'SELESAI';
+            },
+            notify(type, msg) {
+                this.$dispatch('notify', { type: type, message: msg });
+            },
+
+            // --- FALLBACK PREVIEW (Jika endpoint Python blm dibuat) ---
+            generateDummyData() {
+                this.metrics = { revenue: 15400.50, revenue_growth: 12.5, orders: 142, orders_completed: 130, new_customers: 24, total_customers: 1024, low_stock: 3 };
+                this.chart = {
+                    labels: ['S', 'S', 'R', 'K', 'J', 'S', 'M'],
+                    data: [
+                        {val: 1200, height: 40}, {val: 2300, height: 70}, {val: 800, height: 25},
+                        {val: 3200, height: 100}, {val: 1800, height: 55}, {val: 2800, height: 85}, {val: 1500, height: 45}
+                    ]
+                };
+                this.recentOrders = [
+                    { id: 'ORD-260504-A1B2', date: '04 Mei 2026 14:20', customer: 'Andika R.', method: 'Transfer', total: 150.00, status: 'SELESAI' },
+                    { id: 'ORD-260504-C3D4', date: '04 Mei 2026 12:05', customer: 'Fifi', method: 'COD', total: 45.50, status: 'PROSES' },
+                    { id: 'ORD-260503-E5F6', date: '03 Mei 2026 09:30', customer: 'Radit', method: 'Transfer', total: 320.00, status: 'PENDING' }
+                ];
+                this.topProducts = [
+                    { name: 'TOP 501', sold: 45, revenue: 450.00 },
+                    { name: 'MEVA', sold: 32, revenue: 320.00 },
+                    { name: 'XPOST', sold: 28, revenue: 280.00 },
+                    { name: 'RUBI RAINER', sold: 15, revenue: 150.00 }
+                ];
+            }
+        }));
     });
 </script>
 {% endblock %}

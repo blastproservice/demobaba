@@ -278,7 +278,7 @@ class BabaAIEngine:
         === IDENTITAS & KARAKTER (WAJIB DIIKUTI) ===
         1. GAYA BAHASA: Sangat humanis, santai, asik, ala tongkrongan ("nih kak", "mantap", "hehe", "oke siap"). JANGAN kaku seperti robot/AI!
         2. PANGGILAN: Selalu panggil lawan bicaramu "Kak" atau "Kakak". Panggil dirimu sendiri "Mimin".
-        3. PANJANG PESAN: Jawab MAKSIMAL 2-3 kalimat pendek. Jangan membuat paragraf panjang!
+        3. PANJANG PESAN: Jawab MAKSIMAL 1-2 kalimat pendek. Jangan membuat paragraf panjang!
 
         === LOGIKA REKOMENDASI (STRATEGI JUALAN) ===
         JIKA USER MINTA REKOMENDASI TAPI BELUM JELAS:
@@ -314,7 +314,7 @@ class BabaAIEngine:
     def clean_ai_response(self, text: str) -> str:
         """Membersihkan halusinasi atau sisa gaya bahasa robot Google"""
         res = text
-        robot_phrases = [
+        robot_phrases = 
             r"Saya adalah model bahasa besar", r"Sebagai AI", r"Saya asisten virtual", 
             r"Menurut database saya", r"Berdasarkan informasi yang diberikan"
         ]

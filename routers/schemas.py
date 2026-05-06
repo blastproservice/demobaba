@@ -44,3 +44,9 @@ class ChatFeedbackPayload(BaseModel):
     tele_id: int
     rating: int
     complaint: Optional[str] = ""
+
+class StockMutationPayload(BaseModel):
+    product_id: int
+    mutation_type: str = Field(..., description="'IN' untuk tambah, 'OUT' untuk kurang")
+    quantity: int = Field(..., gt=0, description="Kuantitas harus lebih dari 0")
+    reason: str = Field(..., min_length=3, description="Alasan mutasi wajib diisi")

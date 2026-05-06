@@ -1,0 +1,437 @@
+{% extends "admin/base.html" %}
+
+{% block title %}CRM Dashboard - BABA Enterprise{% endblock %}
+{% block header %}CRM Analytics & Automation{% endblock %}
+{% block breadcrumb %}CRM & Automation / Dashboard{% endblock %}
+
+{% block content %}
+<style>
+    /* ==========================================================================
+       ENTERPRISE CRM DASHBOARD V5.0 - STYLESHEET
+       ========================================================================== */
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    
+    @keyframes pulse-soft {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.8; transform: scale(0.98); }
+    }
+    .animate-pulse-soft { animation: pulse-soft 3s infinite ease-in-out; }
+    
+    /* Radar Sweep Animation for the Hero Widget */
+    @keyframes radar-sweep {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    .radar-sweep-bg {
+        background: conic-gradient(from 0deg, transparent 70%, rgba(234, 179, 8, 0.4) 100%);
+        border-radius: 50%;
+        animation: radar-sweep 4s linear infinite;
+    }
+
+    /* Skeleton Loading Animation */
+    .skeleton {
+        background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+        background-size: 400% 100%;
+        animation: loading 1.5s infinite ease-in-out;
+    }
+    @keyframes loading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+</style>
+
+<!-- MAIN ALPINE WRAPPER -->
+<div x-data="crmDashboard()" x-init="initApp()" class="pb-16 space-y-8" x-cloak>
+
+    <!-- ====================================================================================
+         HEADER & REAL-TIME CONTROLS
+         ==================================================================================== -->
+    <div class="flex flex-col md:flex-row justify-between md:items-end gap-4 bg-white p-6 md:p-8 rounded-[2rem] border border-gray-100 shadow-sm">
+        <div>
+            <h2 class="text-3xl font-black text-gray-900 tracking-tight">Mission Control Center</h2>
+            <p class="text-sm text-gray-500 font-medium mt-1">Pantau pergerakan mesin Broadcast dan efektivitas AI Auto-Reply secara Real-Time.</p>
+        </div>
+        <div class="flex items-center gap-4 bg-gray-50 p-2 rounded-2xl border border-gray-100">
+            <div class="px-4 py-2 flex flex-col items-end">
+                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Sinkronisasi Terakhir</span>
+                <span class="text-xs font-bold text-gray-900 font-mono" x-text="lastSyncTime">--:--:--</span>
+            </div>
+            <button @click="fetchData(true)" class="p-3 bg-white text-gray-900 hover:text-yellow-600 rounded-xl shadow-sm border border-gray-200 transition-all hover:scale-105 active:scale-95" title="Sinkronisasi Paksa">
+                <i data-lucide="refresh-cw" class="w-5 h-5" :class="isSyncing ? 'animate-spin text-yellow-500' : ''"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- ====================================================================================
+         1. TOP METRICS: CRM PERFORMANCE
+         ==================================================================================== -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        
+        <!-- Card 1: Total Blast (Hero Card) -->
+        <div class="bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-[2rem] p-8 text-white shadow-2xl relative overflow-hidden group">
+            <div class="absolute -right-16 -top-16 w-64 h-64 radar-sweep-bg opacity-30"></div>
+            <i data-lucide="send" class="absolute -right-4 -bottom-4 w-32 h-32 text-white opacity-[0.03] group-hover:scale-110 transition-transform duration-700"></i>
+            
+            <div class="relative z-10">
+                <div class="flex justify-between items-start mb-6">
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Pesan Tembus</p>
+                    <div class="w-8 h-8 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
+                        <i data-lucide="check-check" class="w-4 h-4 text-emerald-400"></i>
+                    </div>
+                </div>
+                <!-- Skeleton / Data -->
+                <div x-show="isInitialLoad" class="h-10 w-24 skeleton rounded-lg mb-2"></div>
+                <h2 x-show="!isInitialLoad" class="text-5xl font-black tracking-tighter" x-text="formatNum(stats.total_sent)">0</h2>
+                
+                <p class="text-[11px] text-gray-400 font-bold mt-4 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Sukses via MTProto & Bot
+                </p>
+            </div>
+        </div>
+
+        <!-- Card 2: Success Rate -->
+        <div class="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative flex flex-col justify-between">
+            <div>
+                <div class="flex justify-between items-start mb-4">
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tingkat Keberhasilan</p>
+                    <i data-lucide="target" class="w-5 h-5 text-gray-300"></i>
+                </div>
+                
+                <div x-show="isInitialLoad" class="h-10 w-20 skeleton rounded-lg mb-2"></div>
+                <div x-show="!isInitialLoad" class="flex items-end gap-2">
+                    <h2 class="text-4xl font-black text-gray-900 tracking-tighter" x-text="stats.success_rate + '%'">0%</h2>
+                </div>
+            </div>
+            
+            <div x-show="!isInitialLoad" class="mt-5">
+                <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden mb-2">
+                    <div class="h-full rounded-full transition-all duration-1000" 
+                         :class="stats.success_rate > 80 ? 'bg-emerald-500' : (stats.success_rate > 50 ? 'bg-yellow-500' : 'bg-red-500')"
+                         :style="`width: ${stats.success_rate}%`"></div>
+                </div>
+                <p class="text-[10px] font-bold text-gray-500">Dari total antrean yang dieksekusi</p>
+            </div>
+        </div>
+
+        <!-- Card 3: Active Campaigns -->
+        <div class="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative flex flex-col justify-between">
+            <div>
+                <div class="flex justify-between items-start mb-4">
+                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Kampanye Berjalan</p>
+                    <div class="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center border border-blue-100"><i data-lucide="radio" class="w-4 h-4 text-blue-500"></i></div>
+                </div>
+                
+                <div x-show="isInitialLoad" class="h-10 w-16 skeleton rounded-lg mb-2"></div>
+                <h2 x-show="!isInitialLoad" class="text-4xl font-black text-gray-900 tracking-tighter" x-text="stats.active_campaigns">0</h2>
+            </div>
+            <p x-show="!isInitialLoad" class="mt-5 text-[11px] font-bold text-blue-600 flex items-center gap-2 bg-blue-50 w-fit px-3 py-1.5 rounded-xl border border-blue-100">
+                <i data-lucide="zap" class="w-3.5 h-3.5"></i> Engine Sedang Aktif
+            </p>
+        </div>
+
+        <!-- Card 4: AI Auto-Reply -->
+        <div class="bg-gradient-to-br from-purple-50 to-white rounded-[2rem] p-8 border border-purple-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col justify-between">
+            <i data-lucide="bot" class="absolute -right-4 -bottom-4 w-24 h-24 text-purple-600 opacity-5"></i>
+            <div>
+                <div class="flex justify-between items-start mb-4">
+                    <p class="text-[10px] font-black text-purple-600/70 uppercase tracking-widest">Balasan AI (Gemini)</p>
+                    <div class="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center border border-purple-200"><i data-lucide="sparkles" class="w-4 h-4 text-purple-600"></i></div>
+                </div>
+                
+                <div x-show="isInitialLoad" class="h-10 w-24 skeleton rounded-lg mb-2"></div>
+                <h2 x-show="!isInitialLoad" class="text-4xl font-black text-purple-900 tracking-tighter" x-text="formatNum(stats.ai_hits)">0</h2>
+            </div>
+            <p x-show="!isInitialLoad" class="mt-5 text-[10px] font-bold text-purple-700 flex items-center gap-1.5">
+                <i data-lucide="message-square-dashed" class="w-3.5 h-3.5"></i> Total Interaksi Pelanggan
+            </p>
+        </div>
+    </div>
+
+    <!-- ====================================================================================
+         MAIN CONTENT: TABLE & SIDEBAR
+         ==================================================================================== -->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        
+        <!-- LEFT: CAMPAIGN STATUS TABLE (2/3 Width) -->
+        <div class="bg-white border border-gray-100 rounded-[2.5rem] shadow-sm xl:col-span-2 overflow-hidden flex flex-col min-h-[500px]">
+            <div class="p-8 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <div>
+                    <h2 class="text-xl font-black text-gray-900 tracking-tight">Status Kampanye Terkini</h2>
+                    <p class="text-xs text-gray-500 font-medium mt-1">Pantau Top 5 progres blast yang paling baru dieksekusi.</p>
+                </div>
+                <a href="/admin/crm/broadcast" class="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 font-black text-[10px] uppercase tracking-widest rounded-xl hover:bg-gray-900 hover:text-white hover:border-gray-900 transition-all shadow-sm flex items-center gap-2">
+                    Lihat Semua <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </a>
+            </div>
+
+            <div class="overflow-x-auto custom-scrollbar flex-1 p-2">
+                <table class="w-full text-left whitespace-nowrap">
+                    <thead>
+                        <tr class="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                            <th class="px-6 py-5">Nama Kampanye</th>
+                            <th class="px-6 py-5">Progress</th>
+                            <th class="px-6 py-5 text-center">Status</th>
+                            <th class="px-6 py-5 text-right">Target Kapasitas</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50 text-sm">
+                        
+                        <!-- Skeleton Table -->
+                        <template x-if="isInitialLoad">
+                            <template x-for="i in 5">
+                                <tr>
+                                    <td class="px-6 py-5"><div class="h-4 w-40 skeleton rounded"></div><div class="h-3 w-16 skeleton rounded mt-2"></div></td>
+                                    <td class="px-6 py-5"><div class="h-2 w-full skeleton rounded"></div></td>
+                                    <td class="px-6 py-5 flex justify-center"><div class="h-6 w-20 skeleton rounded-lg"></div></td>
+                                    <td class="px-6 py-5"><div class="h-4 w-12 skeleton rounded ml-auto"></div></td>
+                                </tr>
+                            </template>
+                        </template>
+
+                        <!-- Empty State -->
+                        <template x-if="!isInitialLoad && campaigns.length === 0">
+                            <tr>
+                                <td colspan="4" class="py-20 text-center">
+                                    <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                                        <i data-lucide="box" class="w-6 h-6 text-gray-300"></i>
+                                    </div>
+                                    <p class="text-sm font-black text-gray-900 uppercase tracking-widest">Belum Ada Aktivitas</p>
+                                    <p class="text-xs text-gray-400 mt-1 font-medium">Buka menu Broadcast Engine untuk memulai.</p>
+                                </td>
+                            </tr>
+                        </template>
+
+                        <!-- Real Data -->
+                        <template x-for="camp in campaigns" :key="camp.id">
+                            <tr class="hover:bg-gray-50/50 transition-colors">
+                                <td class="px-6 py-5">
+                                    <p class="font-black text-gray-900 text-sm truncate max-w-[200px]" x-text="camp.name"></p>
+                                    <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1" x-text="'Via ' + camp.type"></p>
+                                </td>
+                                <td class="px-6 py-5 w-56">
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden shadow-inner">
+                                            <div class="h-full bg-gray-900 rounded-full transition-all duration-1000 ease-out" :style="`width: ${camp.progress}%`"></div>
+                                        </div>
+                                        <span class="text-[11px] font-black text-gray-900 w-8" x-text="camp.progress + '%'"></span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-5 text-center">
+                                    <span class="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border"
+                                          :class="{
+                                              'bg-blue-50 text-blue-700 border-blue-200 animate-pulse-soft': camp.status === 'RUNNING',
+                                              'bg-amber-50 text-amber-700 border-amber-200 animate-pulse-soft': camp.status === 'RESTING',
+                                              'bg-emerald-50 text-emerald-700 border-emerald-200': camp.status === 'COMPLETED',
+                                              'bg-gray-100 text-gray-600 border-gray-200': camp.status === 'PENDING',
+                                              'bg-red-50 text-red-700 border-red-200': camp.status === 'FAILED',
+                                              'bg-gray-800 text-white border-gray-900': camp.status === 'STOPPED'
+                                          }" x-text="camp.status"></span>
+                                </td>
+                                <td class="px-6 py-5 text-right font-black text-gray-700 text-xs">
+                                    <span x-text="formatNum(camp.total_target)"></span> <span class="text-[10px] text-gray-400 font-medium ml-1">Akun</span>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- RIGHT: MTPROTO CONNECTION & LOGS (1/3 Width) -->
+        <div class="space-y-6">
+            
+            <!-- Connection Status Card -->
+            <div class="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex flex-col items-center text-center relative overflow-hidden">
+                <div x-show="isInitialLoad" class="absolute inset-0 bg-white z-10 flex flex-col items-center justify-center p-8">
+                    <div class="w-20 h-20 skeleton rounded-[2rem] mb-4"></div>
+                    <div class="h-6 w-32 skeleton rounded mb-2"></div>
+                    <div class="h-4 w-24 skeleton rounded"></div>
+                </div>
+
+                <div class="w-20 h-20 rounded-[2rem] mb-5 flex items-center justify-center relative transition-colors duration-500"
+                     :class="mtproto.online ? 'bg-emerald-50 text-emerald-500 border border-emerald-100' : 'bg-red-50 text-red-500 border border-red-100'">
+                    <i :data-lucide="mtproto.online ? 'smartphone-nfc' : 'smartphone-off'" class="w-8 h-8"></i>
+                    <!-- Online Ping Indicator -->
+                    <div x-show="mtproto.online" class="absolute -top-1 -right-1 flex h-6 w-6">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-6 w-6 bg-emerald-500 border-4 border-white"></span>
+                    </div>
+                </div>
+                
+                <h3 class="text-xl font-black text-gray-900 tracking-tight">Status Mesin MTProto</h3>
+                <p class="text-xs font-medium mt-1 mb-6 px-4 py-1.5 rounded-lg border"
+                   :class="mtproto.online ? 'text-emerald-700 bg-emerald-50 border-emerald-100' : 'text-red-700 bg-red-50 border-red-100'"
+                   x-text="mtproto.online ? 'Userbot Admin Sedang Online' : 'Koneksi Terputus!'"></p>
+                
+                <div class="w-full pt-6 border-t border-gray-100 flex justify-between items-center">
+                    <div class="text-left">
+                        <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Nomor Aktif</p>
+                        <p class="text-sm font-bold text-gray-900 font-mono tracking-wider mt-0.5" x-text="mtproto.online ? mtproto.phone : 'TIDAK ADA'"></p>
+                    </div>
+                    <a href="/admin/settings" class="w-10 h-10 bg-gray-50 hover:bg-gray-900 hover:text-white text-gray-500 rounded-xl flex items-center justify-center transition-colors border border-gray-200">
+                        <i data-lucide="settings" class="w-4 h-4"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Recent Activity Mini Log -->
+            <div class="bg-gray-900 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden h-[350px] flex flex-col">
+                <i data-lucide="terminal" class="absolute -right-4 -bottom-4 w-32 h-32 text-gray-800 opacity-50"></i>
+                
+                <div class="flex items-center justify-between mb-6 relative z-10 shrink-0">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-gray-800 rounded-xl border border-gray-700"><i data-lucide="activity" class="w-4 h-4 text-emerald-400"></i></div>
+                        <h3 class="text-xs font-black uppercase tracking-widest text-gray-300">Live Terminal Logs</h3>
+                    </div>
+                    <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                </div>
+
+                <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-5 relative z-10">
+                    
+                    <template x-if="isInitialLoad">
+                        <div class="space-y-4">
+                            <div class="h-4 w-full bg-gray-800 rounded animate-pulse"></div>
+                            <div class="h-4 w-3/4 bg-gray-800 rounded animate-pulse"></div>
+                            <div class="h-4 w-5/6 bg-gray-800 rounded animate-pulse"></div>
+                        </div>
+                    </template>
+
+                    <template x-if="!isInitialLoad && logs.length === 0">
+                        <div class="text-center pt-10">
+                            <p class="text-xs text-gray-500 font-mono">_ No recent activities _</p>
+                        </div>
+                    </template>
+
+                    <template x-for="log in logs" :key="log.id">
+                        <div class="flex gap-4 items-start group">
+                            <div class="w-2 h-2 rounded-full mt-1.5 shrink-0 shadow-[0_0_8px_currentColor]" 
+                                 :class="log.type === 'SUCCESS' ? 'bg-emerald-400 text-emerald-400' : 'bg-red-500 text-red-500'"></div>
+                            <div>
+                                <!-- Highlight keyword tertentu biar nggak teknis banget -->
+                                <p class="text-xs font-medium text-gray-300 leading-relaxed font-mono" x-html="highlightLogMsg(log.msg, log.type)"></p>
+                                <p class="text-[9px] text-gray-500 font-bold uppercase mt-1.5" x-text="timeAgo(log.time_iso)"></p>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ====================================================================================
+     ALPINE JS LOGIC CORE (REAL-TIME POLLING)
+     ==================================================================================== -->
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('crmDashboard', () => ({
+            stats: { total_sent: 0, success_rate: 0, active_campaigns: 0, ai_hits: 0 },
+            campaigns: [],
+            logs: [],
+            mtproto: { online: false, phone: '' },
+            
+            isInitialLoad: true,
+            isSyncing: false,
+            lastSyncTime: '--:--:--',
+            pollInterval: null,
+
+            async initApp() {
+                await this.fetchData(false);
+                this.isInitialLoad = false;
+                
+                // Real-time polling setiap 10 detik
+                this.pollInterval = setInterval(() => {
+                    this.fetchData(false);
+                }, 10000);
+
+                setTimeout(() => { if(typeof lucide !== 'undefined') lucide.createIcons(); }, 100);
+            },
+
+            // Clean up memory pas pindah halaman
+            destroy() {
+                if(this.pollInterval) clearInterval(this.pollInterval);
+            },
+
+            async fetchData(isManualSync = false) {
+                if(isManualSync) this.isSyncing = true;
+                
+                try {
+                    // Minta data ke backend (dashboard.py / stats endpoint)
+                    const res = await fetch('/admin/crm/api/stats');
+                    if (res.ok) {
+                        const response = await res.json();
+                        
+                        if(response.status === 'success') {
+                            this.stats = response.metrics || this.stats;
+                            this.campaigns = response.campaigns || [];
+                            this.logs = response.recent_logs || [];
+                            this.mtproto = response.connection || this.mtproto;
+                            
+                            // Update jam sinkronisasi terakhir
+                            const now = new Date();
+                            this.lastSyncTime = now.getHours().toString().padStart(2,'0') + ':' + 
+                                                now.getMinutes().toString().padStart(2,'0') + ':' + 
+                                                now.getSeconds().toString().padStart(2,'0');
+
+                            if(isManualSync) this.notify('success', 'Data berhasil disinkronisasi dengan server.');
+                        }
+                    }
+                } catch(e) {
+                    if(isManualSync) this.notify('error', 'Gagal menghubungi database server.');
+                } finally {
+                    if(isManualSync) {
+                        setTimeout(() => { this.isSyncing = false; }, 500);
+                    }
+                }
+            },
+
+            // --- UTILITIES ---
+            formatNum(n) { return new Intl.NumberFormat('id-ID').format(n || 0); },
+            
+            // Mengubah log teknis jadi lebih enak dibaca dan ada warnanya
+            highlightLogMsg(text, type) {
+                if(!text) return '';
+                if(type === 'SUCCESS') {
+                    return text.replace(/target:\s*([^\s]+)/, 'target: <strong class="text-emerald-300">$1</strong>');
+                } else {
+                    // Extract error text
+                    return text.replace(/\((.*?)\)/, '<span class="text-red-300 font-bold bg-red-500/10 px-1 rounded">$1</span>');
+                }
+            },
+
+            // Mengubah format ISO Date ke "X menit lalu"
+            timeAgo(dateString) {
+                if (!dateString) return 'Waktu tidak diketahui';
+                try {
+                    // Hapus Z timezone info buat kompatibilitas browser
+                    const cleanDate = dateString.replace('Z', '').split('+')[0];
+                    const date = new Date(cleanDate + 'Z'); // Paksa baca as UTC
+                    const now = new Date();
+                    
+                    const seconds = Math.floor((now - date) / 1000);
+                    const minutes = Math.floor(seconds / 60);
+                    const hours = Math.floor(minutes / 60);
+                    const days = Math.floor(hours / 24);
+
+                    if (seconds < 60) return 'Baru saja';
+                    if (minutes < 60) return `${minutes} mnt lalu`;
+                    if (hours < 24) return `${hours} jam lalu`;
+                    if (days === 1) return 'Kemarin';
+                    return `${days} hari lalu`;
+                } catch(e) {
+                    return dateString.substring(11, 16); // Fallback: return just the time HH:MM
+                }
+            },
+
+            notify(type, msg) {
+                const id = Date.now();
+                this.toasts.push({ id, type, msg });
+                setTimeout(() => { this.toasts = this.toasts.filter(t => t.id !== id); }, 5000);
+            }
+        }));
+    });
+</script>
+{% endblock %}

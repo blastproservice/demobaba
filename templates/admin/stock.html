@@ -60,7 +60,7 @@
         <button onclick="filterTable('WOMAN', this)" class="filter-btn px-4 py-1.5 bg-white text-gray-600 border border-gray-200 hover:border-pink-500 hover:text-pink-600 rounded-full text-xs font-semibold transition-all">Woman</button>
         <button onclick="filterTable('NETRAL', this)" class="filter-btn px-4 py-1.5 bg-white text-gray-600 border border-gray-200 hover:border-purple-500 hover:text-purple-600 rounded-full text-xs font-semibold transition-all">Netral</button>
         <div class="h-4 w-px bg-gray-300 mx-1"></div>
-        <button onclick="filterTable('TOP_SELLER', this)" class="filter-btn px-4 py-1.5 bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100 rounded-full text-xs font-bold transition-all flex items-center gap-1">
+        <button onclick="filterTable('TOP SELLER', this)" class="filter-btn px-4 py-1.5 bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100 rounded-full text-xs font-bold transition-all flex items-center gap-1">
             <span>🔥</span> Top Seller
         </button>
     </div>
@@ -692,7 +692,7 @@
         document.getElementById('edit_image_preview').src = this.value || 'https://placehold.co/100x100/eee/999?text=No+Img';
     });
 
-    // --- LOGIKA STOK MANAGER (TETAP SAMA) ---
+    // --- LOGIKA STOK MANAGER ---
     function calculateStock() {
         const action = document.querySelector('input[name="stock_action"]:checked').value;
         const adjArea = document.getElementById('stock_adjustment_area');
@@ -742,7 +742,6 @@
             return; // Stop submission
         }
         
-        // Kalau lolos, submit formnya
         document.getElementById('form-edit').submit();
     }
 
@@ -753,33 +752,68 @@
         openModal('modal-delete');
     }
 
-    // --- 5. LOGIKA FILTER & SEARCH (REALTIME FRONTEND) ---
+    // --- 5. LOGIKA FILTER & SEARCH (NEW ENTERPRISE EXACT MATCH) ---
     function filterTable(category, btnElement) {
-        // Update UI Buttons
+        // 1. Reset Style Semua Tombol Filter
         document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.classList.remove('bg-gray-900', 'text-white');
-            btn.classList.add('bg-white', 'text-gray-600');
+            btn.classList.remove('bg-gray-900', 'text-white', 'bg-amber-500', 'text-white');
+            if(btn.innerText.includes('Top Seller')) {
+                btn.classList.add('bg-amber-50', 'text-amber-600');
+            } else {
+                btn.classList.add('bg-white', 'text-gray-600');
+            }
         });
-        btnElement.classList.remove('bg-white', 'text-gray-600');
-        btnElement.classList.add('bg-gray-900', 'text-white');
+        
+        // 2. Set Style Tombol yang Diklik
+        btnElement.classList.remove('bg-white', 'text-gray-600', 'bg-amber-50', 'text-amber-600');
+        if(category === 'TOP SELLER') {
+             btnElement.classList.add('bg-amber-500', 'text-white');
+        } else {
+             btnElement.classList.add('bg-gray-900', 'text-white');
+        }
 
-        // Logic Filter
+        // 3. Logic Eksekusi Filter
         const rows = document.querySelectorAll('.product-row');
-        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
         let visibleCount = 0;
 
         rows.forEach(row => {
-            const rowCat = row.getAttribute('data-category');
-            const rowName = row.getAttribute('data-name');
+            // Ambil dan bersihkan data dari elemen HTML
+            const rowCatString = row.getAttribute('data-category') || '';
             
-            // Cek Kategori
-            let matchCategory = false;
-            if (category === 'ALL') matchCategory = true;
-            else if (rowCat.includes(category)) matchCategory = true;
+            // Ubah string kategori ("MAN TOP SELLER") jadi Array ['MAN', 'TOP', 'SELLER']
+            // Terus kita pecah berdasarkan koma (kalau ada) atau spasi
+            const rawTags = rowCatString.split(/[\s,]+/); 
             
-            // Cek Search
-            let matchSearch = rowName.includes(searchTerm);
+            // Bersihkan array dari string kosong dan jadikan uppercase
+            const cleanTags = rawTags.filter(t => t.trim() !== '').map(t => t.trim().toUpperCase());
+            
+            // Perlakuan khusus buat Top Seller karena terdiri dari 2 kata
+            // Kalo ada kata TOP dan SELLER, gabungin jadi satu elemen array
+            if(cleanTags.includes('TOP') && cleanTags.includes('SELLER')) {
+                cleanTags.push('TOP SELLER');
+            }
 
+            const rowName = (row.getAttribute('data-name') || '').toLowerCase();
+            
+            // Cek Kategori (EXACT MATCH / PENCARIAN PRESISI)
+            let matchCategory = false;
+            
+            if (category === 'ALL') {
+                matchCategory = true;
+            } else {
+                // Di sinilah magisnya terjadi. 'MAN' cuma cocok sama 'MAN', 
+                // 'WOMAN' cuma cocok sama 'WOMAN'. Nggak tumpang tindih.
+                matchCategory = cleanTags.includes(category);
+            }
+            
+            // Cek Search Input
+            let matchSearch = true; // Default true kalau input kosong
+            if(searchTerm !== '') {
+                matchSearch = rowName.includes(searchTerm);
+            }
+
+            // Eksekusi Tampilan (Harus lolos kategori DAN pencarian)
             if (matchCategory && matchSearch) {
                 row.classList.remove('hidden-force');
                 visibleCount++;
@@ -788,8 +822,11 @@
             }
         });
 
-        // Handle Empty State & Counter
-        document.getElementById('totalItemCount').innerText = visibleCount;
+        // 4. Update Counter di Bawah
+        const counterEl = document.getElementById('totalItemCount');
+        if(counterEl) counterEl.innerText = visibleCount;
+        
+        // 5. Handle State Kosong (Gak ada data)
         const emptyState = document.getElementById('emptyStateRow');
         if (emptyState) {
             if (visibleCount === 0) emptyState.classList.remove('hidden-force');
@@ -799,20 +836,25 @@
 
     // Listener buat Search Bar (Ketik langsung filter)
     document.getElementById('searchInput').addEventListener('input', function() {
-        // Cari tombol filter mana yang lagi aktif
-        const activeBtn = document.querySelector('.filter-btn.bg-gray-900');
+        // Cari tombol filter mana yang lagi aktif (bisa item atau oren buat top seller)
+        const activeBtn = document.querySelector('.filter-btn.bg-gray-900') || document.querySelector('.filter-btn.bg-amber-500');
+        
         let activeCategory = 'ALL';
         
-        // Deteksi kategori dari text tombol
-        if(activeBtn.innerText.includes('Man')) activeCategory = 'MAN';
-        if(activeBtn.innerText.includes('Woman')) activeCategory = 'WOMAN';
-        if(activeBtn.innerText.includes('Netral')) activeCategory = 'NETRAL';
-        if(activeBtn.innerText.includes('Top Seller')) activeCategory = 'TOP_SELLER';
+        // Kalo ada tombol aktif, baca labelnya
+        if(activeBtn) {
+            const btnText = activeBtn.innerText.toUpperCase();
+            if(btnText.includes('MAN') && !btnText.includes('WOMAN')) activeCategory = 'MAN';
+            else if(btnText.includes('WOMAN')) activeCategory = 'WOMAN';
+            else if(btnText.includes('NETRAL')) activeCategory = 'NETRAL';
+            else if(btnText.includes('TOP SELLER')) activeCategory = 'TOP SELLER';
+        }
 
-        filterTable(activeCategory, activeBtn);
+        // Panggil ulang fungsi filter utama
+        filterTable(activeCategory, activeBtn || document.querySelector('.filter-btn')); 
     });
 
-    // Close modal if clicked outside
+    // Cek klik di luar modal (buat tutup modal otomatis)
     window.onclick = function(event) {
         if (event.target == backdrop) {
             document.querySelectorAll('.modal-content').forEach(el => {

@@ -1,233 +1,447 @@
-<!DOCTYPE html>
-<html lang="id" class="scroll-smooth bg-gray-50">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#facc15">
-    <title>Profil BABA - {{ customer.full_name | default('Pelanggan') }}</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+{% extends "customer/base.html" %}
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        brand: { 50: '#fefce8', 100: '#fef9c3', 400: '#facc15', 500: '#eab308', 600: '#ca8a04', 900: '#713f12', dark: '#0B1121' }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
-        .custom-scrollbar::-webkit-scrollbar { display: none; }
-        .glass-header { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-        [x-cloak] { display: none !important; }
-    </style>
-</head>
-<body class="font-sans text-gray-800 antialiased bg-gray-50 min-h-screen flex flex-col relative pb-24" x-data="customerProfile()">
+{% block content %}
 
-    <header class="glass-header sticky top-0 z-40 border-b border-gray-100 px-5 py-4 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-            <div class="w-9 h-9 bg-brand-500 rounded-full flex items-center justify-center shadow-lg shadow-brand-500/30">
-                <i data-lucide="user" class="w-5 h-5 text-brand-900"></i>
-            </div>
-            <div>
-                <h1 class="text-lg font-black text-gray-900 leading-none tracking-tight">Profil Saya</h1>
-            </div>
-        </div>
-        <a href="/" class="p-2 bg-gray-100 text-gray-600 rounded-full active:scale-95 transition-transform">
-            <i data-lucide="x" class="w-5 h-5"></i>
-        </a>
-    </header>
+    <!-- INJECT DATA DARI BACKEND -->
+    <script id="profile-customer-data" type="application/json">{{ customer | tojson | safe }}</script>
+    <script id="profile-stats-data" type="application/json">{{ stats | tojson | safe }}</script>
+    <script id="profile-orders-data" type="application/json">{{ orders | tojson | safe }}</script>
 
-    <main class="flex-1 px-5 pt-6 pb-10 space-y-6 max-w-lg mx-auto w-full">
+    <!-- WRAPPER ALPINE UNTUK PROFILE (Nested Scope: otomatis wariskan state dari base.html) -->
+    <div x-data="customerProfile()" x-init="initProfile()" class="space-y-8 animate-fade-in-up mt-2">
         
-        <div class="bg-gradient-to-br from-brand-dark to-black rounded-[2rem] p-6 shadow-xl relative overflow-hidden text-white">
-            <div class="absolute -right-10 -top-10 w-40 h-40 bg-brand-500/20 rounded-full blur-3xl"></div>
-            
-            <div class="relative z-10 flex flex-col items-center text-center">
-                <div class="w-20 h-20 bg-gradient-to-tr from-brand-400 to-brand-600 rounded-full p-1 shadow-[0_0_20px_rgba(234,179,8,0.3)] mb-3">
-                    <img src="https://ui-avatars.com/api/?name={{ customer.full_name | replace(' ', '+') if customer else 'User' }}&background=0B1121&color=facc15&bold=true&size=128" alt="Avatar" class="w-full h-full rounded-full object-cover border-2 border-brand-900">
+        <!-- HEADER PENGGANTI (Biar menyatu sama content base.html) -->
+        <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gray-900 rounded-[1rem] flex items-center justify-center shadow-md">
+                    <i data-lucide="user" class="w-5 h-5 text-yellow-400"></i>
                 </div>
-                
-                <h2 class="text-2xl font-black tracking-tight mb-1">{{ customer.full_name | default('Pelanggan BABA') }}</h2>
-                <div class="flex items-center justify-center gap-1.5 text-xs font-bold text-brand-400 bg-brand-900/50 px-3 py-1 rounded-full border border-brand-500/30">
-                    <i data-lucide="send" class="w-3.5 h-3.5"></i> @{{ customer.username | default('telegram_user') }}
+                <div>
+                    <h2 class="text-xl font-black text-gray-900 leading-none tracking-tight">Akun Saya</h2>
+                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">BABA Member</p>
+                </div>
+            </div>
+            <button @click="openSettings()" class="w-10 h-10 bg-white text-gray-600 rounded-full flex items-center justify-center active:scale-90 transition-transform shadow-sm border border-gray-200">
+                <i data-lucide="settings" class="w-4 h-4"></i>
+            </button>
+        </div>
+
+        <!-- 1. VIP ID CARD (DARK MODE) -->
+        <div class="bg-gradient-to-br from-gray-900 to-black rounded-[2rem] p-6 text-white relative overflow-hidden shadow-2xl border border-gray-800">
+            <div class="absolute -right-10 -top-10 w-48 h-48 bg-yellow-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <i data-lucide="award" class="absolute -left-6 -bottom-6 w-32 h-32 text-white opacity-5 pointer-events-none"></i>
+            
+            <div class="relative z-10 flex items-center gap-5 mb-10">
+                <!-- Avatar (Narik tgUser dari base.html) -->
+                <div class="relative shrink-0 shadow-lg rounded-[1.2rem]">
+                    <img :src="tgUser.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(customer.full_name || 'BABA')}&background=facc15&color=0f172a&bold=true&size=128`" 
+                         class="w-20 h-20 rounded-[1.2rem] object-cover border-2 border-yellow-400/50" onerror="this.src='https://ui-avatars.com/api/?name=BABA&background=facc15&color=0f172a'">
+                    <div class="absolute -bottom-2 -right-2 bg-emerald-500 text-white text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded border-2 border-gray-900">Aktif</div>
+                </div>
+
+                <!-- Info -->
+                <div class="flex-1 min-w-0">
+                    <h2 class="text-2xl font-black tracking-tight leading-tight truncate mb-1" x-text="customer.full_name || tgUser.first_name || 'Pelanggan BABA'"></h2>
+                    <p class="text-[11px] font-medium text-yellow-400 flex items-center gap-1.5 mb-3">
+                        <i data-lucide="at-sign" class="w-3.5 h-3.5"></i> <span class="truncate" x-text="customer.username || tgUser.username || customer.telegram_id"></span>
+                    </p>
+                    <div class="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur px-3 py-1.5 rounded-lg border border-white/10">
+                        <i data-lucide="crown" class="w-3 h-3 text-yellow-400"></i>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-yellow-100" x-text="stats.total_orders >= 3 ? 'VIP MEMBER' : 'REGULAR MEMBER'"></span>
+                    </div>
                 </div>
             </div>
 
-            <div class="mt-6 pt-5 border-t border-gray-800 grid grid-cols-2 gap-4 relative z-10">
-                <div class="text-center">
-                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Total Pesanan</p>
-                    <p class="text-2xl font-black text-white">{{ stats.total_orders | default('0') }} <span class="text-xs text-gray-500 font-medium">Kali</span></p>
+            <!-- Stats Divider -->
+            <div class="absolute bottom-0 left-0 right-0 bg-gray-900/50 border-t border-gray-800 grid grid-cols-2 px-6 py-4 backdrop-blur-md">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center border border-yellow-500/30">
+                        <i data-lucide="shopping-bag" class="w-4 h-4 text-yellow-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-2xl font-black text-white leading-none"><span x-text="stats.total_orders || 0"></span></p>
+                        <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Kali Order</p>
+                    </div>
                 </div>
-                <div class="text-center border-l border-gray-800">
-                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Koleksi Parfum</p>
-                    <p class="text-2xl font-black text-brand-400">{{ stats.total_bottles | default('0') }} <span class="text-xs text-gray-500 font-medium">Botol</span></p>
+                <div class="flex items-center gap-3 border-l border-gray-700/50 pl-6">
+                    <div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
+                        <i data-lucide="droplet" class="w-4 h-4 text-blue-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-2xl font-black text-white leading-none"><span x-text="totalBottles"></span></p>
+                        <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Botol Parfum</p>
+                    </div>
                 </div>
             </div>
         </div>
 
+        <!-- 2. BABA LOYALTY HUB -->
         <div>
-            <h3 class="text-sm font-black text-gray-900 uppercase tracking-widest mb-3 flex items-center gap-2">
-                <i data-lucide="map-pin" class="w-4 h-4 text-brand-500"></i> Info Pengiriman
-            </h3>
-            <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm space-y-4">
-                <div class="flex items-start gap-3">
-                    <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 shrink-0 mt-0.5">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-[16px] font-black text-gray-900 tracking-tight flex items-center gap-2">
+                    <i data-lucide="gift" class="w-5 h-5 text-amber-500"></i> Loyalty Hub
+                </h3>
+                <button @click="showToast('Setiap beli 1 parfum dapet 100 Poin!', 'info')" class="w-6 h-6 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center active:scale-90"><i data-lucide="help-circle" class="w-3.5 h-3.5"></i></button>
+            </div>
+
+            <div class="bg-gradient-to-br from-yellow-400 to-amber-500 rounded-[2rem] p-6 shadow-soft relative overflow-hidden border border-yellow-300">
+                <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-white/20 rounded-full blur-2xl"></div>
+                <i data-lucide="coins" class="absolute -right-2 top-4 w-20 h-20 text-yellow-600/30 rotate-12"></i>
+                
+                <div class="relative z-10 flex justify-between items-end mb-5">
+                    <div>
+                        <p class="text-[10px] font-black text-amber-900/70 uppercase tracking-widest mb-1">Poin Aktif Kamu</p>
+                        <h2 class="text-5xl font-black text-gray-900 tracking-tighter" x-text="loyaltyPoints"></h2>
+                    </div>
+                </div>
+
+                <!-- Reward List Horizontal Scroll -->
+                <div class="flex overflow-x-auto hide-scrollbar space-x-3 -mx-6 px-6 pb-2">
+                    <template x-for="reward in rewards" :key="reward.id">
+                        <div class="shrink-0 w-[180px] bg-white/90 backdrop-blur rounded-[1.2rem] p-4 shadow-sm border border-white/50 relative flex flex-col h-full">
+                            <div class="w-10 h-10 bg-yellow-50 rounded-xl flex items-center justify-center mb-3 text-yellow-600 border border-yellow-100">
+                                <i :data-lucide="reward.icon" class="w-5 h-5"></i>
+                            </div>
+                            <h4 class="text-[12px] font-black text-gray-900 leading-tight mb-1" x-text="reward.name"></h4>
+                            <p class="text-[10px] font-bold text-gray-500 mb-4" x-text="reward.desc"></p>
+                            
+                            <div class="mt-auto pt-3 border-t border-gray-100 flex items-center justify-between">
+                                <span class="text-[11px] font-black text-yellow-600" x-text="reward.cost + ' Pts'"></span>
+                                <button @click="redeemReward(reward)" 
+                                        :class="loyaltyPoints >= reward.cost ? 'bg-gray-900 text-yellow-400 hover:bg-black' : 'bg-gray-100 text-gray-400'"
+                                        class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors active:scale-95 shadow-sm">
+                                    Tukar
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. INFO PENGIRIMAN -->
+        <div>
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-[16px] font-black text-gray-900 tracking-tight flex items-center gap-2">
+                    <i data-lucide="map-pin" class="w-5 h-5 text-blue-500"></i> Info Pengiriman
+                </h3>
+                <button @click="openSettings()" class="text-[10px] font-black text-blue-500 uppercase tracking-widest">Edit</button>
+            </div>
+
+            <div class="bg-white rounded-[1.5rem] p-5 border border-gray-200 shadow-soft space-y-5">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-[1rem] bg-blue-50 flex items-center justify-center text-blue-500 shrink-0 border border-blue-100">
                         <i data-lucide="phone" class="w-4 h-4"></i>
                     </div>
-                    <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Nomor HP / WhatsApp</p>
-                        <p class="text-sm font-bold text-gray-900">{{ customer.phone | default('Belum diatur') }}</p>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Nomor Kontak (WhatsApp)</p>
+                        <p class="text-[13px] font-bold text-gray-900 truncate" x-text="customer.phone || 'Belum diatur'"></p>
                     </div>
                 </div>
-                <div class="flex items-start gap-3">
-                    <div class="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 shrink-0 mt-0.5">
+                <div class="w-full h-px bg-gray-100"></div>
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-[1rem] bg-orange-50 flex items-center justify-center text-orange-500 shrink-0 border border-orange-100">
                         <i data-lucide="home" class="w-4 h-4"></i>
                     </div>
-                    <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Alamat Utama</p>
-                        <p class="text-sm font-bold text-gray-800 leading-relaxed">{{ customer.default_address | default('Belum ada alamat pengiriman default.') }}</p>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Alamat Tujuan Utama</p>
+                        <p class="text-[13px] font-bold text-gray-800 leading-relaxed" x-text="customer.default_address || 'Belum ada alamat pengiriman. Silakan perbarui di Pengaturan.'"></p>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- 4. RIWAYAT PESANAN -->
         <div>
-            <h3 class="text-sm font-black text-gray-900 uppercase tracking-widest mb-3 flex items-center gap-2">
-                <i data-lucide="sparkles" class="w-4 h-4 text-brand-500"></i> Rekam Jejak Aroma
-            </h3>
-            <div class="bg-gradient-to-r from-brand-50 to-orange-50 rounded-2xl p-5 border border-brand-100 shadow-sm">
-                <p class="text-xs text-gray-600 font-medium mb-3 leading-relaxed">Berdasarkan koleksi parfum kamu, BABA AI mendeteksi kamu paling suka dengan aroma bernuansa:</p>
-                <div class="flex flex-wrap gap-2">
-                    {% if stats.favorite_tags %}
-                        {% for tag in stats.favorite_tags %}
-                        <span class="px-3 py-1.5 bg-white border border-brand-200 text-brand-700 text-xs font-black rounded-full shadow-sm">#{{ tag }}</span>
-                        {% endfor %}
-                    {% else %}
-                        <span class="px-3 py-1 bg-white border border-gray-200 text-gray-500 text-xs font-bold rounded-full shadow-sm">Belum ada data aroma</span>
-                    {% endif %}
-                </div>
-                <div class="mt-4 pt-3 border-t border-brand-200/50 flex justify-end">
-                    <a href="/cs" class="text-[10px] font-black text-brand-700 uppercase tracking-widest flex items-center gap-1 hover:text-brand-900">
-                        Minta Rekomendasi AI <i data-lucide="arrow-right" class="w-3 h-3"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <div>
-            <h3 class="text-sm font-black text-gray-900 uppercase tracking-widest mb-3 flex items-center gap-2">
-                <i data-lucide="history" class="w-4 h-4 text-brand-500"></i> Riwayat Pesanan
+            <h3 class="text-[16px] font-black text-gray-900 tracking-tight mb-4 flex items-center gap-2">
+                <i data-lucide="shopping-bag" class="w-5 h-5 text-emerald-500"></i> Riwayat Pesanan
             </h3>
             
-            <div class="space-y-3">
-                {% if orders %}
-                    {% for order in orders %}
-                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden" x-data="{ expanded: false }">
+            <div class="space-y-4">
+                <template x-if="ordersList.length === 0">
+                    <div class="bg-white border border-dashed border-gray-300 rounded-[2rem] p-8 flex flex-col items-center text-center shadow-sm">
+                        <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100">
+                            <i data-lucide="receipt" class="w-7 h-7 text-gray-300"></i>
+                        </div>
+                        <h4 class="text-[15px] font-black text-gray-900 mb-1">Belum Ada Pesanan</h4>
+                        <p class="text-[12px] text-gray-500 mb-5 font-medium px-4">Kamu belum punya riwayat pembelian parfum di BABA.</p>
+                        <a href="/" class="px-6 py-3.5 bg-gray-900 text-yellow-400 text-[12px] font-black rounded-xl shadow-lg hover:shadow-xl active:scale-95 transition-all">Eksplorasi Katalog</a>
+                    </div>
+                </template>
+
+                <template x-for="order in ordersList" :key="order.id">
+                    <div class="bg-white rounded-[1.5rem] border border-gray-200 shadow-soft overflow-hidden" x-data="{ expanded: false }">
                         <button @click="expanded = !expanded" class="w-full px-5 py-4 flex items-center justify-between bg-white hover:bg-gray-50 transition-colors focus:outline-none text-left">
-                            <div>
-                                <div class="flex items-center gap-2 mb-1">
-                                    <span class="text-xs font-black text-gray-900 font-mono">{{ order.order_number }}</span>
+                            <div class="flex-1 pr-4">
+                                <div class="flex items-center gap-2 mb-1.5">
+                                    <span class="text-[13px] font-black text-gray-900" x-text="order.order_number"></span>
                                     
-                                    {% if order.status|lower == 'selesai' %}
-                                        <span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-black rounded uppercase">Selesai</span>
-                                    {% elif order.status|lower == 'dibatalkan' %}
-                                        <span class="px-2 py-0.5 bg-red-100 text-red-700 text-[9px] font-black rounded uppercase">Batal</span>
-                                    {% elif order.status|lower == 'dikirim' %}
-                                        <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-[9px] font-black rounded uppercase">Dikirim</span>
-                                    {% else %}
-                                        <span class="px-2 py-0.5 bg-orange-100 text-orange-700 text-[9px] font-black rounded uppercase">Diproses</span>
-                                    {% endif %}
+                                    <template x-if="order.status.toLowerCase() === 'selesai'">
+                                        <span class="px-2 py-1 bg-emerald-50 text-emerald-600 text-[8px] font-black rounded-md uppercase tracking-widest border border-emerald-100">Selesai</span>
+                                    </template>
+                                    <template x-if="order.status.toLowerCase() === 'dibatalkan'">
+                                        <span class="px-2 py-1 bg-red-50 text-red-600 text-[8px] font-black rounded-md uppercase tracking-widest border border-red-100">Batal</span>
+                                    </template>
+                                    <template x-if="order.status.toLowerCase() === 'menunggu pembayaran'">
+                                        <span class="px-2 py-1 bg-orange-50 text-orange-600 text-[8px] font-black rounded-md uppercase tracking-widest border border-orange-100">Diproses</span>
+                                    </template>
                                 </div>
-                                <p class="text-[10px] text-gray-500 font-bold flex items-center gap-1">
-                                    <i data-lucide="calendar" class="w-3 h-3"></i> {{ order.created_at | datetime }}
-                                </p>
+                                <div class="flex items-center justify-between">
+                                    <p class="text-[10px] text-gray-400 font-bold flex items-center gap-1">
+                                        <i data-lucide="calendar" class="w-3 h-3"></i> <span x-text="formatDate(order.created_at)"></span>
+                                    </p>
+                                    <p class="text-[12px] font-black text-emerald-600" x-text="formatMoney(order.total_amount)"></p>
+                                </div>
                             </div>
-                            <div class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 transition-transform duration-300" :class="expanded ? 'rotate-180' : ''">
-                                <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                            <div class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 transition-transform duration-300 border border-gray-100 shrink-0" :class="expanded ? 'rotate-180 bg-gray-200 text-gray-800' : ''">
+                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
                             </div>
                         </button>
 
-                        <div x-show="expanded" x-collapse x-cloak>
-                            <div class="px-5 pb-4 pt-1 border-t border-dashed border-gray-100 bg-gray-50/50 space-y-3">
-                                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2 mb-2">Item yang Dibeli:</p>
+                        <div x-show="expanded" x-collapse>
+                            <div class="px-5 pb-5 pt-3 border-t border-dashed border-gray-200 bg-gray-50/50 space-y-3">
+                                <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-3">Item yang Dibeli:</p>
                                 
-                                {% for item in order.items %}
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 rounded-xl bg-white border border-gray-200 overflow-hidden shrink-0 shadow-sm p-1">
-                                            <img src="{{ item.image_url }}" alt="Parfum" class="w-full h-full object-cover rounded-lg">
+                                <template x-for="item in order.items" :key="item.id">
+                                    <div class="flex items-center justify-between bg-white p-3 rounded-[1rem] border border-gray-100 shadow-sm">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-12 h-12 rounded-xl bg-gray-50 border border-gray-200 overflow-hidden shrink-0">
+                                                <img :src="item.image_url" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/100x100/f3f4f6/a1a1aa?text=BABA'">
+                                            </div>
+                                            <div>
+                                                <p class="text-[12px] font-black text-gray-900 leading-tight mb-0.5" x-text="item.name"></p>
+                                                <p class="text-[11px] font-black text-emerald-600" x-text="formatMoney(item.price_at_time)"></p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p class="text-xs font-bold text-gray-900">{{ item.name }}</p>
-                                            <p class="text-[10px] text-gray-500 font-medium">BABA Parfume</p>
+                                        <div class="text-right pl-3">
+                                            <span class="text-[11px] font-black text-yellow-600 bg-yellow-50 px-2.5 py-1.5 rounded-lg border border-yellow-100" x-text="item.qty + 'x'"></span>
                                         </div>
                                     </div>
-                                    <div class="text-right">
-                                        <span class="text-xs font-black text-brand-600 bg-brand-50 px-2 py-1 rounded-lg border border-brand-100">{{ item.qty }}x</span>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                                
-                                <div class="mt-3 pt-3 border-t border-gray-200 text-center">
-                                    <p class="text-[10px] font-bold text-gray-500 italic">"Pilihan aroma yang sangat elegan!" ✨</p>
-                                </div>
+                                </template>
                             </div>
                         </div>
                     </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="bg-white border-2 border-dashed border-gray-200 rounded-2xl p-8 flex flex-col items-center text-center">
-                        <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-3">
-                            <i data-lucide="shopping-bag" class="w-8 h-8 text-gray-300"></i>
-                        </div>
-                        <h4 class="text-sm font-bold text-gray-900 mb-1">Belum ada koleksi</h4>
-                        <p class="text-xs text-gray-500 mb-4">Kamu belum punya riwayat pembelian parfum di BABA.</p>
-                        <a href="/" class="px-5 py-2.5 bg-brand-500 text-brand-900 text-xs font-black rounded-xl shadow-md hover:bg-brand-600 active:scale-95 transition-all">Mulai Eksplorasi Aroma</a>
-                    </div>
-                {% endif %}
+                </template>
             </div>
         </div>
 
-    </main>
-
-    <nav class="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md border-t border-gray-100 pb-safe z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-        <div class="flex justify-around items-center px-2 py-2 max-w-lg mx-auto">
-            <a href="/" class="flex flex-col items-center justify-center w-16 h-12 text-gray-400 hover:text-brand-500 transition-colors">
-                <i data-lucide="store" class="w-6 h-6 mb-1"></i>
-                <span class="text-[9px] font-bold tracking-wide">Katalog</span>
-            </a>
+        <!-- SETTINGS MODAL (SLIDE-UP) -->
+        <div x-show="isSettingsOpen" style="display: none;" class="fixed inset-0 z-[100] flex flex-col justify-end">
+            <div x-show="isSettingsOpen" x-transition.opacity class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm" @click="isSettingsOpen = false"></div>
             
-            <a href="/cs" class="relative -top-5 flex flex-col items-center justify-center">
-                <div class="w-14 h-14 bg-gradient-to-tr from-brand-400 to-brand-600 rounded-full flex items-center justify-center shadow-lg shadow-brand-500/40 text-brand-900 border-4 border-white transform transition-transform hover:scale-105 active:scale-95">
-                    <i data-lucide="bot-message-square" class="w-6 h-6"></i>
+            <div x-show="isSettingsOpen"
+                 x-transition:enter="transition ease-out duration-300" x-transition:enter-start="translate-y-full" x-transition:enter-end="translate-y-0"
+                 x-transition:leave="transition ease-in duration-200" x-transition:leave-start="translate-y-0" x-transition:leave-end="translate-y-full"
+                 class="bg-white w-full h-[85vh] rounded-t-[2.5rem] flex flex-col relative z-10 shadow-2xl overflow-hidden pb-safe-bottom mx-auto sm:max-w-md">
+                
+                <div class="flex justify-between items-center p-6 border-b border-gray-100">
+                    <div>
+                        <h2 class="text-xl font-black text-gray-900 tracking-tight">Pengaturan Akun</h2>
+                        <p class="text-[11px] font-bold text-gray-500">Perbarui info pengiriman kamu</p>
+                    </div>
+                    <button @click="isSettingsOpen = false" class="w-10 h-10 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center active:scale-90 transition-transform">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
                 </div>
-                <span class="text-[10px] font-black text-brand-600 mt-1">Tanya AI</span>
-            </a>
-            
-            <a href="/profile" class="flex flex-col items-center justify-center w-16 h-12 text-brand-500 transition-colors">
-                <i data-lucide="user-circle" class="w-6 h-6 mb-1"></i>
-                <span class="text-[9px] font-bold tracking-wide">Profil</span>
-            </a>
-        </div>
-    </nav>
 
+                <div class="flex-1 overflow-y-auto px-6 py-6 hide-scrollbar space-y-6">
+                    <div>
+                        <label class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block pl-1">Nama Lengkap (Sesuai Telegram)</label>
+                        <div class="relative">
+                            <i data-lucide="user" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300"></i>
+                            <input type="text" :value="customer.full_name || tgUser.first_name" disabled class="w-full bg-gray-100 border border-gray-200 rounded-[1rem] pl-12 pr-4 py-3.5 text-sm font-semibold text-gray-500 cursor-not-allowed outline-none">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block pl-1">Nomor WhatsApp / HP Aktif</label>
+                        <div class="relative">
+                            <i data-lucide="phone" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+                            <input type="tel" x-model="settingsForm.phone" placeholder="Contoh: +6281234..." class="w-full bg-gray-50 border border-gray-200 rounded-[1rem] pl-12 pr-4 py-3.5 text-sm font-semibold text-gray-900 focus:outline-none focus:border-yellow-400 focus:ring-4 focus:ring-yellow-100 transition-all">
+                        </div>
+                        <p class="text-[10px] text-gray-400 font-medium mt-2 pl-1">Nomor ini akan digunakan kurir untuk menghubungi Anda.</p>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block pl-1">Alamat Tujuan Utama</label>
+                        <div class="relative">
+                            <i data-lucide="map-pin" class="absolute left-4 top-4 w-5 h-5 text-gray-400"></i>
+                            <textarea x-model="settingsForm.address" rows="4" placeholder="Jalan, Gedung, Patokan, Kota..." class="w-full bg-gray-50 border border-gray-200 rounded-[1rem] pl-12 pr-4 py-3.5 text-sm font-semibold text-gray-900 focus:outline-none focus:border-yellow-400 focus:ring-4 focus:ring-yellow-100 transition-all resize-none"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6 bg-white border-t border-gray-100 shrink-0">
+                    <button @click="saveSettings()" :disabled="isSaving" class="w-full py-4 bg-gray-900 text-yellow-400 font-black text-[14px] rounded-2xl transition-all shadow-md active:scale-95 flex justify-center items-center gap-2 disabled:opacity-50">
+                        <span x-show="!isSaving">Simpan Perubahan</span>
+                        <i x-show="!isSaving" data-lucide="save" class="w-4 h-4"></i>
+                        <span x-show="isSaving" style="display:none;" class="flex items-center"><i data-lucide="loader-2" class="w-4 h-4 animate-spin mr-2"></i>Menyimpan...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ALPINE LOGIC UNTUK PROFILE -->
     <script>
         function customerProfile() {
             return {
-                init() {
-                    lucide.createIcons();
+                customer: {},
+                stats: {},
+                ordersList: [],
+                totalBottles: 0,
+                loyaltyPoints: 0,
+                isSettingsOpen: false,
+                isSaving: false,
+                settingsForm: { phone: '', address: '' },
+                
+                rewards: [
+                    { id: 1, name: 'Voucher Diskon', desc: 'Potongan harga langsung', cost: 300, icon: 'ticket' },
+                    { id: 2, name: 'Parfum Gratis', desc: 'Pilih 1 varian BABA', cost: 1000, icon: 'gift' },
+                    { id: 3, name: 'VIP Gala Invite', desc: 'Eksklusif Event Sihanoukville', cost: 5000, icon: 'ticket-star' },
+                ],
+
+                initProfile() {
+                    // 1. Setup Data Default (Kosong kalau SSR gagal)
+                    this.customer = this.readData('profile-customer-data', {});
+                    this.stats = this.readData('profile-stats-data', { total_orders: 0 });
+                    this.ordersList = this.readData('profile-orders-data', []);
+                    
+                    // 2. Load Telegram User dari Frontend
+                    if (window.Telegram && window.Telegram.WebApp) {
+                        const tg = window.Telegram.WebApp;
+                        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                            this.tgUser = tg.initDataUnsafe.user;
+                        }
+                    }
+
+                    // 3. 🚀 THE FIX: Tembak API buat narik data asli dari Database!
+                    const teleId = this.tgUser.id || this.customer.telegram_id;
+                    if (teleId) {
+                        this.fetchLiveProfileData(teleId);
+                    } else {
+                        this.syncFormsAndCalculate();
+                    }
+                },
+
+                // Fungsi baru untuk sinkronisasi Database -> UI
+                async fetchLiveProfileData(teleId) {
+                    try {
+                        const response = await fetch(`/api/v1/profile/${teleId}`);
+                        const json = await response.json();
+                        
+                        if (json.status === 'success' && json.data) {
+                            // Timpa data kosong dengan data asli dari database
+                            this.customer = json.data.customer || this.customer;
+                            this.stats = json.data.stats || this.stats;
+                            this.ordersList = json.data.orders || [];
+                            
+                            this.syncFormsAndCalculate();
+                        }
+                    } catch (err) {
+                        console.error("Gagal menarik data profil live:", err);
+                    }
+                },
+
+                syncFormsAndCalculate() {
+                    this.settingsForm.phone = this.customer.phone || '';
+                    this.settingsForm.address = this.customer.default_address || '';
+                    this.calculateLoyalty();
+                    setTimeout(() => lucide.createIcons(), 100);
+                },
+
+                readData(elementId, fallback) {
+                    const node = document.getElementById(elementId);
+                    if (!node) return fallback;
+                    try { return JSON.parse(node.textContent || 'null') ?? fallback; } 
+                    catch (_) { return fallback; }
+                },
+
+                calculateLoyalty() {
+                    let bottles = 0;
+                    this.ordersList.forEach(order => {
+                        if (order.status.toLowerCase() === 'selesai' || order.status.toLowerCase() === 'menunggu pembayaran') {
+                            if (order.items && Array.isArray(order.items)) {
+                                order.items.forEach(item => {
+                                    bottles += item.qty || 0;
+                                });
+                            }
+                        }
+                    });
+                    this.totalBottles = bottles;
+                    this.loyaltyPoints = this.totalBottles * 100;
+                },
+
+                redeemReward(reward) {
+                    if (this.loyaltyPoints >= reward.cost) {
+                        // Memanggil fungsi showToast bawaan base.html (babaStore)
+                        this.showToast(`Berhasil menukar poin dengan ${reward.name}! Cek notif Telegram.`, 'success');
+                        this.loyaltyPoints -= reward.cost;
+                    } else {
+                        this.showToast(`Poin kakak kurang ${reward.cost - this.loyaltyPoints} lagi nih.`, 'error');
+                    }
+                },
+
+                openSettings() {
+                    this.settingsForm.phone = this.customer.phone || '';
+                    this.settingsForm.address = this.customer.default_address || '';
+                    this.isSettingsOpen = true;
+                    setTimeout(() => lucide.createIcons(), 50);
+                },
+
+                saveSettings() {
+                    if(!this.settingsForm.address.trim()) {
+                        this.showToast('Alamat tidak boleh kosong!', 'error');
+                        return;
+                    }
+
+                    this.isSaving = true;
+                    
+                    // Mengambil tgUser.id dari parent component (babaStore di base.html)
+                    const payload = {
+                        tele_id: this.tgUser.id || this.customer.telegram_id,
+                        phone: this.settingsForm.phone,
+                        address: this.settingsForm.address
+                    };
+
+                    fetch('/api/v1/profile/update', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if(data.status === 'success') {
+                            this.showToast('Data pengiriman berhasil diperbarui!', 'success');
+                            this.customer.phone = this.settingsForm.phone;
+                            this.customer.default_address = this.settingsForm.address;
+                            
+                            setTimeout(() => {
+                                this.isSettingsOpen = false;
+                                this.isSaving = false;
+                            }, 500);
+                        } else {
+                            throw new Error(data.message);
+                        }
+                    })
+                    .catch(err => {
+                        this.showToast('Gagal menyimpan: ' + err.message, 'error');
+                        this.isSaving = false;
+                    });
+                },
+
+                formatDate(isoString) {
+                    if (!isoString) return '-';
+                    const d = new Date(isoString);
+                    if (isNaN(d.getTime())) return '-';
+                    return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+                },
+
+                formatMoney(amount) {
+                    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount || 0);
                 }
             }
         }
     </script>
-</body>
-</html>
+{% endblock %}

@@ -3,27 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Admin BABA">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0B1121">
-    <link rel="apple-touch-icon" href="/static/img/Logo_BABA.png">
-
-    <title>{% block title %}Admin Panel{% endblock %} - BABA Parfume Enterprise</title>
     
-    <!-- Google Fonts: Inter -->
+    <link rel="apple-touch-icon" href="/static/img/Logo_BABA.png">
+    <link rel="icon" type="image/png" href="/static/img/Logo_BABA.png">
+
+    <title>{% block title %}Enterprise Engine{% endblock %} - BABA Parfume</title>
+    
+    <!-- Google Fonts: Inter (Typography Enterprise Standard) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <!-- Core Scripts: Tailwind, Lucide Icons, Alpine.js -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
+    <!-- Alpine Plugins: Collapse for smooth accordion -->
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-    <!-- Tailwind Config for BABA Branding -->
+    <!-- Tailwind Enterprise Config -->
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -41,15 +44,21 @@
                         }
                     },
                     animation: {
-                        'fade-in': 'fadeIn 0.3s ease-out forwards',
-                        'slide-down': 'slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'fade-in': 'fadeIn 0.4s ease-out forwards',
+                        'slide-down': 'slideDown 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
                         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'spin-slow': 'spin 3s linear infinite',
                     },
                     keyframes: {
                         fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
                         slideDown: { 
-                            '0%': { opacity: '0', transform: 'translateY(-10px)' }, 
+                            '0%': { opacity: '0', transform: 'translateY(-15px)' }, 
                             '100%': { opacity: '1', transform: 'translateY(0)' } 
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(15px)' }, 
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
                         }
                     }
                 }
@@ -57,21 +66,22 @@
         }
     </script>
 
+    <!-- Global Enterprise Styles -->
     <style>
         /* Modern Scrollbar Optimization */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 2px solid transparent; background-clip: content-box; }
+        ::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
         
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+        /* Dark Sidebar Scrollbar */
+        .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+        .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .sidebar-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 
-        body {
-            -webkit-tap-highlight-color: transparent;
-            overscroll-behavior-y: none;
-        }
+        /* No Tap Highlight on Mobile */
+        body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
 
         /* Loading Bar Utilities */
         @keyframes loadBar {
@@ -79,331 +89,409 @@
             50% { width: 70%; opacity: 1; }
             100% { width: 100%; opacity: 0; }
         }
-        .animate-load-bar { animation: loadBar 1s ease-out forwards; }
+        .animate-load-bar { animation: loadBar 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
         
-        /* Alpine Cloak to prevent flashing */
+        /* Alpine Cloak to prevent DOM flashing */
         [x-cloak] { display: none !important; }
         
-        /* Glassmorphism utilities */
+        /* Glassmorphism & UI Effects */
         .glass-panel {
             background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
         }
+        
+        .dropdown-glass {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        .menu-transition { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     </style>
 </head>
 
-<body class="flex h-screen overflow-hidden text-gray-800 antialiased font-sans bg-gray-50" 
-      x-data="adminGlobalState()" 
-      x-init="initSystem()"
-      @keydown.window.ctrl.k.prevent="searchOpen = true"
-      @keydown.window.cmd.k.prevent="searchOpen = true"
+<body class="flex h-screen overflow-hidden text-gray-800 antialiased font-sans bg-gray-50/50 selection:bg-brand-500 selection:text-white" 
+      x-data="adminSystemCore()" 
+      x-init="initCore()"
+      @keydown.window.ctrl.k.prevent="openSearch()"
+      @keydown.window.cmd.k.prevent="openSearch()"
       @keydown.window.ctrl.slash.prevent="helpOpen = true"
-      @keydown.window.escape="closeAllModals()">
+      @keydown.window.escape="closeAllOverlays()">
 
-    <!-- Top Loading Indicator -->
-    <div class="fixed top-0 left-0 h-1 bg-brand-500 z-[100] animate-load-bar pointer-events-none shadow-[0_0_12px_rgba(234,179,8,0.9)]"></div>
+    <!-- Top Progress Indicator (Simulated) -->
+    <div class="fixed top-0 left-0 h-1 bg-brand-500 z-[100] animate-load-bar pointer-events-none shadow-[0_0_15px_rgba(234,179,8,0.8)]"></div>
 
-    <!-- Mobile Sidebar Overlay -->
+    <!-- Mobile Sidebar Overlay Backdrop -->
     <div x-show="sidebarOpen" x-cloak 
-         x-transition:enter="transition-opacity ease-linear duration-300"
+         x-transition:enter="transition-opacity ease-out duration-300"
          x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
-         x-transition:leave="transition-opacity ease-linear duration-300"
+         x-transition:leave="transition-opacity ease-in duration-300"
          x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-         class="fixed inset-0 z-40 bg-gray-900/70 backdrop-blur-sm lg:hidden" 
+         class="fixed inset-0 z-40 bg-gray-900/80 backdrop-blur-sm lg:hidden" 
          @click="sidebarOpen = false"></div>
 
-    <!-- ========================================== -->
-    <!-- SIDEBAR NAVIGATION -->
-    <!-- ========================================== -->
+    <!-- ============================================================================== -->
+    <!-- ENTERPRISE SIDEBAR NAVIGATION (ACCORDION BASED)                                -->
+    <!-- ============================================================================== -->
     <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" 
-           class="fixed inset-y-0 left-0 z-50 w-[280px] bg-brand-dark text-white flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 border-r border-gray-800 shadow-2xl lg:shadow-none">
+           class="fixed inset-y-0 left-0 z-50 w-[280px] bg-brand-dark text-white flex flex-col transition-transform duration-400 cubic-bezier(0.16, 1, 0.3, 1) lg:translate-x-0 lg:static lg:inset-0 border-r border-gray-800/80 shadow-[10px_0_30px_rgba(0,0,0,0.2)] lg:shadow-none">
         
-        <!-- Sidebar Header (Brand Logo) -->
+        <!-- Sidebar Brand Header -->
         <div class="h-20 flex items-center justify-between px-6 border-b border-gray-800/60 bg-brand-darker shrink-0 relative overflow-hidden group">
-            <div class="absolute -right-10 -top-10 w-32 h-32 bg-brand-500/10 rounded-full blur-3xl transition-transform group-hover:scale-110"></div>
-            <div class="flex items-center gap-3 relative z-10">
-                <div class="w-10 h-10 bg-gradient-to-br from-brand-400 to-brand-600 rounded-lg flex items-center justify-center shadow-lg shadow-brand-500/20 border border-brand-400/50">
-                    <i data-lucide="droplet" class="w-5 h-5 text-brand-dark fill-current"></i>
+            <div class="absolute -right-12 -top-12 w-36 h-36 bg-brand-500/10 rounded-full blur-3xl transition-transform duration-700 group-hover:scale-125"></div>
+            <div class="flex items-center gap-3.5 relative z-10">
+                <div class="w-10 h-10 bg-gradient-to-br from-brand-400 to-brand-600 rounded-xl flex items-center justify-center shadow-lg shadow-brand-500/20 border border-brand-300/30">
+                    <i data-lucide="droplet" class="w-5 h-5 text-brand-darker fill-current"></i>
                 </div>
-                <div class="flex flex-col justify-center">
-                    <h1 class="text-xl font-bold tracking-wide text-white leading-none">BABA<span class="text-brand-500">.</span></h1>
-                    <span class="text-[10px] text-brand-400 font-medium tracking-widest uppercase mt-1">Enterprise Engine</span>
+                <div class="flex flex-col justify-center mt-0.5">
+                    <h1 class="text-xl font-black tracking-wide text-white leading-none">BABA<span class="text-brand-500">.</span></h1>
+                    <span class="text-[9px] text-brand-400 font-bold tracking-widest uppercase mt-1 opacity-90">Enterprise Engine</span>
                 </div>
             </div>
-            <button @click="sidebarOpen = false" class="text-gray-400 hover:text-white lg:hidden p-2 rounded-lg bg-gray-800/50 relative z-10 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <button @click="sidebarOpen = false" class="text-gray-400 hover:text-white lg:hidden p-2 rounded-xl bg-gray-800/50 relative z-10 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500">
                 <i data-lucide="x" class="w-5 h-5"></i>
             </button>
         </div>
 
         {% set current_path = request.url.path %}
-        <!-- DEV MODE FALLBACK: Jika backend lupa ngirim admin_role, paksa jadi super_admin biar menu gak ilang -->
+        <!-- Role Check Fallback -->
         {% set active_role = admin_role if admin_role else 'super_admin' %}
         
-        <!-- Navigation Links -->
-        <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto custom-scrollbar">
-            
-            <p class="px-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-3 mt-2">Menu Utama</p>
-            
-            <a href="/admin" class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {% if current_path == '/admin' %}bg-brand-500/10 text-brand-400 font-semibold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium{% endif %}">
-                <i data-lucide="layout-dashboard" class="w-5 h-5 transition-transform group-hover:scale-110 {% if current_path == '/admin' %}text-brand-500{% endif %}"></i>
-                <span>Dashboard</span>
-            </a>
-            
-            {% if active_role in ['super_admin', 'oprasional'] %}
-            <a href="/admin/stock" class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {% if '/admin/stock' in current_path and 'belanja' not in current_path %}bg-brand-500/10 text-brand-400 font-semibold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium{% endif %}">
-                <i data-lucide="package-search" class="w-5 h-5 transition-transform group-hover:scale-110 {% if '/admin/stock' in current_path and 'belanja' not in current_path %}text-brand-500{% endif %}"></i>
-                <span>Manajemen Stok</span>
-            </a>
+        <!-- Accordion Navigation Body -->
+        <nav class="flex-1 px-4 py-5 space-y-2 overflow-y-auto sidebar-scroll">
+    
+            <!-- GROUP 1: MENU UTAMA -->
+            <div class="mb-2">
+                <button @click="toggleMenu('utama')" class="w-full flex items-center justify-between px-3 py-2.5 text-[10px] font-black text-gray-500 uppercase tracking-widest hover:text-gray-300 transition-colors rounded-lg focus:outline-none">
+                    <span>Menu Utama</span>
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-300" :class="menus.utama ? 'rotate-180 text-brand-500' : ''"></i>
+                </button>
+                
+                <div x-show="menus.utama" x-collapse class="space-y-1 mt-1">
+                    <a href="/admin" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {% if current_path == '/admin' %}bg-brand-500/10 text-brand-400 font-bold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium border border-transparent{% endif %}">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4 transition-transform group-hover:scale-110 {% if current_path == '/admin' %}text-brand-500{% endif %}"></i>
+                        <span class="text-sm">Dashboard</span>
+                    </a>
+                    
+                    {% if active_role in ['super_admin', 'oprasional'] %}
+                    <a href="/admin/stock" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {% if '/admin/stock' in current_path and 'belanja' not in current_path and 'mutation' not in current_path %}bg-brand-500/10 text-brand-400 font-bold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium border border-transparent{% endif %}">
+                        <i data-lucide="package-search" class="w-4 h-4 transition-transform group-hover:scale-110 {% if '/admin/stock' in current_path and 'belanja' not in current_path and 'mutation' not in current_path %}text-brand-500{% endif %}"></i>
+                        <span class="text-sm">Manajemen Stok</span>
+                    </a>
 
-            <a href="/admin/stock/belanja" class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {% if '/admin/stock/belanja' in current_path %}bg-brand-500/10 text-brand-400 font-semibold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium{% endif %}">
-                <i data-lucide="truck" class="w-5 h-5 transition-transform group-hover:scale-110 {% if '/admin/stock/belanja' in current_path %}text-brand-500{% endif %}"></i>
-                <span>Belanja & PO</span>
-            </a>
-            
-            <a href="/admin/orders" class="group flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200 {% if '/admin/orders' in current_path %}bg-brand-500/10 text-brand-400 font-semibold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium{% endif %}">
-                <div class="flex items-center gap-3">
-                    <i data-lucide="shopping-cart" class="w-5 h-5 transition-transform group-hover:scale-110 {% if '/admin/orders' in current_path %}text-brand-500{% endif %}"></i>
-                    <span>Pesanan Masuk</span>
+                    <a href="/admin/stock/mutation" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {% if '/admin/stock/mutation' in current_path %}bg-brand-500/10 text-brand-400 font-bold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium border border-transparent{% endif %}">
+                        <i data-lucide="shuffle" class="w-4 h-4 transition-transform group-hover:scale-110 {% if '/admin/stock/mutation' in current_path %}text-brand-500{% endif %}"></i>
+                        <span class="text-sm">Mutasi Stok</span>
+                    </a>
+
+                    <a href="/admin/stock/belanja" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {% if '/admin/stock/belanja' in current_path %}bg-brand-500/10 text-brand-400 font-bold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium border border-transparent{% endif %}">
+                        <i data-lucide="truck" class="w-4 h-4 transition-transform group-hover:scale-110 {% if '/admin/stock/belanja' in current_path %}text-brand-500{% endif %}"></i>
+                        <span class="text-sm">Belanja & PO</span>
+                    </a>
+                    
+                    <a href="/admin/orders" class="group flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 {% if '/admin/orders' in current_path %}bg-brand-500/10 text-brand-400 font-bold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium border border-transparent{% endif %}">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="shopping-cart" class="w-4 h-4 transition-transform group-hover:scale-110 {% if '/admin/orders' in current_path %}text-brand-500{% endif %}"></i>
+                            <span class="text-sm">Pesanan Masuk</span>
+                        </div>
+                        {% if pending_count and pending_count > 0 %}
+                            <span class="bg-red-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm animate-pulse-slow">{{ pending_count }}</span>
+                        {% endif %}
+                    </a>
+                    {% endif %}
                 </div>
-                {% if pending_count and pending_count > 0 %}
-                    <span class="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-pulse-slow">{{ pending_count }}</span>
-                {% endif %}
-            </a>
-            {% endif %}
+            </div>
 
+            <!-- GROUP 2: KEUANGAN (FINANCE) -->
             {% if active_role in ['super_admin', 'oprasional'] %}
-            <div class="my-6 border-t border-gray-800/60"></div
-            <p class="px-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-3">Keuangan (Finance)</p>
+            <div class="pt-2 border-t border-gray-800/50">
+                <button @click="toggleMenu('finance')" class="w-full flex items-center justify-between px-3 py-2.5 text-[10px] font-black text-gray-500 uppercase tracking-widest hover:text-gray-300 transition-colors rounded-lg focus:outline-none">
+                    <span>Keuangan (Finance)</span>
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-300" :class="menus.finance ? 'rotate-180 text-brand-500' : ''"></i>
+                </button>
+                
+                <div x-show="menus.finance" x-collapse class="space-y-1 mt-1">
+                    <a href="/admin/finance/aset" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {% if '/admin/finance/aset' in current_path %}bg-brand-500/10 text-brand-400 font-bold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium border border-transparent{% endif %}">
+                        <i data-lucide="landmark" class="w-4 h-4 transition-transform group-hover:scale-110 {% if '/admin/finance/aset' in current_path %}text-brand-500{% endif %}"></i>
+                        <span class="text-sm">Aset & Dompet</span>
+                    </a>
 
-            <a href="/admin/finance/aset" class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {% if '/admin/finance/aset' in current_path %}bg-brand-500/10 text-brand-400 font-semibold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium{% endif %}">
-                <i data-lucide="landmark" class="w-5 h-5 transition-transform group-hover:scale-110 {% if '/admin/finance/aset' in current_path %}text-brand-500{% endif %}"></i>
-                <span>Aset & Dompet</span>
-            </a>
+                    <a href="/admin/finance/mutasi" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {% if '/admin/finance/mutasi' in current_path %}bg-brand-500/10 text-brand-400 font-bold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium border border-transparent{% endif %}">
+                        <i data-lucide="arrow-right-left" class="w-4 h-4 transition-transform group-hover:scale-110 {% if '/admin/finance/mutasi' in current_path %}text-brand-500{% endif %}"></i>
+                        <span class="text-sm">Buku Besar (Ledger)</span>
+                    </a>
 
-            <a href="/admin/finance/mutasi" class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {% if '/admin/finance/mutasi' in current_path %}bg-brand-500/10 text-brand-400 font-semibold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium{% endif %}">
-                <i data-lucide="arrow-right-left" class="w-5 h-5 transition-transform group-hover:scale-110 {% if '/admin/finance/mutasi' in current_path %}text-brand-500{% endif %}"></i>
-                <span>Buku Besar (Ledger)</span>
-            </a>
+                    <a href="/admin/finance/debts" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {% if '/admin/finance/debts' in current_path %}bg-brand-500/10 text-brand-400 font-bold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium border border-transparent{% endif %}">
+                        <i data-lucide="hand-coins" class="w-4 h-4 transition-transform group-hover:scale-110 {% if '/admin/finance/debts' in current_path %}text-brand-500{% endif %}"></i>
+                        <span class="text-sm">Hutang Piutang</span>
+                    </a>
 
-            <!-- NEW MENU -->
-            <a href="/admin/finance/debts" class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {% if '/admin/finance/debts' in current_path %}bg-brand-500/10 text-brand-400 font-semibold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium{% endif %}">
-                <i data-lucide="hand-coins" class="w-5 h-5 transition-transform group-hover:scale-110 {% if '/admin/finance/debts' in current_path %}text-brand-500{% endif %}"></i>
-                <span>Hutang Piutang</span>
-            </a>
-
-            {% endif %}
-
-            {% if active_role == 'super_admin' %}
-            <a href="/admin/finance/report" class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {% if '/admin/finance/report' in current_path %}bg-brand-500/10 text-brand-400 font-semibold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium{% endif %}">
-                <i data-lucide="pie-chart" class="w-5 h-5 transition-transform group-hover:scale-110 {% if '/admin/finance/report' in current_path %}text-brand-500{% endif %}"></i>
-                <span>Laporan Laba Rugi</span>
-            </a>
-            {% endif %}
-
-            <div class="my-6 border-t border-gray-800/60"></div>
-            <p class="px-3 text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-3">CRM & Pelayanan</p>
-            
-            {% if active_role in ['super_admin', 'marketing'] %}
-            <a href="/admin/customers" class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {% if '/admin/customers' in current_path %}bg-brand-500/10 text-brand-400 font-semibold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium{% endif %}">
-                <i data-lucide="users-2" class="w-5 h-5 transition-transform group-hover:scale-110 {% if '/admin/customers' in current_path %}text-brand-500{% endif %}"></i>
-                <span>Data Pelanggan</span>
-            </a>
-            {% endif %}
-
-            {% if active_role in ['super_admin', 'marketing', 'cs'] %}
-            <a href="/admin/cs" class="group flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200 {% if '/admin/cs' in current_path %}bg-brand-500/10 text-brand-400 font-semibold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium{% endif %}">
-                <div class="flex items-center gap-3">
-                    <i data-lucide="bot-message-square" class="w-5 h-5 transition-transform group-hover:scale-110 {% if '/admin/cs' in current_path %}text-brand-500{% endif %}"></i>
-                    <span>Panel CS (AI)</span>
+                    {% if active_role == 'super_admin' %}
+                    <a href="/admin/finance/report" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {% if '/admin/finance/report' in current_path %}bg-brand-500/10 text-brand-400 font-bold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium border border-transparent{% endif %}">
+                        <i data-lucide="pie-chart" class="w-4 h-4 transition-transform group-hover:scale-110 {% if '/admin/finance/report' in current_path %}text-brand-500{% endif %}"></i>
+                        <span class="text-sm">Laporan Laba Rugi</span>
+                    </a>
+                    {% endif %}
                 </div>
-                <span class="relative flex h-2 w-2">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-            </a>
+            </div>
             {% endif %}
-            
+
+            <!-- GROUP 3: CRM & PELAYANAN -->
+            <div class="pt-2 border-t border-gray-800/50">
+                <button @click="toggleMenu('crm')" class="w-full flex items-center justify-between px-3 py-2.5 text-[10px] font-black text-gray-500 uppercase tracking-widest hover:text-gray-300 transition-colors rounded-lg focus:outline-none">
+                    <span>CRM & Pelayanan</span>
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-300" :class="menus.crm ? 'rotate-180 text-brand-500' : ''"></i>
+                </button>
+                
+                <div x-show="menus.crm" x-collapse class="space-y-1 mt-1">
+                    {% if active_role in ['super_admin', 'marketing'] %}
+                    <a href="/admin/customers" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {% if '/admin/customers' in current_path %}bg-brand-500/10 text-brand-400 font-bold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium border border-transparent{% endif %}">
+                        <i data-lucide="users-round" class="w-4 h-4 transition-transform group-hover:scale-110 {% if '/admin/customers' in current_path %}text-brand-500{% endif %}"></i>
+                        <span class="text-sm">Data Pelanggan</span>
+                    </a>
+                    {% endif %}
+
+                    {% if active_role in ['super_admin', 'marketing', 'cs'] %}
+                    <a href="/admin/cs" class="group flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 {% if '/admin/cs' in current_path %}bg-brand-500/10 text-brand-400 font-bold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium border border-transparent{% endif %}">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="message-circle-heart" class="w-4 h-4 transition-transform group-hover:scale-110 {% if '/admin/cs' in current_path %}text-brand-500{% endif %}"></i>
+                            <span class="text-sm">Panel CS (AI)</span>
+                        </div>
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                    </a>
+
+                    <a href="/admin/crm/dashboard" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {% if '/admin/crm/dashboard' in current_path %}bg-brand-500/10 text-brand-400 font-bold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium border border-transparent{% endif %}">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4 transition-transform group-hover:scale-110 {% if '/admin/crm/dashboard' in current_path %}text-brand-500{% endif %}"></i>
+                        <span class="text-sm">CRM Dashboard</span>
+                    </a>
+
+                    <a href="/admin/crm/auto-reply" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {% if '/admin/crm/auto_reply' in current_path %}bg-brand-500/10 text-brand-400 font-bold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium border border-transparent{% endif %}">
+                        <i data-lucide="bot" class="w-4 h-4 transition-transform group-hover:scale-110 {% if '/admin/crm/auto_reply' in current_path %}text-brand-500{% endif %}"></i>
+                        <span class="text-sm">Auto Reply & AI</span>
+                    </a>
+
+                    <a href="/admin/crm/broadcast" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {% if '/admin/crm/broadcast' in current_path %}bg-brand-500/10 text-brand-400 font-bold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium border border-transparent{% endif %}">
+                        <i data-lucide="radio" class="w-4 h-4 transition-transform group-hover:scale-110 {% if '/admin/crm/broadcast' in current_path %}text-brand-500{% endif %}"></i>
+                        <span class="text-sm">Broadcast Schedule</span>
+                    </a>
+
+                    <a href="/admin/crm/templates" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {% if '/admin/crm/templates' in current_path %}bg-brand-500/10 text-brand-400 font-bold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium border border-transparent{% endif %}">
+                        <i data-lucide="file-json-2" class="w-4 h-4 transition-transform group-hover:scale-110 {% if '/admin/crm/templates' in current_path %}text-brand-500{% endif %}"></i>
+                        <span class="text-sm">Template Pesan</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- GROUP 4: ZONA DEWA -->
             {% if active_role == 'super_admin' %}
-            <div class="my-6 border-t border-gray-800/60"></div>
-            <p class="px-3 text-[11px] font-bold text-red-400/80 uppercase tracking-wider mb-3">Zona Dewa</p>
+            <div class="pt-2 border-t border-gray-800/50 mb-4">
+                <button @click="toggleMenu('dewa')" class="w-full flex items-center justify-between px-3 py-2.5 text-[10px] font-black text-red-400/80 uppercase tracking-widest hover:text-red-300 transition-colors rounded-lg focus:outline-none">
+                    <span class="flex items-center gap-1.5"><i data-lucide="shield-alert" class="w-3 h-3"></i> Zona Dewa</span>
+                    <i data-lucide="chevron-down" class="w-3.5 h-3.5 transition-transform duration-300" :class="menus.dewa ? 'rotate-180 text-red-500' : ''"></i>
+                </button>
+                
+                <div x-show="menus.dewa" x-collapse class="space-y-1 mt-1">
+                    <a href="/admin/staff" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {% if '/admin/staff' in current_path %}bg-red-500/10 text-red-400 font-bold shadow-inner border border-red-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium border border-transparent{% endif %}">
+                        <i data-lucide="user-cog" class="w-4 h-4 transition-transform group-hover:scale-110 {% if '/admin/staff' in current_path %}text-red-500{% endif %}"></i>
+                        <span class="text-sm">Manajemen Staff</span>
+                    </a>
 
-            <a href="/admin/staff" class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {% if '/admin/staff' in current_path %}bg-brand-500/10 text-brand-400 font-semibold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium{% endif %}">
-                <i data-lucide="shield-half" class="w-5 h-5 transition-transform group-hover:scale-110 {% if '/admin/staff' in current_path %}text-brand-500{% endif %}"></i>
-                <span>Manajemen Staff</span>
-            </a>
-
-            <a href="/admin/settings" class="group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {% if '/admin/settings' in current_path %}bg-brand-500/10 text-brand-400 font-semibold shadow-inner border border-brand-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium{% endif %}">
-                <i data-lucide="settings" class="w-5 h-5 transition-transform group-hover:scale-110 {% if '/admin/settings' in current_path %}text-brand-500{% endif %}"></i>
-                <span>Sistem Web</span>
-            </a>
+                    <a href="/admin/settings" class="group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 {% if '/admin/settings' in current_path %}bg-red-500/10 text-red-400 font-bold shadow-inner border border-red-500/20{% else %}text-gray-400 hover:bg-gray-800/60 hover:text-gray-100 font-medium border border-transparent{% endif %}">
+                        <i data-lucide="sliders-horizontal" class="w-4 h-4 transition-transform group-hover:scale-110 {% if '/admin/settings' in current_path %}text-red-500{% endif %}"></i>
+                        <span class="text-sm">Sistem Web</span>
+                    </a>
+                </div>
+            </div>
             {% endif %}
+
         </nav>
 
         <!-- Sidebar Footer Status -->
-        <div class="px-4 py-4 mt-auto border-t border-gray-800/40 bg-brand-darker shrink-0">
-            <div class="bg-gray-800/40 border border-gray-700/50 rounded-xl p-3.5 mb-3">
-                <div class="flex items-center justify-between mb-2.5">
-                    <span class="text-xs font-semibold text-gray-400 flex items-center gap-1.5"><i data-lucide="database" class="w-3.5 h-3.5"></i> Supabase</span>
-                    <span class="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded font-bold">LIVE</span>
+        <div class="px-5 py-5 mt-auto border-t border-gray-800/40 bg-[#080d1a] shrink-0">
+            <!-- Database Monitor -->
+            <div class="bg-gray-900/50 border border-gray-800/80 rounded-2xl p-4 mb-4 shadow-inner">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-[11px] font-bold text-gray-400 flex items-center gap-1.5 uppercase tracking-wider"><i data-lucide="database" class="w-3.5 h-3.5"></i> Supabase</span>
+                    <span class="text-[9px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-md font-black tracking-widest border border-emerald-500/20">LIVE</span>
                 </div>
-                <div class="w-full bg-gray-900 rounded-full h-1.5 mb-2 border border-gray-800/50 overflow-hidden">
+                <div class="w-full bg-gray-950 rounded-full h-1.5 mb-2 overflow-hidden">
                     <div class="bg-gradient-to-r from-emerald-500 to-brand-400 h-1.5 rounded-full" style="width: 35%"></div>
                 </div>
-                <p class="text-[10px] text-gray-500 font-medium">175 MB / 500 MB Used (35%)</p>
+                <p class="text-[10px] text-gray-500 font-medium text-right">175 MB / 500 MB (35%)</p>
             </div>
 
-            <div class="flex items-center justify-between mb-3 px-1">
-                <span class="text-xs text-gray-400 font-medium flex items-center gap-1.5"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Server Time</span>
-                <span class="text-xs font-bold text-brand-400 tracking-wider" x-text="currentTime"></span>
+            <!-- Server Time -->
+            <div class="flex items-center justify-between mb-4 px-1">
+                <span class="text-[11px] text-gray-400 font-semibold flex items-center gap-1.5 uppercase tracking-wider"><i data-lucide="clock" class="w-3.5 h-3.5"></i> Server Time</span>
+                <span class="text-[11px] font-black text-brand-400 tracking-wider bg-brand-500/10 px-2 py-1 rounded-md" x-text="currentTime"></span>
             </div>
             
-            <a href="/" target="_blank" class="flex items-center justify-center gap-2 w-full py-2.5 bg-brand-500 hover:bg-brand-400 text-brand-dark rounded-lg text-sm font-bold transition-all shadow-lg shadow-brand-500/20 focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 focus:ring-offset-brand-darker">
-                <i data-lucide="external-link" class="w-4 h-4"></i>
-                <span>Buka Web Store</span>
+            <!-- Web Store Link -->
+            <a href="/" target="_blank" class="group flex items-center justify-center gap-2 w-full py-3.5 bg-brand-500 hover:bg-brand-400 text-brand-dark rounded-xl text-sm font-black transition-all shadow-[0_4px_14px_rgba(234,179,8,0.25)] hover:shadow-[0_6px_20px_rgba(234,179,8,0.4)] active:scale-95">
+                <i data-lucide="store" class="w-4 h-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"></i>
+                <span class="uppercase tracking-wide">Buka Web Store</span>
             </a>
         </div>
     </aside>
 
-    <!-- ========================================== -->
-    <!-- MAIN CONTENT WRAPPER -->
-    <!-- ========================================== -->
-    <div class="flex-1 flex flex-col h-screen overflow-hidden relative bg-gray-50/50">
+    <!-- ============================================================================== -->
+    <!-- MAIN CONTENT WRAPPER & TOP NAVIGATION                                          -->
+    <!-- ============================================================================== -->
+    <div class="flex-1 flex flex-col h-screen overflow-hidden relative bg-gray-50">
         
-        <!-- Top Navigation Bar -->
-        <header class="h-20 glass-panel border-b border-gray-200/80 flex items-center px-4 lg:px-8 justify-between z-30 shrink-0 sticky top-0">
+        <!-- Premium Glass Header -->
+        <header class="h-[84px] glass-panel flex items-center px-4 lg:px-8 justify-between z-30 shrink-0 sticky top-0 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)]">
             
-            <div class="flex items-center">
-                <button @click="sidebarOpen = true" class="p-2 text-gray-500 hover:text-brand-600 hover:bg-brand-50 rounded-lg lg:hidden mr-3 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500">
-                    <i data-lucide="menu" class="w-6 h-6"></i>
+            <div class="flex items-center gap-3">
+                <button @click="sidebarOpen = true" class="p-2.5 text-gray-500 hover:text-brand-600 hover:bg-brand-50 rounded-xl lg:hidden transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white shadow-sm border border-gray-100">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
                 </button>
                 
-                <div class="hidden sm:block">
-                    <h2 class="text-xl font-bold text-gray-800 leading-tight tracking-tight">{% block header %}Dashboard{% endblock %}</h2>
-                    <div class="flex items-center text-[11px] font-semibold text-gray-500 mt-1 uppercase tracking-wider">
+                <div class="hidden sm:block ml-2">
+                    <h2 class="text-xl font-black text-gray-900 leading-tight tracking-tight">{% block header %}Dashboard{% endblock %}</h2>
+                    <div class="flex items-center text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">
                         <span>BABA Engine</span>
-                        <i data-lucide="chevron-right" class="w-3.5 h-3.5 mx-1.5 text-gray-400"></i>
+                        <i data-lucide="chevron-right" class="w-3 h-3 mx-1.5 text-gray-300"></i>
                         <span class="text-brand-600">{% block breadcrumb %}Overview{% endblock %}</span>
                     </div>
                 </div>
             </div>
 
-            <div class="flex items-center gap-1.5 lg:gap-3">
+            <div class="flex items-center gap-2 lg:gap-4">
                 
-                <!-- Command Palette Trigger -->
-                <button @click="searchOpen = true" class="hidden md:flex items-center gap-3 px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-500 rounded-lg transition-colors text-sm font-medium mr-2 focus:outline-none focus:ring-2 focus:ring-brand-500">
-                    <i data-lucide="search" class="w-4 h-4"></i>
-                    <span>Cari fitur...</span>
-                    <kbd class="hidden lg:inline-block text-[10px] font-mono bg-white border border-gray-300 px-1.5 py-0.5 rounded text-gray-400 font-bold shadow-sm">Ctrl K</kbd>
+                <!-- Command Palette Trigger (Ctrl+K) -->
+                <button @click="openSearch()" class="hidden md:flex items-center gap-3 px-4 py-2.5 bg-gray-100/80 hover:bg-gray-200/80 border border-gray-200/80 text-gray-500 rounded-xl transition-all text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500 shadow-inner group">
+                    <i data-lucide="search" class="w-4 h-4 text-gray-400 group-hover:text-brand-500 transition-colors"></i>
+                    <span class="mr-6">Cari fitur atau data...</span>
+                    <div class="hidden lg:flex items-center gap-1 opacity-70">
+                        <kbd class="font-mono bg-white border border-gray-300 px-1.5 py-0.5 rounded-md text-[10px] text-gray-500 font-bold shadow-sm">Ctrl</kbd>
+                        <kbd class="font-mono bg-white border border-gray-300 px-1.5 py-0.5 rounded-md text-[10px] text-gray-500 font-bold shadow-sm">K</kbd>
+                    </div>
                 </button>
 
-                <!-- Ping Status -->
-                <div class="hidden lg:flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200 cursor-help transition-transform hover:scale-105" title="Sistem berjalan normal">
+                <!-- Status Server Ping -->
+                <div class="hidden lg:flex items-center gap-2 bg-emerald-50 px-3.5 py-2 rounded-xl border border-emerald-100 cursor-help transition-transform hover:scale-105 shadow-sm" title="Sistem berjalan normal">
                     <span class="relative flex h-2 w-2">
                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                         <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                     </span>
-                    <span class="text-xs font-bold text-emerald-700">Ping <span x-text="serverPing"></span>ms</span>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-emerald-700">Ping <span x-text="serverPing"></span>ms</span>
                 </div>
 
-                <!-- Notifications -->
-                <div class="relative" x-data="{ notifOpen: false }" @click.outside="notifOpen = false">
-                    <button @click="notifOpen = !notifOpen" class="relative p-2.5 text-gray-500 hover:text-brand-600 hover:bg-brand-50 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500">
+                <!-- Notification Bell (Recreated from Screenshot) -->
+                <div class="relative" @click.outside="notifOpen = false">
+                    <button @click="notifOpen = !notifOpen" class="relative p-3 text-gray-500 hover:text-brand-600 bg-white hover:bg-brand-50 border border-gray-200 rounded-xl transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
                         <i data-lucide="bell" class="w-5 h-5"></i>
                         {% if pending_count and pending_count > 0 %}
-                        <span class="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white animate-pulse"></span>
+                        <!-- Red Dot -->
+                        <span class="absolute top-2 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white animate-pulse"></span>
                         {% endif %}
                     </button>
                     
                     <!-- Notification Dropdown -->
                     <div x-show="notifOpen" x-cloak
                          x-transition:enter="transition ease-out duration-200"
-                         x-transition:enter-start="transform opacity-0 scale-95 translate-y-2"
+                         x-transition:enter-start="transform opacity-0 scale-95 translate-y-4"
                          x-transition:enter-end="transform opacity-100 scale-100 translate-y-0"
                          x-transition:leave="transition ease-in duration-150"
                          x-transition:leave-start="transform opacity-100 scale-100 translate-y-0"
                          x-transition:leave-end="transform opacity-0 scale-95 translate-y-2"
-                         class="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 z-50 overflow-hidden">
-                        <div class="px-4 py-3 border-b border-gray-100 bg-gray-50/80 flex justify-between items-center backdrop-blur-sm">
-                            <p class="text-sm font-bold text-gray-800">Notifikasi</p>
-                            <span class="text-[10px] font-bold bg-brand-100 text-brand-700 px-2.5 py-1 rounded-md shadow-sm">{{ pending_count | default('0') }} Baru</span>
-                        </div>
-                        <div class="max-h-[320px] overflow-y-auto custom-scrollbar">
+                         class="absolute right-0 mt-3 w-[320px] dropdown-glass rounded-3xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] border border-gray-100 z-50 overflow-hidden origin-top-right">
+                        
+                        <!-- Header Notif -->
+                        <div class="px-5 py-4 border-b border-gray-100 flex justify-between items-center bg-white/50">
+                            <h3 class="text-sm font-black text-gray-900 tracking-tight">Notifikasi</h3>
                             {% if pending_count and pending_count > 0 %}
-                            <a href="/admin/orders" class="p-4 flex gap-3 hover:bg-blue-50/50 transition-colors border-b border-gray-50 block group">
-                                <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                    <i data-lucide="shopping-bag" class="w-5 h-5"></i>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-bold text-gray-900">Ada {{ pending_count }} Order Pending!</p>
-                                    <p class="text-xs text-gray-500 mt-1 leading-relaxed">Segera cek pembayaran agar pesanan bisa diproses ke pelanggan.</p>
-                                    <p class="text-[10px] text-blue-500 font-semibold mt-2">Cek sekarang &rarr;</p>
-                                </div>
-                            </a>
+                                <span class="text-[10px] font-black bg-brand-100 text-brand-700 px-2.5 py-1 rounded-md">{{ pending_count }} Baru</span>
                             {% else %}
-                            <div class="p-8 text-center flex flex-col items-center justify-center">
-                                <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100 shadow-inner">
-                                    <i data-lucide="check-circle-2" class="w-8 h-8 text-emerald-400"></i>
+                                <span class="text-[10px] font-black bg-brand-50 text-brand-600 px-2.5 py-1 rounded-md border border-brand-100 shadow-sm">0 Baru</span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Body Notif -->
+                        <div class="max-h-[350px] overflow-y-auto custom-scrollbar bg-white">
+                            {% if pending_count and pending_count > 0 %}
+                                <a href="/admin/orders" class="p-5 flex gap-4 hover:bg-blue-50/50 transition-colors border-b border-gray-50 block group">
+                                    <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-sm">
+                                        <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-black text-gray-900">Pesanan Pending ({{ pending_count }})</p>
+                                        <p class="text-xs text-gray-500 mt-1 leading-relaxed font-medium">Segera cek pembayaran agar pesanan bisa diproses.</p>
+                                        <p class="text-[10px] text-blue-600 font-bold mt-2 uppercase tracking-widest group-hover:underline">Cek sekarang &rarr;</p>
+                                    </div>
+                                </a>
+                            {% else %}
+                                <!-- Empty State exactly matching the screenshot -->
+                                <div class="p-10 text-center flex flex-col items-center justify-center">
+                                    <div class="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mb-5 border-[6px] border-emerald-50/50 shadow-sm">
+                                        <i data-lucide="check-circle-2" class="w-8 h-8 text-emerald-500"></i>
+                                    </div>
+                                    <h4 class="text-[15px] font-black text-gray-800 tracking-tight">Semua tugas beres!</h4>
+                                    <p class="text-[11px] text-gray-400 mt-1.5 font-medium">Belum ada notifikasi baru hari ini.</p>
                                 </div>
-                                <p class="text-sm font-bold text-gray-700">Semua tugas beres!</p>
-                                <p class="text-xs text-gray-400 mt-1">Belum ada notifikasi baru hari ini.</p>
-                            </div>
                             {% endif %}
                         </div>
                     </div>
                 </div>
 
-                <div class="h-8 w-px bg-gray-200 hidden md:block mx-2"></div>
+                <div class="h-8 w-px bg-gray-200 hidden md:block mx-1"></div>
 
                 <!-- User Profile Dropdown -->
-                <div class="relative" x-data="{ profileOpen: false }" @click.outside="profileOpen = false">
-                    <button @click="profileOpen = !profileOpen" type="button" class="flex items-center gap-2 lg:gap-3 p-1.5 rounded-xl hover:bg-gray-100 transition-all focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2">
+                <div class="relative" @click.outside="profileOpen = false">
+                    <button @click="profileOpen = !profileOpen" type="button" class="flex items-center gap-3 p-1.5 rounded-2xl hover:bg-gray-100 border border-transparent hover:border-gray-200 transition-all focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white shadow-sm">
                         {% set safe_name = (admin_name or 'Admin') | replace(' ', '+') %}
                         <div class="relative">
-                            <img src="https://ui-avatars.com/api/?name={{ safe_name }}&background=0B1121&color=facc15&bold=true" alt="Admin Avatar" class="w-9 h-9 lg:w-10 lg:h-10 rounded-xl object-cover border-2 border-white shadow-sm">
+                            <img src="https://ui-avatars.com/api/?name={{ safe_name }}&background=0B1121&color=facc15&bold=true" alt="Avatar" class="w-10 h-10 rounded-xl object-cover border border-gray-200 shadow-sm">
                             <span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></span>
                         </div>
-                        <div class="hidden md:flex flex-col items-start pr-2">
-                            <!-- Fallback display logic -->
-                            <span class="text-sm font-bold text-gray-800 leading-none">{{ admin_name | default('Admin BABA') }}</span>
-                            <span class="text-[11px] font-semibold text-brand-600 mt-1 tracking-wide uppercase">{{ active_role | replace('_', ' ') | default('Staff') }}</span>
+                        <div class="hidden md:flex flex-col items-start pr-3">
+                            <span class="text-sm font-black text-gray-900 leading-none mb-1">{{ admin_name | default('Admin BABA') }}</span>
+                            <span class="text-[9px] font-black text-brand-600 tracking-widest uppercase bg-brand-50 px-1.5 py-0.5 rounded">{{ active_role | replace('_', ' ') | default('Staff') }}</span>
                         </div>
-                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 hidden md:block transition-transform duration-300" :class="profileOpen ? 'rotate-180' : ''"></i>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 hidden md:block mr-2 transition-transform duration-300" :class="profileOpen ? 'rotate-180' : ''"></i>
                     </button>
 
+                    <!-- Profile Menu Dropdown -->
                     <div x-show="profileOpen" x-cloak
                          x-transition:enter="transition ease-out duration-200"
-                         x-transition:enter-start="transform opacity-0 scale-95 translate-y-2"
+                         x-transition:enter-start="transform opacity-0 scale-95 translate-y-4"
                          x-transition:enter-end="transform opacity-100 scale-100 translate-y-0"
                          x-transition:leave="transition ease-in duration-150"
                          x-transition:leave-start="transform opacity-100 scale-100 translate-y-0"
                          x-transition:leave-end="transform opacity-0 scale-95 translate-y-2"
-                         class="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 z-50 overflow-hidden">
+                         class="absolute right-0 mt-3 w-64 dropdown-glass rounded-3xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] border border-gray-100 z-50 overflow-hidden origin-top-right">
                         
-                        <div class="px-5 py-4 border-b border-gray-100 bg-gray-50/80 backdrop-blur-sm">
-                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Signed in as</p>
-                            <p class="text-sm font-bold text-gray-900 truncate">{{ admin_name | default('Admin BABA') }}</p>
+                        <div class="px-6 py-5 border-b border-gray-100 bg-gray-50/50">
+                            <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Akses Login</p>
+                            <p class="text-sm font-black text-gray-900 truncate">{{ admin_name | default('Admin BABA') }}</p>
+                            <p class="text-xs text-gray-500 font-medium mt-1 truncate">@{{ admin_username | default('admin') }}</p>
                         </div>
 
-                        <div class="p-2">
-                            <a href="/admin/profile" class="flex items-center px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-brand-50 hover:text-brand-700 transition-colors group">
+                        <div class="p-3 bg-white">
+                            <a href="/admin/profile" class="flex items-center px-4 py-3 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-brand-600 transition-colors group">
                                 <i data-lucide="user" class="w-4 h-4 mr-3 text-gray-400 group-hover:text-brand-500 transition-colors"></i> Profil Saya
                             </a>
 
                             {% if active_role == 'super_admin' %}
-                            <a href="/admin/settings" class="flex items-center px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-brand-50 hover:text-brand-700 transition-colors group">
-                                <i data-lucide="settings" class="w-4 h-4 mr-3 text-gray-400 group-hover:text-brand-500 transition-colors"></i> Pengaturan Web
+                            <a href="/admin/settings" class="flex items-center px-4 py-3 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-brand-600 transition-colors group mt-1">
+                                <i data-lucide="settings" class="w-4 h-4 mr-3 text-gray-400 group-hover:text-brand-500 transition-colors"></i> Sistem Toko
                             </a>
-                            <button @click="helpOpen = true; profileOpen = false" class="w-full text-left flex items-center px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-brand-50 hover:text-brand-700 transition-colors group">
-                                <i data-lucide="life-buoy" class="w-4 h-4 mr-3 text-gray-400 group-hover:text-brand-500 transition-colors"></i> Bantuan & Dokumen
+                            <button @click="helpOpen = true; profileOpen = false" class="w-full text-left flex items-center px-4 py-3 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 hover:text-brand-600 transition-colors group mt-1">
+                                <i data-lucide="book-open" class="w-4 h-4 mr-3 text-gray-400 group-hover:text-brand-500 transition-colors"></i> Bantuan & Dokumen
                             </button>
                             {% endif %}
                         </div>
 
-                        <div class="border-t border-gray-100 p-2">
-                            <a href="/admin/logout" class="flex items-center px-3 py-2.5 rounded-xl text-sm font-bold text-red-600 hover:bg-red-50 transition-colors group">
-                                <i data-lucide="log-out" class="w-4 h-4 mr-3 text-red-500 group-hover:scale-110 transition-transform"></i> Logout
+                        <div class="border-t border-gray-100 p-3 bg-gray-50/50">
+                            <a href="/admin/logout" class="flex items-center justify-center px-4 py-3 rounded-xl text-xs font-black text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors bg-white border border-red-100 shadow-sm">
+                                <i data-lucide="log-out" class="w-4 h-4 mr-2"></i> KELUAR SISTEM
                             </a>
                         </div>
                     </div>
@@ -411,19 +499,19 @@
             </div>
         </header>
 
-        <!-- MAIN CONTENT AREA -->
-        <main class="flex-1 overflow-y-auto custom-scrollbar p-4 lg:p-6 xl:p-8 relative page-transition-enter">
+        <!-- MAIN CONTENT ROUTER OUTLET -->
+        <main class="flex-1 overflow-y-auto custom-scrollbar p-5 lg:p-8 relative">
             
-            <!-- Security Block Display -->
+            <!-- Strict Role Authorization Block -->
             {% if request.url.path == '/admin/staff' and active_role != 'super_admin' %}
-                <div class="bg-white border border-red-100 p-8 rounded-3xl text-center shadow-lg shadow-red-100/50 max-w-lg mx-auto mt-12 animate-slide-down">
-                    <div class="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 border-8 border-white shadow-sm">
-                        <i data-lucide="shield-alert" class="w-10 h-10 text-red-500"></i>
+                <div class="bg-white border border-red-200 p-10 rounded-[2rem] text-center shadow-2xl shadow-red-100/50 max-w-lg mx-auto mt-16 animate-slide-up">
+                    <div class="w-24 h-24 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-6 border-4 border-red-100 shadow-inner">
+                        <i data-lucide="shield-alert" class="w-12 h-12 text-red-500"></i>
                     </div>
-                    <h2 class="text-2xl font-extrabold mb-2 text-gray-900 tracking-tight">Akses Ditolak!</h2>
-                    <p class="text-sm text-gray-500 mb-8 leading-relaxed">Halaman ini adalah zona merah dengan enkripsi tingkat tinggi. Hanya <b>Super Admin</b> yang diizinkan untuk mengakses dan memodifikasi manajemen staff.</p>
-                    <a href="/admin" class="inline-flex items-center justify-center bg-gray-900 text-white text-sm font-bold px-8 py-3 rounded-xl hover:bg-brand-500 hover:text-brand-dark transition-all shadow-md focus:ring-4 focus:ring-gray-200">
-                        <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i> Kembali ke Markas
+                    <h2 class="text-3xl font-black mb-3 text-gray-900 tracking-tight">Zona Terlarang!</h2>
+                    <p class="text-sm text-gray-500 mb-8 leading-relaxed font-medium">Halaman ini dienkripsi dengan protokol tingkat tinggi. Hanya <span class="font-black text-gray-900 border-b-2 border-red-500">Super Admin</span> yang memiliki otoritas untuk mengakses data manajemen pegawai.</p>
+                    <a href="/admin" class="inline-flex items-center justify-center bg-gray-900 text-white text-xs font-black uppercase tracking-widest px-8 py-4 rounded-xl hover:bg-brand-500 hover:text-brand-dark transition-all shadow-xl hover:shadow-brand-500/30 active:scale-95">
+                        <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i> Kembali ke Dashboard
                     </a>
                 </div>
             {% else %}
@@ -432,141 +520,139 @@
                 {% endblock %}
             {% endif %}
             
-            <!-- Global Footer -->
-            <div class="mt-16 pt-8 border-t border-gray-200/60 text-center pb-4">
-                <p class="text-xs font-bold text-gray-400">BABA Parfume Enterprise System &copy; 2026</p>
-                <p class="text-[11px] font-medium text-gray-400 mt-1.5 flex items-center justify-center gap-1.5">
-                    Membawa wangi ke seluruh Kamboja <img src="https://flagcdn.com/w20/kh.png" alt="Cambodia Flag" class="w-4 h-3 rounded-sm opacity-80">
+            <!-- Clean Footer -->
+            <footer class="mt-16 pt-8 border-t border-gray-200 text-center pb-6">
+                <p class="text-xs font-black text-gray-400 tracking-wide">BABA PARFUME ENTERPRISE ENGINE &copy; 2026</p>
+                <p class="text-[10px] font-bold text-gray-400 mt-2 flex items-center justify-center gap-1.5 uppercase tracking-widest">
+                    Proudly Brewed in Cambodia <img src="https://flagcdn.com/w20/kh.png" alt="Cambodia Flag" class="w-4 h-3 rounded shadow-sm opacity-90">
                 </p>
-            </div>
+            </footer>
         </main>
     </div>
 
-    <!-- ========================================== -->
-    <!-- GLOBAL MODALS & OVERLAYS -->
-    <!-- ========================================== -->
+    <!-- ============================================================================== -->
+    <!-- ENTERPRISE MODALS & OVERLAYS                                                   -->
+    <!-- ============================================================================== -->
 
-    <!-- Global Toast Notification Container -->
-    <div class="fixed bottom-6 right-6 z-[100] flex flex-col gap-3" id="toast-container" x-data="{ toasts: [] }" @notify.window="toasts.push($event.detail); setTimeout(() => { toasts.shift() }, 4000)">
-        <template x-for="(toast, index) in toasts" :key="index">
-            <div x-transition:enter="transition ease-out duration-300"
-                 x-transition:enter-start="transform opacity-0 translate-y-8 scale-90"
-                 x-transition:enter-end="transform opacity-100 translate-y-0 scale-100"
-                 x-transition:leave="transition ease-in duration-200"
-                 x-transition:leave-start="transform opacity-100 translate-y-0 scale-100"
-                 x-transition:leave-end="transform opacity-0 translate-y-2 scale-95"
-                 class="bg-white px-5 py-4 rounded-2xl shadow-xl border border-gray-100 flex items-start gap-3 w-80">
-                <div class="shrink-0 pt-0.5">
-                    <i x-show="toast.type === 'success'" data-lucide="check-circle-2" class="w-5 h-5 text-emerald-500"></i>
-                    <i x-show="toast.type === 'error'" data-lucide="alert-circle" class="w-5 h-5 text-red-500"></i>
-                    <i x-show="toast.type === 'info'" data-lucide="info" class="w-5 h-5 text-blue-500"></i>
-                </div>
-                <div class="flex-1">
-                    <p class="text-sm font-bold text-gray-900" x-text="toast.title"></p>
-                    <p class="text-xs text-gray-500 mt-1 leading-relaxed" x-text="toast.message"></p>
-                </div>
-            </div>
-        </template>
-    </div>
-
-    <!-- Command Palette (Global Search Modal) -->
-    <div x-show="searchOpen" x-cloak class="relative z-[80]" role="dialog" aria-modal="true">
-        <div x-show="searchOpen" x-transition.opacity class="fixed inset-0 bg-gray-900/60 backdrop-blur-md transition-opacity" @click="searchOpen = false"></div>
-        <div class="fixed inset-0 z-10 w-screen overflow-y-auto p-4 sm:p-6 md:p-20">
+    <!-- Command Palette (Global Search / Ctrl+K) -->
+    <div x-show="searchOpen" x-cloak class="relative z-[100]" role="dialog" aria-modal="true">
+        <div x-show="searchOpen" x-transition.opacity class="fixed inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" @click="searchOpen = false"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto p-4 sm:p-6 md:p-[10vh]">
             <div x-show="searchOpen" @click.outside="searchOpen = false"
-                 x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
-                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
-                 class="mx-auto max-w-xl transform divide-y divide-gray-100 overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black ring-opacity-5 transition-all">
-                <div class="relative flex items-center px-4">
-                    <i data-lucide="search" class="w-5 h-5 text-brand-500 absolute left-4"></i>
-                    <input type="text" class="h-14 w-full bg-transparent pl-10 pr-4 text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-sm font-medium" placeholder="Cari menu, pesanan, atau pelanggan..." autocomplete="off">
-                    <kbd class="hidden sm:inline-block text-[10px] font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-400 font-bold ml-2">ESC</kbd>
+                 x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 scale-95 -translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                 x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 scale-100 translate-y-0" x-transition:leave-end="opacity-0 scale-95 -translate-y-4"
+                 class="mx-auto max-w-2xl transform divide-y divide-gray-100 overflow-hidden rounded-[2rem] bg-white shadow-2xl ring-1 ring-black ring-opacity-5 transition-all">
+                
+                <div class="relative flex items-center px-5 bg-gray-50/50">
+                    <i data-lucide="search" class="w-6 h-6 text-brand-500 absolute left-6"></i>
+                    <!-- FIX: Added x-ref and autofocus logic for Command Palette -->
+                    <input type="text" x-ref="searchInput" class="h-16 w-full bg-transparent pl-12 pr-4 text-gray-900 placeholder:text-gray-400 focus:outline-none sm:text-base font-bold" placeholder="Mau cari menu apa hari ini?" autocomplete="off">
+                    <kbd class="hidden sm:inline-block text-[10px] font-mono bg-white border border-gray-200 shadow-sm px-2 py-1 rounded-lg text-gray-500 font-bold ml-2">ESC</kbd>
                 </div>
-                <ul class="max-h-80 scroll-py-2 overflow-y-auto p-2 custom-scrollbar text-sm text-gray-700">
-                    <li class="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-400">Navigasi Cepat</li>
-                    <a href="/admin/stock/belanja" class="group flex cursor-default select-none items-center rounded-xl px-3 py-2.5 hover:bg-brand-50 hover:text-brand-700 transition-colors">
-                        <i data-lucide="truck" class="h-5 w-5 flex-none text-gray-400 group-hover:text-brand-500"></i>
-                        <span class="ml-3 flex-auto truncate font-medium">Buat Purchase Order (PO) Baru</span>
+                
+                <ul class="max-h-96 scroll-py-3 overflow-y-auto p-3 custom-scrollbar text-sm text-gray-700 bg-white">
+                    <li class="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-gray-400">Navigasi Teratas</li>
+                    
+                    <a href="/admin/orders" class="group flex cursor-pointer select-none items-center rounded-2xl px-4 py-3 hover:bg-brand-50 transition-colors mb-1 border border-transparent hover:border-brand-100">
+                        <div class="w-10 h-10 bg-gray-100 group-hover:bg-brand-100 text-gray-500 group-hover:text-brand-600 rounded-xl flex items-center justify-center transition-colors"><i data-lucide="shopping-cart" class="h-5 w-5"></i></div>
+                        <div class="ml-4 flex-auto">
+                            <p class="font-bold text-gray-900 group-hover:text-brand-700">Manajemen Pesanan Masuk</p>
+                            <p class="text-[10px] text-gray-500 mt-0.5">Cek resi, update status pembayaran, dan pengiriman.</p>
+                        </div>
+                        <i data-lucide="arrow-right" class="w-4 h-4 text-brand-400 opacity-0 group-hover:opacity-100 transition-opacity"></i>
                     </a>
-                    <a href="/admin/cs" class="group flex cursor-default select-none items-center rounded-xl px-3 py-2.5 hover:bg-brand-50 hover:text-brand-700 transition-colors">
-                        <i data-lucide="bot-message-square" class="h-5 w-5 flex-none text-gray-400 group-hover:text-brand-500"></i>
-                        <span class="ml-3 flex-auto truncate font-medium">Pantau Live Chat AI</span>
+
+                    <a href="/admin/cs" class="group flex cursor-pointer select-none items-center rounded-2xl px-4 py-3 hover:bg-brand-50 transition-colors mb-1 border border-transparent hover:border-brand-100">
+                        <div class="w-10 h-10 bg-gray-100 group-hover:bg-brand-100 text-gray-500 group-hover:text-brand-600 rounded-xl flex items-center justify-center transition-colors"><i data-lucide="bot-message-square" class="h-5 w-5"></i></div>
+                        <div class="ml-4 flex-auto">
+                            <p class="font-bold text-gray-900 group-hover:text-brand-700">Pantau AI Customer Service</p>
+                            <p class="text-[10px] text-gray-500 mt-0.5">Lihat live chat AI dan ambil alih (intercept) jika perlu.</p>
+                        </div>
+                        <i data-lucide="arrow-right" class="w-4 h-4 text-brand-400 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                    </a>
+
+                    <a href="/admin/stock/belanja" class="group flex cursor-pointer select-none items-center rounded-2xl px-4 py-3 hover:bg-brand-50 transition-colors border border-transparent hover:border-brand-100">
+                        <div class="w-10 h-10 bg-gray-100 group-hover:bg-brand-100 text-gray-500 group-hover:text-brand-600 rounded-xl flex items-center justify-center transition-colors"><i data-lucide="truck" class="h-5 w-5"></i></div>
+                        <div class="ml-4 flex-auto">
+                            <p class="font-bold text-gray-900 group-hover:text-brand-700">Buat Purchase Order (PO)</p>
+                            <p class="text-[10px] text-gray-500 mt-0.5">Restock barang dari pabrik dan catat pengeluaran.</p>
+                        </div>
+                        <i data-lucide="arrow-right" class="w-4 h-4 text-brand-400 opacity-0 group-hover:opacity-100 transition-opacity"></i>
                     </a>
                 </ul>
             </div>
         </div>
     </div>
 
-    <!-- Advanced Help Center Modal -->
-    <div x-show="helpOpen" x-cloak class="relative z-[70]" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+    <!-- Help Center Modal -->
+    <div x-show="helpOpen" x-cloak class="relative z-[90]" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
         <div x-show="helpOpen" x-transition.opacity class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" @click="helpOpen = false"></div>
         <div class="fixed inset-0 overflow-hidden pointer-events-none">
             <div class="absolute inset-0 overflow-hidden">
                 <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
                     <div x-show="helpOpen"
-                         x-transition:enter="transform transition ease-in-out duration-300 sm:duration-500"
+                         x-transition:enter="transform transition ease-in-out duration-500 sm:duration-700"
                          x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
-                         x-transition:leave="transform transition ease-in-out duration-300 sm:duration-500"
+                         x-transition:leave="transform transition ease-in-out duration-500 sm:duration-700"
                          x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
                          class="pointer-events-auto w-screen max-w-md">
                         
-                        <div class="flex h-full flex-col overflow-y-scroll bg-white shadow-2xl border-l border-gray-100" x-data="{ tab: 'guide' }">
+                        <div class="flex h-full flex-col overflow-y-scroll bg-white shadow-2xl" x-data="{ tab: 'guide' }">
                             
                             <!-- Help Header -->
-                            <div class="px-6 py-6 sm:px-8 bg-brand-dark border-b border-gray-800 flex items-center justify-between">
-                                <h2 class="text-lg font-bold text-white flex items-center gap-3">
-                                    <div class="p-2 bg-brand-500/20 rounded-lg"><i data-lucide="life-buoy" class="w-5 h-5 text-brand-400"></i></div> 
-                                    Pusat Bantuan
+                            <div class="px-8 py-8 bg-brand-dark flex items-center justify-between relative overflow-hidden">
+                                <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-brand-500/20 rounded-full blur-3xl"></div>
+                                <h2 class="text-2xl font-black text-white flex items-center gap-3 relative z-10 tracking-tight">
+                                    <div class="p-2.5 bg-brand-500/20 border border-brand-500/30 rounded-xl"><i data-lucide="life-buoy" class="w-6 h-6 text-brand-400"></i></div> 
+                                    Help Center
                                 </h2>
-                                <button type="button" @click="helpOpen = false" class="rounded-lg bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 p-2 focus:outline-none transition-colors">
+                                <button type="button" @click="helpOpen = false" class="rounded-xl bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 p-2.5 focus:outline-none transition-colors relative z-10">
                                     <i data-lucide="x" class="w-5 h-5"></i>
                                 </button>
                             </div>
                             
                             <!-- Help Tabs -->
-                            <div class="flex border-b border-gray-200 bg-gray-50 px-6 sm:px-8 pt-2 gap-6">
-                                <button @click="tab = 'guide'" :class="tab === 'guide' ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700'" class="pb-3 text-sm font-bold border-b-2 transition-colors">Panduan Cepat</button>
-                                <button @click="tab = 'shortcut'" :class="tab === 'shortcut' ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700'" class="pb-3 text-sm font-bold border-b-2 transition-colors">Shortcuts</button>
+                            <div class="flex border-b border-gray-100 bg-gray-50 px-8 pt-4 gap-8">
+                                <button @click="tab = 'guide'" :class="tab === 'guide' ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700'" class="pb-4 text-sm font-black tracking-wide border-b-2 transition-colors focus:outline-none">Panduan Dasar</button>
+                                <button @click="tab = 'shortcut'" :class="tab === 'shortcut' ? 'border-brand-500 text-brand-600' : 'border-transparent text-gray-500 hover:text-gray-700'" class="pb-4 text-sm font-black tracking-wide border-b-2 transition-colors focus:outline-none">Keyboard Shortcuts</button>
                             </div>
 
                             <!-- Help Content -->
-                            <div class="relative flex-1 px-6 py-8 sm:px-8 space-y-6">
+                            <div class="relative flex-1 px-8 py-8 space-y-6">
                                 
-                                <!-- Guide Tab -->
                                 <div x-show="tab === 'guide'" x-transition.opacity class="space-y-4">
-                                    <div class="group bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:border-brand-200 hover:shadow-md transition-all cursor-pointer">
-                                        <div class="flex items-center justify-between mb-2">
-                                            <h4 class="text-sm font-bold text-gray-900 group-hover:text-brand-600 transition-colors">Pesanan Pending?</h4>
-                                            <i data-lucide="arrow-right" class="w-4 h-4 text-gray-300 group-hover:text-brand-500 transition-colors"></i>
+                                    <div class="group bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:border-brand-300 hover:shadow-md transition-all cursor-pointer">
+                                        <div class="flex items-center justify-between mb-3">
+                                            <h4 class="text-sm font-black text-gray-900 group-hover:text-brand-600 transition-colors">Pesanan Pending?</h4>
+                                            <i data-lucide="arrow-right" class="w-4 h-4 text-gray-300 group-hover:text-brand-500 transition-colors translate-x-0 group-hover:translate-x-1"></i>
                                         </div>
-                                        <p class="text-xs text-gray-500 leading-relaxed">Cek mutasi bank atau chat pelanggan. Jika sudah bayar, ubah status jadi "Diproses". Jika tidak, abaikan atau hubungi via Tele.</p>
+                                        <p class="text-xs text-gray-500 leading-relaxed font-medium">Cek mutasi pada menu Keuangan atau chat pelanggan. Jika sudah bayar, ubah status jadi "Diproses". Jika tidak, abaikan.</p>
                                     </div>
-                                    <div class="group bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:border-brand-200 hover:shadow-md transition-all cursor-pointer">
-                                        <div class="flex items-center justify-between mb-2">
-                                            <h4 class="text-sm font-bold text-gray-900 group-hover:text-brand-600 transition-colors">AI Salah Jawab?</h4>
-                                            <i data-lucide="arrow-right" class="w-4 h-4 text-gray-300 group-hover:text-brand-500 transition-colors"></i>
+                                    <div class="group bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:border-brand-300 hover:shadow-md transition-all cursor-pointer">
+                                        <div class="flex items-center justify-between mb-3">
+                                            <h4 class="text-sm font-black text-gray-900 group-hover:text-brand-600 transition-colors">AI Salah Jawab?</h4>
+                                            <i data-lucide="arrow-right" class="w-4 h-4 text-gray-300 group-hover:text-brand-500 transition-colors translate-x-0 group-hover:translate-x-1"></i>
                                         </div>
-                                        <p class="text-xs text-gray-500 leading-relaxed">Buka menu <b>Panel CS</b>, cari sesi pelanggan tersebut, klik mode <b>Intercept</b>, lalu balas manual pesannya.</p>
+                                        <p class="text-xs text-gray-500 leading-relaxed font-medium">Buka menu <b>Panel CS</b>, cari sesi pelanggan tersebut, klik mode <b>Intercept</b>, lalu balas manual pesannya.</p>
                                     </div>
                                 </div>
 
-                                <!-- Shortcut Tab -->
                                 <div x-show="tab === 'shortcut'" x-cloak x-transition.opacity class="space-y-3">
-                                    <div class="bg-gray-50 px-5 py-4 rounded-2xl border border-gray-100 flex justify-between items-center">
-                                        <span class="text-sm font-medium text-gray-600">Pencarian Global</span>
-                                        <kbd class="bg-white border border-gray-200 shadow-sm text-gray-700 px-2.5 py-1 rounded-md text-xs font-mono font-bold">Ctrl + K</kbd>
+                                    <div class="bg-gray-50 px-5 py-4 rounded-xl border border-gray-100 flex justify-between items-center">
+                                        <span class="text-xs font-bold text-gray-600">Pencarian Global (Command)</span>
+                                        <kbd class="bg-white border border-gray-200 shadow-sm text-gray-700 px-2 py-1 rounded text-[11px] font-mono font-black">Ctrl + K</kbd>
                                     </div>
-                                    <div class="bg-gray-50 px-5 py-4 rounded-2xl border border-gray-100 flex justify-between items-center">
-                                        <span class="text-sm font-medium text-gray-600">Buka Panel Bantuan</span>
-                                        <kbd class="bg-white border border-gray-200 shadow-sm text-gray-700 px-2.5 py-1 rounded-md text-xs font-mono font-bold">Ctrl + /</kbd>
+                                    <div class="bg-gray-50 px-5 py-4 rounded-xl border border-gray-100 flex justify-between items-center">
+                                        <span class="text-xs font-bold text-gray-600">Buka Panel Bantuan Ini</span>
+                                        <kbd class="bg-white border border-gray-200 shadow-sm text-gray-700 px-2 py-1 rounded text-[11px] font-mono font-black">Ctrl + /</kbd>
                                     </div>
                                 </div>
                             </div>
                             
                             <!-- Help Footer -->
-                            <div class="px-6 py-5 border-t border-gray-100 bg-gray-50">
-                                <a href="mailto:support@babaparfume.com" class="flex items-center justify-center gap-2 w-full py-3 bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700 rounded-xl text-sm font-bold transition-all shadow-sm">
-                                    <i data-lucide="mail" class="w-4 h-4 text-gray-400"></i> Hubungi Tim Support IT
+                            <div class="px-8 py-6 border-t border-gray-100 bg-gray-50/80 mt-auto">
+                                <a href="mailto:support@babaparfume.com" class="flex items-center justify-center gap-2.5 w-full py-3.5 bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-800 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-sm focus:ring-2 focus:ring-gray-200">
+                                    <i data-lucide="headset" class="w-4 h-4 text-gray-500"></i> Hubungi Tim Support
                                 </a>
                             </div>
                         </div>
@@ -576,28 +662,56 @@
         </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- ALPINE.JS LOGIC CONTROLLER -->
-    <!-- ========================================== -->
+    <!-- ============================================================================== -->
+    <!-- ALPINE.JS CORE LOGIC & STATE MANAGEMENT                                        -->
+    <!-- ============================================================================== -->
     <script>
-        function adminGlobalState() {
+        function adminSystemCore() {
             return {
+                // UI States
                 sidebarOpen: false,
                 helpOpen: false,
                 searchOpen: false,
+                notifOpen: false,
+                profileOpen: false,
+                
+                // Dashboard Data
                 currentTime: '',
                 serverPing: 12,
+
+                // Accordion Menus State
+                menus: {
+                    utama: true,
+                    finance: false,
+                    crm: false,
+                    dewa: false
+                },
                 
-                initSystem() {
+                initCore() {
+                    // Start Clocks and Simulation
                     this.updateTime();
                     setInterval(() => this.updateTime(), 60000);
-                    // Simulasi Fluktuasi Ping Jaringan
-                    setInterval(() => {
-                        this.serverPing = Math.floor(Math.random() * (35 - 10 + 1) + 10);
-                    }, 5000);
+                    setInterval(() => { this.serverPing = Math.floor(Math.random() * (35 - 10 + 1) + 10); }, 5000);
                     
-                    // Trigger Lucide Icons refresh if dynamically added
-                    this.$watch('searchOpen', () => { setTimeout(() => lucide.createIcons(), 50) });
+                    // Auto-open menu based on current URL path
+                    const path = window.location.pathname;
+                    if (path.includes('/finance')) {
+                        this.menus.finance = true;
+                    } else if (path.includes('/crm') || path.includes('/cs') || path.includes('/customers')) {
+                        this.menus.crm = true;
+                    } else if (path.includes('/staff') || path.includes('/settings')) {
+                        this.menus.dewa = true;
+                    }
+
+                    // Watchers for specific actions
+                    this.$watch('searchOpen', (val) => { 
+                        if(val) {
+                            // Focus input automatically after transition
+                            setTimeout(() => {
+                                if(this.$refs.searchInput) this.$refs.searchInput.focus();
+                            }, 100);
+                        }
+                    });
                 },
 
                 updateTime() {
@@ -605,20 +719,35 @@
                     this.currentTime = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
                 },
 
-                closeAllModals() {
+                toggleMenu(menuName) {
+                    this.menus[menuName] = !this.menus[menuName];
+                    // Optional: Close others (uncomment if you want true accordion)
+                    // Object.keys(this.menus).forEach(k => { if(k !== menuName) this.menus[k] = false; });
+                },
+
+                openSearch() {
+                    this.searchOpen = true;
+                    this.notifOpen = false;
+                    this.profileOpen = false;
+                },
+
+                closeAllOverlays() {
                     this.helpOpen = false;
                     this.searchOpen = false;
                     this.sidebarOpen = false;
-                },
-
-                // Fungsi Pemicu Notifikasi (Panggil fungsi ini dari sembarang HTML untuk testing)
-                // Contoh: window.dispatchEvent(new CustomEvent('notify', { detail: { type: 'success', title: 'Berhasil!', message: 'Data tersimpan.' } }));
+                    this.notifOpen = false;
+                    this.profileOpen = false;
+                }
             }
         }
 
-        // Initialize Lucide Icons globally
-        document.addEventListener('alpine:init', () => { lucide.createIcons(); });
-        window.onload = function() { lucide.createIcons(); }
+        // Initialize Lucide Icons
+        document.addEventListener('alpine:init', () => { 
+            setTimeout(() => { lucide.createIcons(); }, 100);
+        });
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+        });
     </script>
 </body>
 </html>

@@ -4,7 +4,7 @@ from datetime import datetime
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Request, Form, HTTPException, status, Depends
+from fastapi import APIRouter, Request, Form, HTTPException, status, Depends, BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 # Import toolkit BABA
@@ -24,6 +24,14 @@ router = APIRouter(prefix="/admin", tags=["Admin CRM"])
 # ==============================================================================
 # HELPER FUNCTIONS
 # ==============================================================================
+async def send_telegram_notification(tele_id: int, message_text: str):
+    """Pekerja background aman untuk kirim notifikasi ke Telegram pelanggan"""
+    try:
+        from bot import bot as bot_instance
+        await bot_instance.send_message(chat_id=tele_id, text=message_text, parse_mode="HTML")
+    except Exception as e:
+        logger.warning(f"Gagal ngirim notif ke pelanggan: {e}")
+        
 def get_pending_count() -> int:
     """Ngitung antrian orderan yang belum dibayar/diproses"""
     if not supabase: return 0
@@ -89,10 +97,13 @@ async def admin_orders(request: Request, admin=Depends(get_current_admin)):
 @router.post("/update-order-status")
 async def update_order_status(
     request: Request, 
+    bg_tasks: BackgroundTasks,
     order_id: str = Form(...), 
     status_order: str = Form(..., alias="status"),
-    target_bank: str = Form(None), # Nangkap data bank dari UI baru
-    exchange_rate: float = Form(1.0), # Nangkap data kurs manual dari UI baru
+    target_bank: str = Form(None), 
+    exchange_rate: float = Form(1.0), 
+    send_cancel_reason: str = Form(None), # NEW: Nangkep centang alasan batal
+    cancel_reason: str = Form(None),      # NEW: Nangkep isi teks alasan batal
     admin=Depends(get_current_admin)
 ):
     """
@@ -308,48 +319,62 @@ async def update_order_status(
         # ===================================================================
         # F. NOTIFIKASI BACKGROUND TELEGRAM (SILENT FIRING)
         # ===================================================================
-        if BOT_AVAILABLE:
-            try:
-                res_order_cust = supabase.table("orders").select("customers(telegram_id, full_name)").eq("id", order_id).single().execute()
-                if res_order_cust.data and res_order_cust.data.get("customers"):
-                    tele_id = res_order_cust.data["customers"]["telegram_id"]
-                    cust_name = res_order_cust.data["customers"]["full_name"]
-                    
-                    # Visualisasi UI Bot yang lebih asik
-                    emoji_status = "✅" if new_status == "selesai" else "🚚" if new_status == "diproses" else "❌" if new_status == "dibatalkan" else "👉"
-                    
+        try:
+            res_order_cust = supabase.table("orders").select("customers(telegram_id, full_name)").eq("id", order_id).single().execute()
+            if res_order_cust.data and res_order_cust.data.get("customers"):
+                tele_id = res_order_cust.data["customers"]["telegram_id"]
+                cust_name = res_order_cust.data["customers"]["full_name"]
+                
+                pesan_notif = ""
+                
+                if new_status == "diproses":
                     pesan_notif = (
-                        f"🔔 <b>UPDATE STATUS PESANAN</b> 🔔\n\n"
+                        f"🔔 <b>UPDATE PESANAN BABA PARFUME</b>\n\n"
                         f"Halo kak <b>{cust_name}</b>!\n"
-                        f"Pesanan kakak dengan nomor resi:\n"
-                        f"🔖 <code>{no_order}</code>\n\n"
-                        f"Saat ini statusnya:\n"
-                        f"{emoji_status} <b>{status_order.upper()}</b>\n\n"
+                        f"Status pesanan kamu (<code>{no_order}</code>) sekarang berubah menjadi:\n"
+                        f"👉 <b>DIPROSES (PACKING)</b>\n\n"
+                        f"Jika admin belum menghubungi anda silakan di spam aja kak.\n\n"
+                        f"Terima kasih sudah berbelanja di BABA Parfume! ✨"
                     )
+                elif new_status == "selesai":
+                    pesan_notif = (
+                        f"✨ <b>YEAY! PESANAN KAKA SELESAI^^</b>\n\n"
+                        f"Halo kak <b>{cust_name}</b>!\n"
+                        f"Status pesanan kamu (<code>{no_order}</code>) sudah selesai ya^^ semoga suka sama wangi nya dan selalu tampil wangi di mana pun kaka berada😁\n\n"
+                        f"Terima kasih sudah berbelanja di BABA Parfume! ✨ jangan lupa join grup kami untuk informasi dan promosi terbaru ya🥰\n\n"
+                        f"Link grup : https://t.me/parfumebaba"
+                    )
+                elif new_status == "dibatalkan":
+                    pesan_notif = (
+                        f"❌ <b>YAHH! PESANAN DIBATALKAN</b>\n\n"
+                        f"Halo kak <b>{cust_name}</b>!\n"
+                        f"Mohon maaf, pesanan kamu (<code>{no_order}</code>) terpaksa dibatalkan oleh Admin.\n"
+                    )
+                    # Sisipkan alasan batal jika admin nyentang dan ngisi alasannya
+                    if send_cancel_reason == 'on' and cancel_reason:
+                        pesan_notif += f"\n<b>Alasan:</b>\n<i>{cancel_reason}</i>\n"
                     
-                    if new_status == "dibatalkan":
-                        pesan_notif += "<i>Mohon maaf, pesanan dibatalkan oleh sistem/admin. Hubungi CS kami jika ada kendala.</i>"
-                    elif new_status == "diproses":
-                        pesan_notif += "<i>Hore! Paket kakak sedang kami kemas dan siap dikirim. Harap ditunggu ya! 📦💨</i>"
-                    elif new_status == "selesai":
-                        pesan_notif += "<i>Terima kasih sudah belanja di BABA Parfume! Ditunggu pesanan selanjutnya ya kak ✨</i>"
-                        
-                    # Eksekusi bot tanpa membebani response web
+                    pesan_notif += f"\nSilakan hubungi Admin jika ada pertanyaan ya kak!"
+                
+                # Eksekusi bot SECARA LANGSUNG (Await). Jauh lebih aman dan ga ngambek.
+                if pesan_notif:
                     from bot import bot as bot_instance
-                    asyncio.create_task(bot_instance.send_message(chat_id=tele_id, text=pesan_notif, parse_mode="HTML"))
-                    
-            except Exception as e:
-                # Cukup di-log, jangan bikin error web
-                logger.warning(f"⚠️ [NOTIF BOT ERROR] Gagal nembak pesan ke Telegram: {e}")
+                    await bot_instance.send_message(chat_id=tele_id, text=pesan_notif, parse_mode="HTML")
+                    logger.info(f"✅ Notif Telegram Status '{new_status}' berhasil dikirim ke ID {tele_id}")
+                
+        except Exception as e:
+            # Pake error logger biar kalo gagal beneran merah di terminal lu
+            logger.error(f"❌ [NOTIF BOT ERROR] Gagal nembak pesan Telegram: {e}")
 
-        # G. KEMBALI KE LAYAR UTAMA
+        # ===================================================================
+        # G. KEMBALI KE LAYAR UTAMA (Ini yang tadi kehapus bre!)
+        # ===================================================================
         return RedirectResponse(url="/admin/orders", status_code=status.HTTP_303_SEE_OTHER)
 
     except Exception as e:
         logger.error(f"❌ [CRITICAL ERROR] Sistem Gagal Eksekusi Order: {e}")
         # Kalau gagal, kasih tau admin lewat tampilan HTML
         raise HTTPException(status_code=500, detail=f"Sistem gagal mengeksekusi perintah logistik: {str(e)}")
-
 
 # ==============================================================================
 # 3. FITUR KONTROL KERAS (DELETE PERMANEN)

@@ -1,0 +1,692 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Audit Trail & Mutasi Stok - BABA Enterprise{% endblock %}
+{% block header %}Arus Mutasi & Penyesuaian Stok{% endblock %}
+{% block breadcrumb %}Manajemen Stok / Arus Mutasi{% endblock %}
+
+{% block content %}
+<style>
+    /* Scrollbar Styling */
+    .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f8fafc; border-radius: 8px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 8px; border: 2px solid #f8fafc; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
+
+    /* Hide Number Arrows */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type="number"] { -moz-appearance: textfield; }
+
+    /* Smooth Fade In Animation */
+    .fade-in { animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Pulse for Pending Status */
+    .pulse-warning { animation: pulseWarning 2s infinite; }
+    @keyframes pulseWarning {
+        0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+        70% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+    }
+
+    /* Status Badges */
+    .badge-pending { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+    .badge-completed { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+    .badge-cancelled { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+    /* Source Tags */
+    .tag-order { background: #eff6ff; color: #1d4ed8; }
+    .tag-purchase { background: #f5f3ff; color: #6d28d9; }
+    .tag-adjustment { background: #f3f4f6; color: #4b5563; }
+
+    /* Custom Date Input Styling */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+        opacity: 0.6;
+        filter: invert(0.5);
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+</style>
+
+<div x-data="{ toasts: [] }" 
+     @notify.window="toasts.push({ id: Date.now(), type: $event.detail.type, message: $event.detail.message }); setTimeout(() => toasts.shift(), 5000)" 
+     class="fixed top-5 right-5 z-[9999] flex flex-col gap-3 pointer-events-none">
+    <template x-for="toast in toasts" :key="toast.id">
+        <div x-transition:enter="transition ease-out duration-300" 
+             x-transition:enter-start="opacity-0 translate-x-10" 
+             x-transition:enter-end="opacity-100 translate-x-0" 
+             x-transition:leave="transition ease-in duration-200" 
+             x-transition:leave-end="opacity-0 translate-x-10"
+             class="min-w-[300px] max-w-sm p-4 rounded-xl shadow-2xl border flex items-start gap-3 pointer-events-auto bg-white" 
+             :class="{'border-emerald-500': toast.type === 'success', 'border-red-500': toast.type === 'error'}">
+            
+            <div class="shrink-0 mt-0.5" 
+                 :class="{'text-emerald-500': toast.type === 'success', 'text-red-500': toast.type === 'error'}">
+                <i data-lucide="check-circle" x-show="toast.type === 'success'" class="w-5 h-5"></i>
+                <i data-lucide="x-circle" x-show="toast.type === 'error'" class="w-5 h-5"></i>
+            </div>
+            <div class="flex-1">
+                <h4 class="text-sm font-bold text-gray-900" 
+                    x-text="toast.type === 'success' ? 'Berhasil' : 'Gagal'"></h4>
+                <p class="text-xs text-gray-600 mt-1" x-text="toast.message"></p>
+            </div>
+        </div>
+    </template>
+</div>
+
+<div x-data="mutationEngine()" x-init="initEngine()" class="space-y-6 pb-12">
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Aktivitas Periode Ini</p>
+                <h3 class="text-2xl font-black text-gray-900" x-text="filteredLogs.length">0</h3>
+            </div>
+            <div class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center border border-gray-100">
+                <i data-lucide="activity" class="w-5 h-5 text-gray-600"></i>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 border border-emerald-100 shadow-sm flex items-center justify-between relative overflow-hidden">
+            <div class="absolute right-0 top-0 w-16 h-16 bg-emerald-50 rounded-bl-full -z-10"></div>
+            <div>
+                <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider mb-1">Total Masuk (IN)</p>
+                <h3 class="text-2xl font-black text-gray-900 flex items-center gap-1">
+                    <span class="text-emerald-500 text-lg">+</span><span x-text="stats.in">0</span>
+                </h3>
+            </div>
+            <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                <i data-lucide="package-plus" class="w-5 h-5 text-emerald-600"></i>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 border border-blue-100 shadow-sm flex items-center justify-between relative overflow-hidden">
+            <div class="absolute right-0 top-0 w-16 h-16 bg-blue-50 rounded-bl-full -z-10"></div>
+            <div>
+                <p class="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-1">Total Keluar (OUT)</p>
+                <h3 class="text-2xl font-black text-gray-900 flex items-center gap-1">
+                    <span class="text-blue-500 text-lg">-</span><span x-text="stats.out">0</span>
+                </h3>
+            </div>
+            <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                <i data-lucide="shopping-bag" class="w-5 h-5 text-blue-600"></i>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl p-5 shadow-lg shadow-amber-500/20 text-white flex items-center justify-between">
+            <div>
+                <p class="text-[10px] font-bold text-amber-100 uppercase tracking-wider mb-1">Stok Pending Order</p>
+                <h3 class="text-2xl font-black" x-text="stats.pending">0</h3>
+            </div>
+            <div class="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center pulse-warning">
+                <i data-lucide="clock" class="w-5 h-5 text-white"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex flex-col xl:flex-row gap-6">
+        
+        <div class="w-full xl:w-1/3">
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm sticky top-24 overflow-hidden">
+                <div class="px-6 py-5 border-b border-gray-50 bg-gray-50/50">
+                    <div class="flex items-center gap-3 mb-1">
+                        <div class="w-8 h-8 rounded-lg bg-gray-900 flex items-center justify-center text-yellow-400">
+                            <i data-lucide="wrench" class="w-4 h-4"></i>
+                        </div>
+                        <h2 class="text-base font-black text-gray-900">Penyesuaian Manual</h2>
+                    </div>
+                    <p class="text-xs text-gray-500 ml-11">Khusus Opname, Barang Rusak, atau Hilang.</p>
+                </div>
+
+                <form @submit.prevent="submitAdjustment" class="p-6 space-y-5">
+                    
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2 ml-1">Pilih Produk Gudang</label>
+                        <div class="relative">
+                            <select x-model.number="form.product_id" required 
+                                    class="w-full pl-4 pr-10 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-semibold focus:ring-2 focus:ring-yellow-400 focus:bg-white outline-none appearance-none transition-all">
+                                <option value="0" disabled selected>-- Pilih Produk --</option>
+                                <template x-for="prod in products" :key="prod.id">
+                                    <option :value="prod.id" x-text="prod.name"></option>
+                                </template>
+                            </select>
+                            <i data-lucide="box" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"></i>
+                        </div>
+                        <div x-show="form.product_id > 0" x-collapse class="mt-2 flex items-center justify-between px-3 py-2 bg-blue-50 border border-blue-100 rounded-xl">
+                            <span class="text-[10px] font-bold text-blue-600 uppercase">Stok Saat Ini:</span>
+                            <span class="text-xs font-black text-blue-800" x-text="selectedStock + ' Unit'"></span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2 ml-1">Jenis Mutasi</label>
+                            <select x-model="form.action" required 
+                                    class="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-black outline-none focus:ring-2 transition-all"
+                                    :class="form.action === 'IN' ? 'text-emerald-600 focus:ring-emerald-400' : 'text-red-600 focus:ring-red-400'">
+                                <option value="IN">+ MASUK</option>
+                                <option value="OUT">- KELUAR</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2 ml-1">Kuantitas</label>
+                            <input type="number" x-model.number="form.qty" min="1" required placeholder="0"
+                                   class="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-base font-black text-center focus:bg-white focus:ring-2 focus:ring-yellow-400 outline-none transition-all">
+                        </div>
+                    </div>
+
+                    <div x-show="form.product_id > 0 && form.qty > 0" x-collapse>
+                        <div class="p-4 rounded-2xl border flex items-center justify-between"
+                             :class="projectedStock < 0 ? 'bg-red-50 border-red-200' : 'bg-gray-900 border-gray-900 text-white'">
+                            <div>
+                                <span class="text-[9px] font-bold uppercase tracking-widest opacity-60">Estimasi Stok Akhir</span>
+                                <p class="text-xs font-medium opacity-80" x-text="form.action === 'IN' ? 'Penambahan Stok' : 'Pengurangan Stok'"></p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-2xl font-black" :class="projectedStock < 0 ? 'text-red-600' : 'text-yellow-400'" x-text="projectedStock"></span>
+                                <span class="text-[10px] font-bold ml-1 opacity-60">Unit</span>
+                            </div>
+                        </div>
+                        <p x-show="projectedStock < 0" class="text-[10px] text-red-500 mt-2 font-bold flex items-center gap-1 px-1">
+                            <i data-lucide="alert-octagon" class="w-3 h-3"></i> Transaksi dilarang: Stok tidak boleh minus!
+                        </p>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2 ml-1">Alasan Penyesuaian</label>
+                        <textarea x-model="form.reason" rows="3" required placeholder="Jelaskan kenapa stok disesuaikan..."
+                                  class="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm focus:bg-white focus:ring-2 focus:ring-yellow-400 outline-none resize-none transition-all"></textarea>
+                    </div>
+
+                    <button type="submit" 
+                            :disabled="isSubmitting || projectedStock < 0 || form.product_id === 0 || !form.qty || form.reason.trim().length < 5"
+                            class="w-full py-4 bg-gray-900 hover:bg-black text-yellow-400 rounded-2xl text-sm font-black uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group shadow-lg shadow-gray-900/10">
+                        <span x-show="!isSubmitting" class="flex items-center gap-2 group-hover:scale-105 transition-transform">
+                            <i data-lucide="save" class="w-4 h-4"></i> Simpan Penyesuaian
+                        </span>
+                        <span x-show="isSubmitting" class="flex items-center gap-2">
+                            <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Memproses...
+                        </span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="w-full xl:w-2/3">
+            <div class="bg-white rounded-3xl border border-gray-100 shadow-sm flex flex-col h-full min-h-[800px] overflow-hidden">
+                
+                <div class="p-6 border-b border-gray-100 bg-white">
+                    <div class="flex flex-col gap-6">
+                        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                            <div>
+                                <h2 class="text-xl font-black text-gray-900 tracking-tight">Audit Trail Mutasi</h2>
+                                <p class="text-xs text-gray-500 font-medium">Monitoring pergerakan barang secara real-time</p>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <div class="relative">
+                                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400"></i>
+                                    <input type="text" x-model="filters.search" placeholder="Cari Produk / Referensi..." 
+                                           class="pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-yellow-400 outline-none w-48 lg:w-56 transition-all">
+                                </div>
+                                <select x-model="filters.type" class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-black outline-none cursor-pointer hover:bg-gray-100 transition-colors">
+                                    <option value="ALL">Semua Sumber</option>
+                                    <option value="ORDER">Orderan (Sales)</option>
+                                    <option value="PURCHASE">Belanja (Restock)</option>
+                                    <option value="ADJUSTMENT">Opname (Manual)</option>
+                                </select>
+                                <select x-model="filters.status" class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-black outline-none cursor-pointer hover:bg-gray-100 transition-colors">
+                                    <option value="ALL">Semua Status</option>
+                                    <option value="PENDING">Pending</option>
+                                    <option value="COMPLETED">Completed</option>
+                                    <option value="CANCELLED">Cancelled</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col md:flex-row items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                            <div class="flex items-center gap-2 shrink-0">
+                                <i data-lucide="calendar-range" class="w-4 h-4 text-gray-400"></i>
+                                <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Periode Data:</span>
+                            </div>
+                            
+                            <div class="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200">
+                                <button @click="setPeriod('TODAY')" :class="filters.period === 'TODAY' ? 'bg-gray-900 text-yellow-400' : 'text-gray-500 hover:bg-gray-50'" class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all">Hari Ini</button>
+                                <button @click="setPeriod('7DAYS')" :class="filters.period === '7DAYS' ? 'bg-gray-900 text-yellow-400' : 'text-gray-500 hover:bg-gray-50'" class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all">7 Hari</button>
+                                <button @click="setPeriod('THIS_MONTH')" :class="filters.period === 'THIS_MONTH' ? 'bg-gray-900 text-yellow-400' : 'text-gray-500 hover:bg-gray-50'" class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all">Bulan Ini</button>
+                                <button @click="setPeriod('LAST_MONTH')" :class="filters.period === 'LAST_MONTH' ? 'bg-gray-900 text-yellow-400' : 'text-gray-500 hover:bg-gray-50'" class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all">Bulan Lalu</button>
+                                <button @click="filters.period = 'CUSTOM'" :class="filters.period === 'CUSTOM' ? 'bg-gray-900 text-yellow-400' : 'text-gray-500 hover:bg-gray-50'" class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all">Custom</button>
+                            </div>
+
+                            <div x-show="filters.period === 'CUSTOM'" x-transition class="flex items-center gap-2 animate-fade-in">
+                                <input type="date" x-model="filters.startDate" class="px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-[10px] font-bold outline-none focus:ring-2 focus:ring-yellow-400 transition-all">
+                                <span class="text-gray-400 text-xs font-bold">s/d</span>
+                                <input type="date" x-model="filters.endDate" class="px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-[10px] font-bold outline-none focus:ring-2 focus:ring-yellow-400 transition-all">
+                            </div>
+
+                            <div class="ml-auto">
+                                <span class="text-[10px] font-bold text-gray-400 italic" x-show="filters.period !== 'CUSTOM'">*Menampilkan data 30 hari terakhir secara default</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 border-b border-gray-100 text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                                <th class="p-5 pl-8 whitespace-nowrap">Waktu & Referensi</th>
+                                <th class="p-5 whitespace-nowrap">Produk</th>
+                                <th class="p-5 whitespace-nowrap">Pergerakan</th>
+                                <th class="p-5 text-center whitespace-nowrap">Jumlah</th>
+                                <th class="p-5 text-center whitespace-nowrap">Status</th>
+                                <th class="p-5 pr-8 text-right whitespace-nowrap">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50 text-sm">
+                            <template x-if="filteredLogs.length === 0">
+                                <tr>
+                                    <td colspan="6" class="p-20 text-center">
+                                        <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-50 mb-4 border border-dashed border-gray-200">
+                                            <i data-lucide="database-zap" class="w-10 h-10 text-gray-300"></i>
+                                        </div>
+                                        <p class="text-gray-900 font-black uppercase tracking-widest text-sm">Data Tidak Ditemukan</p>
+                                        <p class="text-xs text-gray-500 mt-2 font-medium">Tidak ada aktivitas mutasi pada periode atau filter yang dipilih.</p>
+                                        <button @click="resetFilters" class="mt-6 px-4 py-2 bg-gray-900 text-yellow-400 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-black transition-all">Reset Semua Filter</button>
+                                    </td>
+                                </tr>
+                            </template>
+
+                            <template x-for="log in filteredLogs" :key="log.id">
+                                <tr class="hover:bg-gray-50/80 transition-all group border-l-4 border-l-transparent hover:border-l-yellow-400">
+                                    <td class="p-5 pl-8">
+                                        <p class="font-black text-gray-900" x-text="formatDate(log.created_at)"></p>
+                                        <div class="flex items-center gap-2 mt-1.5">
+                                            <span class="text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-tighter shadow-sm border"
+                                                  :class="{
+                                                    'tag-order border-blue-100': log.reference_type === 'ORDER',
+                                                    'tag-purchase border-purple-100': log.reference_type === 'PURCHASE',
+                                                    'tag-adjustment border-gray-200': log.reference_type === 'ADJUSTMENT'
+                                                  }" x-text="log.reference_type"></span>
+                                            <span class="text-[10px] text-gray-400 font-mono font-bold" x-text="log.reference_id ? '#' + log.reference_id.substring(0,8).toUpperCase() : 'MANUAL-ADJ'"></span>
+                                        </div>
+                                    </td>
+                                    <td class="p-5">
+                                        <p class="font-black text-gray-800 text-sm" x-text="log.product_name"></p>
+                                        <p class="text-[10px] text-gray-500 mt-0.5 font-medium truncate max-w-[220px]" :title="log.reason" x-text="log.reason"></p>
+                                    </td>
+                                    <td class="p-5">
+                                        <div class="flex items-center gap-2.5">
+                                            <div class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 shadow-sm border"
+                                                 :class="log.action === 'IN' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-red-50 text-red-600 border-red-100'">
+                                                <i :data-lucide="log.action === 'IN' ? 'arrow-down-to-dot' : 'arrow-up-from-dot'" class="w-4 h-4"></i>
+                                            </div>
+                                            <div>
+                                                <p class="font-black text-[10px] uppercase tracking-wider" :class="log.action === 'IN' ? 'text-emerald-700' : 'text-red-700'" x-text="log.action === 'IN' ? 'Masuk' : 'Keluar'"></p>
+                                                <p class="text-[9px] font-bold text-gray-400 uppercase tracking-tighter" x-text="log.reference_type === 'ADJUSTMENT' ? 'Koreksi Data' : 'Transaksi'"></p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="p-5 text-center">
+                                        <div class="inline-block px-3 py-1 rounded-lg bg-gray-50 border border-gray-100">
+                                            <span class="text-base font-black tracking-tight" :class="log.action === 'IN' ? 'text-emerald-600' : 'text-red-600'" x-text="(log.action === 'IN' ? '+' : '-') + log.qty"></span>
+                                            <span class="text-[10px] font-bold text-gray-400 ml-0.5">Pcs</span>
+                                        </div>
+                                    </td>
+                                    <td class="p-5 text-center">
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm"
+                                              :class="{
+                                                'badge-pending pulse-warning': log.status === 'PENDING',
+                                                'badge-completed': log.status === 'COMPLETED',
+                                                'badge-cancelled': log.status === 'CANCELLED'
+                                              }">
+                                              <span x-show="log.status === 'PENDING'" class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                              <span x-text="log.status"></span>
+                                        </span>
+                                    </td>
+                                    <td class="p-5 pr-8 text-right">
+                                        <button @click="openDetail(log)" class="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all group-hover:scale-110">
+                                            <i data-lucide="external-link" class="w-4 h-4"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="p-5 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                            Menampilkan <span class="text-gray-900 font-black" x-text="filteredLogs.length"></span> Baris Data
+                        </p>
+                        <div class="h-4 w-px bg-gray-200"></div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest italic">
+                            Sistem Sinkronisasi: <span class="text-emerald-600">Online</span>
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button class="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-400 border border-gray-200 rounded-xl bg-white cursor-not-allowed">Previous</button>
+                        <button class="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-900 border border-gray-900 rounded-xl bg-yellow-400 shadow-sm">1</button>
+                        <button class="px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-400 border border-gray-200 rounded-xl bg-white cursor-not-allowed">Next</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div x-show="isDetailOpen" style="display: none;" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div x-show="isDetailOpen" x-transition.opacity class="absolute inset-0 bg-gray-900/80 backdrop-blur-md" @click="isDetailOpen = false"></div>
+        
+        <div x-show="isDetailOpen" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 scale-95 translate-y-8"
+             x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+             x-transition:leave-end="opacity-0 scale-95 translate-y-8"
+             class="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-hidden z-10 border border-gray-100">
+            
+            <div class="p-8 border-b border-gray-100 bg-gray-50/50 flex justify-between items-start">
+                <div>
+                    <span class="inline-block px-3 py-1 rounded-lg bg-gray-900 text-yellow-400 text-[10px] font-black uppercase tracking-widest mb-3">Audit Log Detail</span>
+                    <h3 class="text-2xl font-black text-gray-900 tracking-tight leading-none" x-text="activeLog?.product_name"></h3>
+                    <p class="text-xs text-gray-500 font-mono mt-2 flex items-center gap-2">
+                        <i data-lucide="hash" class="w-3 h-3"></i> <span x-text="activeLog?.id"></span>
+                    </p>
+                </div>
+                <button @click="isDetailOpen = false" class="w-12 h-12 flex items-center justify-center rounded-2xl bg-white border border-gray-100 hover:bg-gray-100 text-gray-400 hover:text-gray-900 transition-all shadow-sm">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <div class="p-8 space-y-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Sumber Mutasi</p>
+                        <p class="font-black text-gray-900" x-text="activeLog?.reference_type"></p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Status Final</p>
+                        <p class="font-black uppercase text-xs" :class="activeLog?.status === 'COMPLETED' ? 'text-emerald-600' : 'text-amber-600'" x-text="activeLog?.status"></p>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between p-6 rounded-3xl border-2" :class="activeLog?.action === 'IN' ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'">
+                    <div>
+                        <p class="text-[10px] font-black uppercase tracking-widest" :class="activeLog?.action === 'IN' ? 'text-emerald-600' : 'text-red-600'">Perubahan Stok</p>
+                        <p class="text-4xl font-black mt-1" :class="activeLog?.action === 'IN' ? 'text-emerald-700' : 'text-red-700'" x-text="(activeLog?.action === 'IN' ? '+' : '-') + activeLog?.qty"></p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Stok Setelah Mutasi</p>
+                        <p class="text-2xl font-black text-gray-900" x-text="activeLog?.final_stock + ' Pcs'"></p>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Catatan & Keterangan Audit</p>
+                    <div class="p-5 rounded-2xl bg-gray-50 border border-gray-100">
+                        <p class="text-sm font-semibold text-gray-700 leading-relaxed italic" x-text="'&quot;' + activeLog?.reason + '&quot;'"></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-6 bg-gray-50 border-t border-gray-100 flex items-center justify-center gap-2">
+                <i data-lucide="clock" class="w-3.5 h-3.5 text-gray-400"></i>
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Data Terarsip Sejak: <span class="text-gray-900" x-text="formatDate(activeLog?.created_at, true)"></span></p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('mutationEngine', () => ({
+            // =====================================
+            // DATA INJECTION
+            // =====================================
+            products: [
+                {% if products %}
+                    {% for p in products %}
+                    { id: {{ p.id }}, name: "{{ p.name }}", stock: parseInt("{{ p.stock_quantity | default(0) }}") }{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                {% endif %}
+            ],
+            
+            logs: [
+                {% if logs %}
+                    {% for m in logs %}
+                    {
+                        id: "{{ m.id }}",
+                        product_id: {{ m.product_id }},
+                        product_name: "{{ m.products.name if m.products else 'Unknown' }}",
+                        action: "{{ m.action }}",
+                        qty: parseInt("{{ m.adjustment_amount }}"),
+                        final_stock: parseInt("{{ m.final_stock }}"),
+                        reason: `{{ m.reason | replace('\n', ' ') | replace('`', '') }}`,
+                        created_at: "{{ m.created_at }}",
+                        reference_type: "{{ m.reference_type | default('ADJUSTMENT') }}",
+                        reference_id: "{{ m.reference_id | default('') }}",
+                        status: "{{ m.status | default('COMPLETED') }}"
+                    }{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                {% endif %}
+            ],
+
+            // STATES
+            isSubmitting: false,
+            isDetailOpen: false,
+            activeLog: null,
+
+            filters: {
+                search: '',
+                type: 'ALL',
+                status: 'ALL',
+                period: '7DAYS', // Default view
+                startDate: '',
+                endDate: ''
+            },
+            
+            form: {
+                product_id: 0,
+                action: 'OUT',
+                qty: null,
+                reason: ''
+            },
+
+            initEngine() {
+                // Default filter 30 hari ke belakang untuk Custom Date
+                const now = new Date();
+                const past = new Date();
+                past.setDate(now.getDate() - 30);
+                
+                this.filters.endDate = now.toISOString().split('T')[0];
+                this.filters.startDate = past.toISOString().split('T')[0];
+
+                this.refreshIcons();
+            },
+
+            refreshIcons() {
+                setTimeout(() => { if(typeof lucide !== 'undefined') lucide.createIcons(); }, 100);
+            },
+
+            // =====================================
+            // PERIOD LOGIC
+            // =====================================
+            setPeriod(type) {
+                this.filters.period = type;
+                const now = new Date();
+                let start = new Date();
+                
+                switch(type) {
+                    case 'TODAY':
+                        start.setHours(0,0,0,0);
+                        break;
+                    case '7DAYS':
+                        start.setDate(now.getDate() - 7);
+                        break;
+                    case 'THIS_MONTH':
+                        start = new Date(now.getFullYear(), now.getMonth(), 1);
+                        break;
+                    case 'LAST_MONTH':
+                        start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                        let end = new Date(now.getFullYear(), now.getMonth(), 0);
+                        this.filters.startDate = start.toISOString().split('T')[0];
+                        this.filters.endDate = end.toISOString().split('T')[0];
+                        return; // Exit early as we set end date too
+                }
+                
+                this.filters.startDate = start.toISOString().split('T')[0];
+                this.filters.endDate = now.toISOString().split('T')[0];
+            },
+
+            resetFilters() {
+                this.filters = {
+                    search: '',
+                    type: 'ALL',
+                    status: 'ALL',
+                    period: '7DAYS',
+                    startDate: '',
+                    endDate: ''
+                };
+                this.setPeriod('7DAYS');
+            },
+
+            // =====================================
+            // COMPUTED (REACTIVE FILTERS)
+            // =====================================
+            get filteredLogs() {
+                let data = this.logs;
+
+                // 1. Search Filter
+                if(this.filters.search.trim() !== '') {
+                    const q = this.filters.search.toLowerCase();
+                    data = data.filter(l => 
+                        l.product_name.toLowerCase().includes(q) || 
+                        (l.reference_id && l.reference_id.toLowerCase().includes(q)) ||
+                        l.reason.toLowerCase().includes(q)
+                    );
+                }
+
+                // 2. Type Filter
+                if(this.filters.type !== 'ALL') {
+                    data = data.filter(l => l.reference_type === this.filters.type);
+                }
+
+                // 3. Status Filter
+                if(this.filters.status !== 'ALL') {
+                    data = data.filter(l => l.status === this.filters.status);
+                }
+
+                // 4. Date Period Filter (CRITICAL)
+                if(this.filters.startDate && this.filters.endDate) {
+                    const start = new Date(this.filters.startDate).setHours(0,0,0,0);
+                    const end = new Date(this.filters.endDate).setHours(23,59,59,999);
+                    
+                    data = data.filter(l => {
+                        const logDate = new Date(l.created_at).getTime();
+                        return logDate >= start && logDate <= end;
+                    });
+                }
+
+                // Sort terbaru di atas
+                return data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            },
+
+            get stats() {
+                let s = { in: 0, out: 0, pending: 0 };
+                // Stats berdasarkan data yang TAMPIL di filter saat ini
+                this.filteredLogs.forEach(log => {
+                    if(log.status === 'PENDING') s.pending += log.qty;
+                    if(log.status === 'COMPLETED' && log.action === 'IN') s.in += log.qty;
+                    if(log.status === 'COMPLETED' && log.action === 'OUT') s.out += log.qty;
+                });
+                return s;
+            },
+
+            get selectedStock() {
+                if(this.form.product_id === 0) return 0;
+                const p = this.products.find(x => x.id === this.form.product_id);
+                return p ? p.stock : 0;
+            },
+
+            get projectedStock() {
+                const cur = this.selectedStock;
+                const qty = Number(this.form.qty) || 0;
+                return this.form.action === 'IN' ? cur + qty : cur - qty;
+            },
+
+            // =====================================
+            // ACTIONS
+            // =====================================
+            openDetail(log) {
+                this.activeLog = log;
+                this.isDetailOpen = true;
+                this.refreshIcons();
+            },
+
+            async submitAdjustment() {
+                if(this.isSubmitting) return;
+
+                // Validation
+                if(this.form.product_id === 0) return this.$dispatch('notify', {type:'error', message:'Pilih produk terlebih dahulu!'});
+                if(!this.form.qty || this.form.qty <= 0) return this.$dispatch('notify', {type:'error', message:'Kuantitas harus valid!'});
+                if(this.projectedStock < 0) return this.$dispatch('notify', {type:'error', message:'Stok akhir tidak boleh minus.'});
+                if(this.form.reason.trim().length < 5) return this.$dispatch('notify', {type:'error', message:'Alasan harus jelas (min. 5 karakter).'});
+
+                this.isSubmitting = true;
+
+                const payload = {
+                    product_id: parseInt(this.form.product_id),
+                    action: this.form.action,
+                    adjustment_amount: parseInt(this.form.qty),
+                    reason: this.form.reason.trim(),
+                    reference_type: 'ADJUSTMENT',
+                    status: 'COMPLETED'
+                };
+
+                try {
+                    const res = await fetch('/admin/api/v1/stock/adjustment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const data = await res.json();
+                    
+                    if(res.ok && data.status === 'success') {
+                        this.$dispatch('notify', {type:'success', message:'Mutasi manual berhasil disimpan ke audit log.'});
+                        this.form = { product_id: 0, action: 'OUT', qty: null, reason: '' };
+                        setTimeout(() => window.location.reload(), 1500);
+                    } else {
+                        throw new Error(data.message || 'Gagal menyimpan mutasi.');
+                    }
+                } catch(err) {
+                    this.$dispatch('notify', {type:'error', message: err.message});
+                } finally {
+                    this.isSubmitting = false;
+                }
+            },
+
+            // =====================================
+            // FORMATTERS
+            // =====================================
+            formatDate(iso, full = false) {
+                if(!iso) return '-';
+                try {
+                    const d = new Date(iso);
+                    const options = { day: '2-digit', month: full ? 'long' : 'short', year: 'numeric' };
+                    const dateStr = d.toLocaleDateString('id-ID', options);
+                    const timeStr = d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+                    return full ? `${dateStr} pukul ${timeStr}` : `${dateStr} ${timeStr}`;
+                } catch(e) { return iso; }
+            }
+        }));
+    });
+</script>
+{% endblock %}

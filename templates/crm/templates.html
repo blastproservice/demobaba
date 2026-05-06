@@ -1,0 +1,644 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Template & Target CRM - BABA Enterprise{% endblock %}
+{% block header %}Manajemen Template CRM{% endblock %}
+{% block breadcrumb %}CRM & Automation / Template & Target{% endblock %}
+
+{% block content %}
+<style>
+    /* ENTERPRISE ANIMATIONS & SCROLLBARS */
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    
+    @keyframes slideUpFade {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-card { animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+    .delay-100 { animation-delay: 100ms; }
+    .delay-200 { animation-delay: 200ms; }
+
+    /* TELEGRAM BUBBLE PREVIEW STYLE */
+    .tg-bubble {
+        background-color: #E3FFC4;
+        border-radius: 12px 12px 0 12px;
+        position: relative;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        word-wrap: break-word;
+        white-space: pre-wrap;
+    }
+    .tg-bubble::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        right: -8px;
+        width: 16px;
+        height: 16px;
+        background: radial-gradient(circle at top right, transparent 50%, #E3FFC4 50%);
+    }
+    .tg-time {
+        float: right;
+        font-size: 10px;
+        color: #5DB050;
+        margin-top: 4px;
+        margin-left: 10px;
+    }
+    
+    /* TREE VIEW CHECKBOX STYLES */
+    .tree-checkbox {
+        @apply w-4 h-4 text-yellow-500 bg-gray-100 border-gray-300 rounded focus:ring-yellow-500 focus:ring-2;
+    }
+</style>
+
+<!-- MAIN ALPINE WRAPPER -->
+<div x-data="crmTemplates()" x-init="initApp()" class="pb-12 space-y-6">
+
+    <!-- GLOBAL TOAST NOTIFICATION -->
+    <div class="fixed top-5 right-5 z-[9999] flex flex-col gap-3 pointer-events-none">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div x-transition class="min-w-[320px] max-w-md p-4 rounded-2xl shadow-2xl border flex items-start gap-4 pointer-events-auto bg-white/95 backdrop-blur-md" 
+                 :class="{'border-emerald-500': toast.type === 'success', 'border-red-500': toast.type === 'error'}">
+                <div class="shrink-0 mt-0.5" :class="{'text-emerald-500': toast.type === 'success', 'text-red-500': toast.type === 'error'}">
+                    <i :data-lucide="toast.type === 'success' ? 'check-circle-2' : 'alert-octagon'" class="w-6 h-6"></i>
+                </div>
+                <div class="flex-1">
+                    <h4 class="text-sm font-black text-gray-900 tracking-tight" x-text="toast.type === 'success' ? 'Berhasil' : 'Sistem Info'"></h4>
+                    <p class="text-xs text-gray-600 mt-1.5 leading-relaxed font-medium" x-text="toast.message"></p>
+                </div>
+                <button @click="toasts = toasts.filter(t => t.id !== toast.id)" class="text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 p-1.5 rounded-lg transition-colors">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </template>
+    </div>
+
+    <!-- HEADER STATS -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-[2rem] p-6 text-white shadow-xl relative overflow-hidden animate-card">
+            <i data-lucide="message-square-dashed" class="absolute -right-5 -bottom-5 w-32 h-32 text-white opacity-5"></i>
+            <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 relative z-10">Total Pesanan (Copywriting)</h3>
+            <div class="flex items-end gap-3 relative z-10">
+                <h2 class="text-4xl font-black tracking-tighter" x-text="dbMessages.length">0</h2>
+                <span class="text-xs font-bold text-yellow-400 mb-1.5 border border-yellow-400/30 bg-yellow-400/10 px-2 py-0.5 rounded-lg">Tersimpan</span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm relative overflow-hidden animate-card delay-100">
+            <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Folder Data Target</h3>
+            <div class="flex items-end gap-3">
+                <h2 class="text-4xl font-black text-gray-900 tracking-tighter" x-text="dbTargets.length">0</h2>
+                <span class="text-xs font-bold text-blue-600 mb-1.5 border border-blue-200 bg-blue-50 px-2 py-0.5 rounded-lg">Koleksi List</span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-[2rem] p-6 border border-gray-100 shadow-sm relative overflow-hidden animate-card delay-200">
+            <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Estimasi Audiens</h3>
+            <div class="flex items-end gap-3">
+                <h2 class="text-4xl font-black text-emerald-600 tracking-tighter" x-text="formatNumber(totalAudiens)">0</h2>
+                <span class="text-xs font-bold text-gray-500 mb-1.5">ID Terekstrak</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTROL PANEL -->
+    <div class="bg-white border border-gray-100 rounded-[2rem] shadow-sm overflow-hidden flex flex-col min-h-[600px] animate-card delay-100">
+        
+        <!-- HEADER & TABS -->
+        <div class="p-6 md:p-8 border-b border-gray-100 bg-gray-50/50">
+            <div class="flex flex-col md:flex-row justify-between md:items-center gap-6">
+                <div>
+                    <h2 class="text-2xl font-black text-gray-900 tracking-tight">Manajemen Aset Broadcast</h2>
+                    <p class="text-xs text-gray-500 font-medium mt-1">Satu pintu untuk mengatur teks promosi dan folder sasaran blast.</p>
+                </div>
+                
+                <div class="flex p-1.5 bg-gray-200/50 rounded-2xl w-full md:w-auto">
+                    <button @click="activeTab = 'messages'" 
+                            class="flex-1 md:flex-none px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2"
+                            :class="activeTab === 'messages' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'">
+                        <i data-lucide="message-circle" class="w-4 h-4"></i> Copywriting
+                    </button>
+                    <button @click="activeTab = 'targets'" 
+                            class="flex-1 md:flex-none px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2"
+                            :class="activeTab === 'targets' ? 'bg-gray-900 text-yellow-400 shadow-md' : 'text-gray-500 hover:text-gray-700'">
+                        <i data-lucide="users-2" class="w-4 h-4"></i> Database Target
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 1: COPYWRITING ==================== -->
+        <div x-show="activeTab === 'messages'" x-transition class="flex-1 flex flex-col bg-white">
+            
+            <div class="p-5 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="relative w-full sm:w-80">
+                    <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                    <input type="text" x-model="searchMsg" placeholder="Cari judul template..." class="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-gray-900 outline-none transition-all">
+                </div>
+                <button @click="openModal('msg')" class="w-full sm:w-auto px-6 py-2.5 bg-gray-900 hover:bg-black text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-gray-900/20 transition-all active:scale-95 flex items-center justify-center gap-2">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Buat Pesan Baru
+                </button>
+            </div>
+
+            <div class="overflow-x-auto custom-scrollbar flex-1">
+                <table class="w-full text-left whitespace-nowrap">
+                    <thead>
+                        <tr class="bg-gray-50/50 border-b border-gray-100 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                            <th class="px-6 py-4 w-12 text-center">No</th>
+                            <th class="px-6 py-4">Judul Template</th>
+                            <th class="px-6 py-4">Tipe & Preview</th>
+                            <th class="px-6 py-4 text-center">Terakhir Diupdate</th>
+                            <th class="px-6 py-4 text-right">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50 text-sm">
+                        <template x-if="filteredMessages.length === 0">
+                            <tr>
+                                <td colspan="5" class="py-16 text-center">
+                                    <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                                        <i data-lucide="message-square-dashed" class="w-6 h-6 text-gray-400"></i>
+                                    </div>
+                                    <p class="text-sm font-black text-gray-900 uppercase tracking-widest">Belum ada Template</p>
+                                </td>
+                            </tr>
+                        </template>
+
+                        <template x-for="(msg, idx) in filteredMessages" :key="msg.id">
+                            <tr class="hover:bg-gray-50/80 transition-colors group">
+                                <td class="px-6 py-4 text-center font-bold text-gray-400" x-text="idx + 1"></td>
+                                <td class="px-6 py-4">
+                                    <p class="font-black text-gray-900 text-sm" x-text="msg.name"></p>
+                                </td>
+                                <td class="px-6 py-4 flex items-center gap-2">
+                                    <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase" 
+                                          :class="msg.content.startsWith('http') ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'"
+                                          x-text="msg.content.startsWith('http') ? 'URL' : 'MANUAL'"></span>
+                                    <p class="font-medium text-gray-600 text-xs truncate max-w-[200px]" x-text="msg.content"></p>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-100" x-text="formatDate(msg.updated_at)"></span>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button @click="editMsg(msg)" class="p-2 text-gray-400 hover:text-blue-600 bg-white border border-gray-200 hover:border-blue-200 rounded-xl transition-all shadow-sm">
+                                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                        </button>
+                                        <button @click="deleteTemplate(msg.id, 'messages')" class="p-2 text-gray-400 hover:text-red-600 bg-white border border-gray-200 hover:border-red-200 rounded-xl transition-all shadow-sm">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 2: DATA TARGET (GROUPS) ==================== -->
+        <div x-show="activeTab === 'targets'" style="display: none;" x-transition class="flex-1 flex flex-col bg-white">
+            
+            <div class="p-5 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="relative w-full sm:w-80">
+                    <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                    <input type="text" x-model="searchTarget" placeholder="Cari nama folder target..." class="w-full pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-gray-900 outline-none transition-all">
+                </div>
+                <button @click="openModal('target')" class="w-full sm:w-auto px-6 py-2.5 bg-yellow-400 hover:bg-yellow-500 text-gray-900 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-yellow-500/20 transition-all active:scale-95 flex items-center justify-center gap-2">
+                    <i data-lucide="folder-plus" class="w-4 h-4"></i> Buat Folder Target
+                </button>
+            </div>
+
+            <div class="overflow-x-auto custom-scrollbar flex-1">
+                <table class="w-full text-left whitespace-nowrap">
+                    <thead>
+                        <tr class="bg-gray-50/50 border-b border-gray-100 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                            <th class="px-6 py-4 w-12 text-center">No</th>
+                            <th class="px-6 py-4">Nama Folder / List</th>
+                            <th class="px-6 py-4 text-center">Kapasitas (IDs)</th>
+                            <th class="px-6 py-4 text-center">Terakhir Diupdate</th>
+                            <th class="px-6 py-4 text-right">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50 text-sm">
+                        <template x-if="filteredTargets.length === 0">
+                            <tr>
+                                <td colspan="5" class="py-16 text-center">
+                                    <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                                        <i data-lucide="folder-search" class="w-6 h-6 text-gray-400"></i>
+                                    </div>
+                                    <p class="text-sm font-black text-gray-900 uppercase tracking-widest">Belum ada Folder Target</p>
+                                </td>
+                            </tr>
+                        </template>
+
+                        <template x-for="(tgt, idx) in filteredTargets" :key="tgt.id">
+                            <tr class="hover:bg-gray-50/80 transition-colors group">
+                                <td class="px-6 py-4 text-center font-bold text-gray-400" x-text="idx + 1"></td>
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100"><i data-lucide="folders" class="w-4 h-4"></i></div>
+                                        <p class="font-black text-gray-900 text-sm" x-text="tgt.name"></p>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="text-xs font-black text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100" x-text="formatNumber(countIDs(tgt.content)) + ' Target'"></span>
+                                </td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-100" x-text="formatDate(tgt.updated_at)"></span>
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button @click="editTarget(tgt)" class="p-2 text-gray-400 hover:text-yellow-600 bg-white border border-gray-200 hover:border-yellow-200 rounded-xl transition-all shadow-sm">
+                                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                                        </button>
+                                        <button @click="deleteTemplate(tgt.id, 'targets')" class="p-2 text-gray-400 hover:text-red-600 bg-white border border-gray-200 hover:border-red-200 rounded-xl transition-all shadow-sm">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== MODAL 1: FORM COPYWRITING ==================== -->
+    <div x-show="modals.msg" style="display: none;" class="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4">
+        <div class="absolute inset-0 bg-gray-900/80 backdrop-blur-sm" @click="closeModal('msg')"></div>
+        <div x-show="modals.msg" x-transition class="relative w-full max-w-6xl bg-white rounded-3xl shadow-2xl flex flex-col max-h-[95vh] overflow-hidden">
+            
+            <div class="px-6 py-5 border-b border-gray-100 bg-gray-50 flex justify-between items-center z-10 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gray-900 text-white rounded-xl flex items-center justify-center shadow-md"><i data-lucide="feather" class="w-5 h-5"></i></div>
+                    <div>
+                        <h2 class="text-xl font-black text-gray-900 tracking-tight" x-text="formMsg.id ? 'Edit Template Pesan' : 'Buat Copywriting Baru'"></h2>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">Dukung Input Manual & Ekstrak URL Telegram</p>
+                    </div>
+                </div>
+                <button @click="closeModal('msg')" class="text-gray-400 hover:text-red-500"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col lg:flex-row bg-white">
+                
+                <div class="w-full lg:w-3/5 p-6 md:p-8 space-y-6">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase tracking-widest mb-2">Judul Template <span class="text-red-500">*</span></label>
+                        <input type="text" x-model="formMsg.name" placeholder="Cth: Promo Ramadhan" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-black text-gray-900 focus:ring-2 focus:ring-gray-900 outline-none transition-all">
+                    </div>
+
+                    <div class="bg-gray-100 p-1.5 rounded-xl flex">
+                        <button type="button" @click="formMsg.inputType = 'manual'; formMsg.content = ''" class="flex-1 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all" :class="formMsg.inputType === 'manual' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'">Input Manual</button>
+                        <button type="button" @click="formMsg.inputType = 'url'; formMsg.content = ''" class="flex-1 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all" :class="formMsg.inputType === 'url' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'">Dari URL Chat</button>
+                    </div>
+
+                    <div x-show="formMsg.inputType === 'url'" class="space-y-4 animate-card">
+                        <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3">
+                            <i data-lucide="link" class="w-5 h-5 text-blue-500 shrink-0"></i>
+                            <p class="text-xs text-blue-800 font-medium">Masukkan link pesan Telegram (Message Link). Sistem akan mengambil isi pesan secara otomatis saat blast dijalankan.</p>
+                        </div>
+                        <input type="text" x-model="formMsg.content" placeholder="https://t.me/c/123456789/15" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-900 focus:ring-2 focus:ring-gray-900 outline-none transition-all">
+                    </div>
+
+                    <div x-show="formMsg.inputType === 'manual'" class="animate-card">
+                        <div class="flex justify-between items-end mb-2">
+                            <label class="block text-xs font-bold text-gray-600 uppercase tracking-widest">Isi Pesan Promosi <span class="text-red-500">*</span></label>
+                        </div>
+                        <textarea id="msgEditor" x-model="formMsg.content" rows="10" placeholder="Ketik pesan promosi Anda di sini..." class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-900 focus:ring-2 focus:ring-gray-900 outline-none transition-all resize-y custom-scrollbar"></textarea>
+                    </div>
+                </div>
+
+                <!-- Preview Kanan -->
+                <div class="w-full lg:w-2/5 bg-gray-50 border-l border-gray-100 p-6 md:p-8 flex flex-col relative overflow-hidden">
+                    <div class="absolute inset-0 opacity-5" style="background-image: radial-gradient(#000 1px, transparent 1px); background-size: 15px 15px;"></div>
+                    <h3 class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2 relative z-10"><i data-lucide="eye" class="w-3.5 h-3.5"></i> Live Preview</h3>
+
+                    <div class="flex-1 bg-[#EBE4D5] rounded-3xl border-8 border-gray-900 p-4 shadow-xl relative z-10 flex flex-col justify-end overflow-hidden h-[400px] lg:h-auto">
+                        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-4 bg-gray-900 rounded-b-xl z-20"></div>
+                        <div class="flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-1 pb-2">
+                            <div class="self-end tg-bubble py-2 px-3 max-w-[90%] min-w-[30%]">
+                                <div class="text-sm font-medium text-gray-900 whitespace-pre-wrap leading-snug" 
+                                     x-html="formMsg.inputType === 'url' ? '<i>Pesan akan ditarik dari URL...</i>' : (parsePreview(formMsg.content) || '<i>Ketik sesuatu...</i>')">
+                                </div>
+                                <div class="tg-time flex items-center gap-1">
+                                    <span x-text="getCurrentTime()"></span>
+                                    <svg viewBox="0 0 16 16" width="14" height="14" class="text-[#5DB050] fill-current"><path d="M12.63 4.29L6.5 10.42 3.87 7.79c-.2-.2-.51-.2-.71 0s-.2.51 0 .71l2.98 2.98c.1.1.23.15.35.15s.26-.05.35-.15l6.49-6.49c.2-.2.2-.51 0-.71s-.51-.2-.7-.7z"/></svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-6 py-5 bg-white border-t border-gray-100 flex justify-end gap-3 z-20 shrink-0">
+                <button @click="closeModal('msg')" class="px-6 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl text-xs font-black uppercase tracking-widest">Batal</button>
+                <button @click="saveMsg()" :disabled="isSaving" class="px-8 py-3 bg-gray-900 hover:bg-black text-yellow-400 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg transition-all active:scale-95">
+                    <span x-show="!isSaving"><i data-lucide="save" class="w-4 h-4 inline"></i> Simpan</span>
+                    <span x-show="isSaving" x-cloak><i data-lucide="loader-2" class="w-4 h-4 inline animate-spin"></i></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== MODAL 2: FORM FOLDER TARGET (AUTO FETCH MTPROTO) ==================== -->
+    <div x-show="modals.target" style="display: none;" class="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4">
+        <div class="absolute inset-0 bg-gray-900/80 backdrop-blur-sm" @click="closeModal('target')"></div>
+        <div x-show="modals.target" x-transition class="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+            
+            <div class="px-6 py-5 border-b border-gray-100 bg-gray-50 flex justify-between items-center z-10 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-yellow-400 text-gray-900 rounded-xl flex items-center justify-center shadow-md"><i data-lucide="folders" class="w-5 h-5"></i></div>
+                    <div>
+                        <h2 class="text-xl font-black text-gray-900 tracking-tight" x-text="formTarget.id ? 'Edit Folder Target' : 'Buat Folder Target Baru'"></h2>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">Otomatis Ekstrak ID Grup & Topik dari Akun MTProto</p>
+                    </div>
+                </div>
+                <button @click="closeModal('target')" class="text-gray-400 hover:text-red-500"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8 bg-white flex flex-col gap-6">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 shrink-0">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase tracking-widest mb-2">Nama Folder Target <span class="text-red-500">*</span></label>
+                        <input type="text" x-model="formTarget.name" placeholder="Cth: Grup Kamboja (Loker)" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-black text-gray-900 focus:ring-2 focus:ring-yellow-400 outline-none transition-all focus:bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase tracking-widest mb-2">Total Terpilih / Terekstrak</label>
+                        <div class="bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 flex items-center justify-between">
+                            <span class="text-xs font-black text-blue-800 uppercase tracking-widest">Valid ID:</span>
+                            <span class="text-xl font-black text-blue-600 tracking-tighter" x-text="formatNumber(countIDs(formTarget.content))">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Mode Switcher -->
+                <div class="bg-gray-100 p-1.5 rounded-xl flex shrink-0">
+                    <button type="button" @click="targetUiMode = 'auto'" class="flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2" :class="targetUiMode === 'auto' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'">
+                        <i data-lucide="zap" class="w-4 h-4"></i> Auto Fetch (Telegram)
+                    </button>
+                    <button type="button" @click="targetUiMode = 'manual'" class="flex-1 py-2.5 text-xs font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2" :class="targetUiMode === 'manual' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'">
+                        <i data-lucide="edit-2" class="w-4 h-4"></i> Input Manual
+                    </button>
+                </div>
+
+                <!-- MODE 1: AUTO FETCH -->
+                <div x-show="targetUiMode === 'auto'" class="flex-1 flex flex-col min-h-0 animate-card">
+                    <div class="flex items-center justify-between mb-3 shrink-0">
+                        <label class="block text-xs font-bold text-gray-600 uppercase tracking-widest">Pilih Grup & Topik dari Akun Anda</label>
+                        <button type="button" @click="fetchTelegramGroups()" :disabled="isFetchingGroups" class="px-4 py-2 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5">
+                            <span x-show="!isFetchingGroups"><i data-lucide="refresh-cw" class="w-3.5 h-3.5 inline"></i> Tarik Data Telegram</span>
+                            <span x-show="isFetchingGroups"><i data-lucide="loader-2" class="w-3.5 h-3.5 inline animate-spin"></i> Membaca Data...</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Tree View List -->
+                    <div class="flex-1 border border-gray-200 rounded-xl overflow-y-auto custom-scrollbar bg-gray-50 p-2 min-h-[250px]">
+                        
+                        <div x-show="fetchedGroups.length === 0 && !isFetchingGroups" class="h-full flex flex-col items-center justify-center text-center p-6">
+                            <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-3 shadow-sm border border-gray-100"><i data-lucide="server-crash" class="w-5 h-5 text-gray-400"></i></div>
+                            <p class="text-sm font-bold text-gray-700">Data Kosong</p>
+                            <p class="text-xs text-gray-500 mt-1">Klik tombol 'Tarik Data' di atas untuk menyinkronkan grup Anda via MTProto.</p>
+                        </div>
+
+                        <!-- Render Group List -->
+                        <div class="space-y-2">
+                            <template x-for="group in fetchedGroups" :key="group.id">
+                                <div class="bg-white border border-gray-100 rounded-lg p-3 shadow-sm">
+                                    <label class="flex items-start gap-3 cursor-pointer group/label">
+                                        <!-- Checkbox untuk Grup Utama -->
+                                        <input type="checkbox" :value="group.id" x-model="selectedTargets" @change="updateManualContentFromSelection()" class="tree-checkbox mt-0.5">
+                                        <div class="flex-1">
+                                            <p class="text-sm font-bold text-gray-900 group-hover/label:text-blue-600 transition-colors" x-text="group.title"></p>
+                                            <p class="text-[10px] text-gray-500 font-mono mt-0.5" x-text="group.id"></p>
+                                        </div>
+                                        <span x-show="group.is_forum" class="px-2 py-0.5 bg-purple-50 text-purple-600 border border-purple-100 rounded text-[9px] font-black uppercase tracking-widest shrink-0">Forum</span>
+                                    </label>
+                                    
+                                    <!-- Render Topics if it is a Forum -->
+                                    <template x-if="group.is_forum && group.topics.length > 0">
+                                        <div class="mt-3 ml-4 pl-4 border-l-2 border-gray-100 space-y-2">
+                                            <template x-for="topic in group.topics" :key="topic.id">
+                                                <label class="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-1.5 rounded-lg transition-colors">
+                                                    <!-- Checkbox untuk Topik (Format: ChatID:TopicID) -->
+                                                    <input type="checkbox" :value="group.id + ':' + topic.id" x-model="selectedTargets" @change="updateManualContentFromSelection()" class="tree-checkbox">
+                                                    <div class="flex-1 flex justify-between items-center">
+                                                        <span class="text-xs font-medium text-gray-700" x-text="topic.title"></span>
+                                                        <span class="text-[9px] text-gray-400 font-mono bg-white px-1.5 rounded border border-gray-100" x-text="'Topic ID: ' + topic.id"></span>
+                                                    </div>
+                                                </label>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MODE 2: MANUAL INPUT (Fallback) -->
+                <div x-show="targetUiMode === 'manual'" class="flex-1 flex flex-col animate-card">
+                    <label class="block text-xs font-bold text-gray-600 uppercase tracking-widest mb-2">Editor ID Manual <span class="text-red-500">*</span></label>
+                    <div class="bg-amber-50 rounded-xl p-3 border border-amber-200 mb-3 flex gap-2 items-start shadow-sm shrink-0">
+                        <i data-lucide="info" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
+                        <p class="text-[11px] text-amber-900 font-medium">Bisa digunakan untuk mengedit hasil tarikan otomatis atau menempel (paste) data dari luar. Format topik: <code>-100123:5</code>.</p>
+                    </div>
+                    <textarea x-model="formTarget.content" @input="updateSelectionFromManual()" rows="10" placeholder="-100123456789&#10;-100987654321:55" class="flex-1 w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono font-medium text-gray-900 focus:ring-2 focus:ring-yellow-400 outline-none transition-all focus:bg-white resize-y custom-scrollbar min-h-[250px]"></textarea>
+                </div>
+
+            </div>
+
+            <div class="px-6 py-5 bg-white border-t border-gray-100 flex justify-end gap-3 z-20 shrink-0">
+                <button @click="closeModal('target')" class="px-6 py-3 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-xl text-xs font-black uppercase tracking-widest transition-all">Batal</button>
+                <button @click="saveTarget()" :disabled="isSaving" class="px-8 py-3 bg-yellow-400 hover:bg-yellow-500 text-gray-900 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-yellow-500/20 transition-all active:scale-95 disabled:opacity-50">
+                    <span x-show="!isSaving"><i data-lucide="save" class="w-4 h-4 inline"></i> Simpan Folder</span>
+                    <span x-show="isSaving" x-cloak><i data-lucide="loader-2" class="w-4 h-4 inline animate-spin"></i></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 
+========================================================================================
+ALPINE.JS LOGIC CORE (CRM TEMPLATES MANAGER)
+======================================================================================== 
+-->
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('crmTemplates', () => ({
+            activeTab: 'messages',
+            toasts: [],
+            isSaving: false,
+            
+            searchMsg: '',
+            searchTarget: '',
+
+            dbMessages: [],
+            dbTargets: [],
+
+            // Data untuk Telegram Auto-Fetch
+            targetUiMode: 'auto', // 'auto' | 'manual'
+            isFetchingGroups: false,
+            fetchedGroups: [],    // JSON tree data dari Backend
+            selectedTargets: [],  // Array of string IDs dari Checkbox
+
+            modals: { msg: false, target: false },
+            formMsg: { id: null, name: '', content: '', inputType: 'manual' },
+            formTarget: { id: null, name: '', content: '' },
+
+            async initApp() {
+                this.loadData();
+            },
+
+            async loadData() {
+                try {
+                    const res = await fetch('/admin/crm/templates/list');
+                    const data = await res.json();
+                    if(data.status === 'success') {
+                        this.dbMessages = data.data.filter(t => t.type === 'MESSAGE');
+                        this.dbTargets = data.data.filter(t => t.type === 'TARGET_GROUP');
+                    }
+                } catch(e) { this.notify('error', 'Gagal memuat data dari database.'); } 
+                finally { setTimeout(() => { if(typeof lucide !== 'undefined') lucide.createIcons(); }, 100); }
+            },
+
+            // --- COMPUTED / FILTER ---
+            get filteredMessages() {
+                if (this.searchMsg.trim() === '') return this.dbMessages;
+                const q = this.searchMsg.toLowerCase();
+                return this.dbMessages.filter(m => m.name.toLowerCase().includes(q) || m.content.toLowerCase().includes(q));
+            },
+            get filteredTargets() {
+                if (this.searchTarget.trim() === '') return this.dbTargets;
+                const q = this.searchTarget.toLowerCase();
+                return this.dbTargets.filter(t => t.name.toLowerCase().includes(q));
+            },
+            get totalAudiens() {
+                let total = 0;
+                this.dbTargets.forEach(t => total += this.countIDs(t.content));
+                return total;
+            },
+
+            // --- MODALS ---
+            openModal(type) {
+                if(type === 'msg') {
+                    this.formMsg = { id: null, name: '', content: '', inputType: 'manual' };
+                } else {
+                    this.formTarget = { id: null, name: '', content: '' };
+                    this.targetUiMode = 'auto';
+                    this.selectedTargets = [];
+                    // Kalau modal dibuka buat tambah baru, kosongin fetchedGroups biar bersih
+                    if(!this.formTarget.id) this.fetchedGroups = [];
+                }
+                this.modals[type] = true;
+                setTimeout(() => { if(typeof lucide !== 'undefined') lucide.createIcons(); }, 50);
+            },
+            closeModal(type) { this.modals[type] = false; },
+
+            editMsg(msg) {
+                let isUrl = msg.content.trim().startsWith('http');
+                this.formMsg = { id: msg.id, name: msg.name, content: msg.content, inputType: isUrl ? 'url' : 'manual' };
+                this.modals.msg = true;
+            },
+            editTarget(tgt) {
+                let readableContent = tgt.content.split(',').join('\n');
+                this.formTarget = { id: tgt.id, name: tgt.name, content: readableContent };
+                
+                // Set Array Checkbox dari teks yang ada (Sinkronisasi awal)
+                this.selectedTargets = tgt.content.split(',').map(i => i.trim()).filter(i => i);
+                this.targetUiMode = 'auto';
+                this.modals.target = true;
+            },
+
+            // --- AUTO FETCH TELEGRAM LOGIC ---
+            async fetchTelegramGroups() {
+                this.isFetchingGroups = true;
+                try {
+                    const res = await fetch('/admin/crm/templates/fetch_groups');
+                    const data = await res.json();
+                    if(data.status === 'success') {
+                        this.fetchedGroups = data.data;
+                        this.notify('success', 'Grup & Topik berhasil disinkronisasi.');
+                    } else {
+                        this.notify('error', data.message || 'Gagal menarik data. Pastikan MTProto terkoneksi.');
+                    }
+                } catch(e) {
+                    this.notify('error', 'Terjadi kesalahan sistem saat komunikasi dengan server Telegram.');
+                } finally {
+                    this.isFetchingGroups = false;
+                }
+            },
+
+            // Sync Checkbox -> Manual Textarea
+            updateManualContentFromSelection() {
+                // Hapus duplikat dan render ke textarea
+                const uniqueIds = [...new Set(this.selectedTargets)];
+                this.formTarget.content = uniqueIds.join('\n');
+            },
+
+            // Sync Manual Textarea -> Checkbox
+            updateSelectionFromManual() {
+                const manualArr = this.formTarget.content.split(/[\n,]+/).map(i => i.trim()).filter(i => i);
+                this.selectedTargets = manualArr;
+            },
+
+            // --- SAVES ---
+            async saveMsg() {
+                if(!this.formMsg.name.trim() || !this.formMsg.content.trim()) return this.notify('error', 'Isi semua field!');
+                this.isSaving = true;
+                try {
+                    const res = await fetch('/admin/crm/templates/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ template_id: this.formMsg.id, name: this.formMsg.name, content: this.formMsg.content.trim(), type: 'MESSAGE' })
+                    });
+                    if(res.ok) { this.notify('success', 'Tersimpan!'); this.closeModal('msg'); this.loadData(); }
+                } catch(e) {} finally { this.isSaving = false; }
+            },
+
+            async saveTarget() {
+                if(!this.formTarget.name.trim() || !this.formTarget.content.trim()) return this.notify('error', 'Isi semua field!');
+                this.isSaving = true;
+                try {
+                    let cleaned = this.formTarget.content.split(/[\n,]+/).map(i => i.trim().replace('/', ':')).filter(i => i).join(',');
+                    const res = await fetch('/admin/crm/templates/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ template_id: this.formTarget.id, name: this.formTarget.name, content: cleaned, type: 'TARGET_GROUP' })
+                    });
+                    if(res.ok) { this.notify('success', 'Folder Target Tersimpan!'); this.closeModal('target'); this.loadData(); }
+                } catch(e) {} finally { this.isSaving = false; }
+            },
+
+            async deleteTemplate(id, type) {
+                if(!confirm("Hapus aset ini permanen?")) return;
+                try {
+                    const res = await fetch(`/admin/crm/templates/delete/${id}`, { method: 'DELETE' });
+                    if(res.ok) { this.notify('success', 'Aset terhapus.'); this.loadData(); }
+                } catch(e) {}
+            },
+
+            // --- UTILS ---
+            simulateFetchUrl() {
+                if(!this.formMsg.content.startsWith('http')) return this.notify('error', 'URL tidak valid.');
+                this.notify('success', 'Sistem siap menarik data URL saat eksekusi.');
+            },
+            countIDs(text) { return text ? text.split(/[\n,]+/).map(i => i.trim()).filter(i => i.length > 0).length : 0; },
+            parsePreview(text) { return text ? text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/__(.*?)__/g, '<i>$1</i>').replace(/`(.*?)`/g, '<code class="bg-gray-100 text-pink-600 px-1 rounded text-xs">$1</code>').replace(/\[NAMA\]/g, '<span class="bg-blue-100 text-blue-600 px-1 rounded font-bold">Kak Customer</span>').replace(/\[WAKTU\]/g, '<span class="bg-emerald-100 text-emerald-600 px-1 rounded font-bold">Pagi</span>') : ''; },
+            formatNumber(val) { return isNaN(val) ? '0' : new Intl.NumberFormat('id-ID').format(val); },
+            formatDate(iso) {
+                if(!iso) return '-';
+                try { const d = new Date(iso); return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0'); } catch(e) { return iso; }
+            },
+            getCurrentTime() { const d = new Date(); return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0'); },
+            notify(type, msg) { this.$dispatch('notify', { type: type, message: msg }); }
+        }));
+    });
+</script>
+{% endblock %}
