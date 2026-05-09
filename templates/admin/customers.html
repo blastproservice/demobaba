@@ -7,14 +7,16 @@
 {% block content %}
 <style>
     /* ==========================================================================
-       ENTERPRISE CUSTOMER CRM DESIGN SYSTEM V11.0 (ULTRA SAAS)
+       1. ENTERPRISE CUSTOMER CRM DESIGN SYSTEM
        ========================================================================== */
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 2px solid transparent; background-clip: content-box; }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
     
-    /* Advanced Modal Animations */
+    /* ==========================================================================
+       2. ADVANCED MODAL & OVERLAY ANIMATIONS
+       ========================================================================== */
     .modal-enter { animation: modalFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     .modal-leave { animation: modalFadeOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     @keyframes modalFadeIn { 
@@ -58,17 +60,12 @@
     [x-cloak] { display: none !important; }
 </style>
 
-<!-- Inject Backend Data securely -->
 <script>
     window.CUSTOMER_DATA = {{ pelanggan | tojson | safe }};
 </script>
 
-<!-- ====================================================================================
-     MAIN ALPINE SPA WRAPPER
-     ==================================================================================== -->
 <div x-data="customerCrmEngine()" x-init="initApp()" class="pb-32 space-y-8" x-cloak>
 
-    <!-- TOAST NOTIFICATIONS SYSTEM -->
     <div class="fixed top-5 right-5 z-[9999] flex flex-col gap-3 pointer-events-none">
         <template x-for="toast in toasts" :key="toast.id">
             <div x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 scale-95" x-transition:enter-end="opacity-100 translate-y-0 scale-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
@@ -86,12 +83,8 @@
         </template>
     </div>
 
-    <!-- ====================================================================================
-         1. TOP STATISTIC WIDGETS
-         ==================================================================================== -->
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 animate-slide-up">
         
-        <!-- Widget: Total Pelanggan -->
         <div class="bg-white p-7 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col relative overflow-hidden group hover:shadow-md transition-all">
             <div class="absolute -right-8 -top-8 w-32 h-32 bg-blue-50/50 rounded-full group-hover:scale-[2] transition-transform duration-700 ease-out z-0"></div>
             <div class="relative z-10 flex items-start justify-between">
@@ -110,7 +103,6 @@
             </div>
         </div>
         
-        <!-- Widget: VIP Customer -->
         <div class="bg-gradient-to-br from-gray-900 to-gray-800 p-7 rounded-[2rem] shadow-xl shadow-gray-900/10 border border-gray-800 flex flex-col relative overflow-hidden group hover:shadow-2xl transition-all">
             <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-yellow-500/10 rounded-full group-hover:scale-[2] transition-transform duration-700 ease-out z-0"></div>
             <i data-lucide="crown" class="absolute right-4 bottom-4 w-24 h-24 text-white opacity-5"></i>
@@ -131,7 +123,6 @@
             </div>
         </div>
 
-        <!-- Widget: Customer Lifetime Value (LTV) -->
         <div class="bg-white p-7 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col relative overflow-hidden xl:col-span-2 group hover:shadow-md transition-all">
             <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-emerald-50/50 rounded-full group-hover:scale-[2] transition-transform duration-700 ease-out z-0"></div>
             <div class="relative z-10 flex items-start justify-between">
@@ -150,12 +141,8 @@
         </div>
     </div>
 
-    <!-- ====================================================================================
-         2. ADVANCED TOOLBAR (SEARCH, FILTER, SYNC, EXPORT)
-         ==================================================================================== -->
     <div class="bg-white p-5 rounded-[2rem] border border-gray-200 shadow-sm flex flex-col xl:flex-row justify-between xl:items-center gap-5 animate-slide-up delay-100">
         
-        <!-- Tab Source Filter -->
         <div class="flex p-1.5 bg-gray-100/80 rounded-2xl w-full xl:w-auto overflow-x-auto custom-scrollbar shrink-0 border border-gray-200/50">
             <button @click="filterSource = 'ALL'; currentPage = 1" 
                     class="px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap"
@@ -169,7 +156,6 @@
         </div>
 
         <div class="flex flex-col sm:flex-row gap-4 w-full xl:w-auto">
-            <!-- Filter Status -->
             <div class="relative shrink-0">
                 <select x-model="filterStatus" @change="currentPage = 1" class="w-full sm:w-48 appearance-none px-5 py-3.5 bg-white border border-gray-200 rounded-2xl text-xs font-black text-gray-700 outline-none focus:ring-4 focus:ring-brand-500/20 focus:border-brand-500 transition-all cursor-pointer shadow-sm hover:border-gray-300">
                     <option value="ALL">Semua Status</option>
@@ -180,7 +166,6 @@
                 <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"></i>
             </div>
 
-            <!-- Smart Search -->
             <div class="relative w-full sm:w-64 xl:w-80 shrink-0">
                 <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
                 <input type="text" x-model="searchQuery" @input="currentPage = 1" placeholder="Cari nama, ID, username..." class="w-full pl-12 pr-10 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-brand-500/20 focus:border-brand-500 outline-none transition-all shadow-sm placeholder:text-gray-400 hover:border-gray-300">
@@ -189,13 +174,11 @@
                 </button>
             </div>
 
-            <!-- Sync Button -->
             <button @click="syncData()" :disabled="isSyncing" class="w-full sm:w-auto px-6 py-3.5 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm disabled:opacity-50 shrink-0">
                 <i data-lucide="refresh-cw" class="w-4 h-4" :class="isSyncing ? 'animate-spin' : ''"></i> 
                 <span x-text="isSyncing ? 'Syncing...' : 'Sync Data'"></span>
             </button>
 
-            <!-- Export Menu -->
             <div class="relative shrink-0" x-data="{ exportOpen: false }" @click.outside="exportOpen = false">
                 <button @click="exportOpen = !exportOpen" class="w-full sm:w-auto px-6 py-3.5 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm">
                     <i data-lucide="download-cloud" class="w-4 h-4"></i> Export
@@ -213,12 +196,8 @@
         </div>
     </div>
 
-    <!-- ====================================================================================
-         3. ENTERPRISE DATA TABLE
-         ==================================================================================== -->
     <div class="bg-white rounded-[2rem] shadow-sm border border-gray-200 overflow-hidden animate-slide-up delay-200 flex flex-col relative min-h-[500px]">
         
-        <!-- Loading State -->
         <div x-show="isLoading" class="absolute inset-0 bg-white/80 backdrop-blur-sm z-30 flex flex-col items-center justify-center">
             <div class="relative w-16 h-16 mb-4">
                 <div class="absolute inset-0 border-4 border-gray-100 rounded-full"></div>
@@ -232,10 +211,8 @@
                 <thead class="bg-gray-50/80 border-b border-gray-200 select-none">
                     <tr class="text-[10px] font-black text-gray-500 uppercase tracking-widest">
                         <th class="px-6 py-5 w-16 text-center">
-                            <!-- FIX: Inlined checkbox styles -->
                             <input type="checkbox" x-model="selectAll" @change="toggleSelectAll()" class="w-5 h-5 border-2 border-gray-300 rounded-lg text-brand-600 focus:ring-brand-500 cursor-pointer transition-all bg-white hover:border-brand-400">
                         </th>
-                        <!-- Sortable Headers -->
                         <th class="px-5 py-5 cursor-pointer hover:bg-gray-100 transition-colors group" @click="sortBy('full_name')">
                             <div class="flex items-center gap-2">Profil Pelanggan <i data-lucide="arrow-down" class="w-3.5 h-3.5 sort-icon" :class="getSortClass('full_name')"></i></div>
                         </th>
@@ -254,7 +231,6 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100 text-sm">
                     
-                    <!-- Empty State -->
                     <template x-if="!isLoading && paginatedData.length === 0">
                         <tr>
                             <td colspan="7" class="px-6 py-32 text-center">
@@ -268,17 +244,13 @@
                         </tr>
                     </template>
 
-                    <!-- Data Rows -->
                     <template x-for="c in paginatedData" :key="c.id">
                         <tr class="hover:bg-brand-50/30 transition-colors group" :class="selectedIds.includes(c.telegram_id) ? 'bg-brand-50/60 border-l-4 border-brand-500' : 'border-l-4 border-transparent'">
                             
-                            <!-- Checkbox -->
                             <td class="px-6 py-4 text-center">
-                                <!-- FIX: Inlined checkbox styles -->
                                 <input type="checkbox" :value="c.telegram_id" x-model="selectedIds" class="w-5 h-5 border-2 border-gray-300 rounded-lg text-brand-600 focus:ring-brand-500 cursor-pointer transition-all bg-white hover:border-brand-400">
                             </td>
 
-                            <!-- Profil -->
                             <td class="px-5 py-4 cursor-pointer" @click="viewCustomerDetail(c)">
                                 <div class="flex items-center gap-4">
                                     <div class="relative shrink-0">
@@ -300,7 +272,6 @@
                                 </div>
                             </td>
 
-                            <!-- Kontak & Source Smart Badge -->
                             <td class="px-6 py-4">
                                 <div class="flex flex-col gap-2.5">
                                     <span class="text-xs font-bold flex items-center gap-1.5" :class="isValidUsername(c.username) ? 'text-gray-800' : 'text-gray-400 italic'">
@@ -309,7 +280,6 @@
                                     </span>
                                     <div class="flex items-center gap-2">
                                         <template x-for="badge in c.badges" :key="badge">
-                                            <!-- FIX: Inlined badge styles -->
                                             <span :class="badge === 'BOT' ? 'px-2 py-1 bg-blue-50 border border-blue-100 text-blue-600 rounded-md text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm' : 'px-2 py-1 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-md text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm'">
                                                 <i :data-lucide="badge === 'BOT' ? 'bot' : 'smartphone'" class="w-2.5 h-2.5"></i>
                                                 <span x-text="badge"></span>
@@ -319,17 +289,14 @@
                                 </div>
                             </td>
 
-                            <!-- Total Order -->
                             <td class="px-6 py-4 text-center">
                                 <span class="text-lg font-black" :class="c.calc_total_orders > 0 ? 'text-gray-900' : 'text-gray-300'" x-text="c.calc_total_orders"></span>
                             </td>
 
-                            <!-- Total Belanja -->
                             <td class="px-6 py-4">
                                 <span class="text-sm font-black px-3.5 py-1.5 rounded-xl" :class="c.calc_total_spent > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'text-gray-400'" x-text="formatCurrency(c.calc_total_spent)"></span>
                             </td>
 
-                            <!-- Status CRM -->
                             <td class="px-6 py-4 text-center">
                                 <template x-if="c.crm_status === 'VIP'">
                                     <span class="px-4 py-1.5 bg-gray-900 text-yellow-400 border border-gray-800 rounded-xl text-[10px] font-black tracking-widest shadow-lg uppercase inline-flex items-center gap-1.5"><i data-lucide="star" class="w-3 h-3 fill-current text-yellow-400"></i> VIP</span>
@@ -342,14 +309,11 @@
                                 </template>
                             </td>
 
-                            <!-- Aksi Management -->
                             <td class="px-6 py-4 text-right">
                                 <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <!-- Action: Direct Telegram Chat -->
                                     <a :href="getChatLink(c)" target="_blank" class="p-2.5 text-gray-500 hover:text-white bg-white hover:bg-blue-500 border border-gray-200 hover:border-blue-500 rounded-xl hover:shadow-lg hover:shadow-blue-500/20 transition-all tooltip-trigger" title="Chat via Telegram">
                                         <i data-lucide="send" class="w-4 h-4"></i>
                                     </a>
-                                    <!-- Action: Edit Profile -->
                                     <button @click="openEditModal(c)" class="p-2.5 text-gray-500 hover:text-white bg-white hover:bg-gray-900 border border-gray-200 hover:border-gray-900 rounded-xl hover:shadow-lg transition-all tooltip-trigger" title="Edit Data Pelanggan">
                                         <i data-lucide="edit-3" class="w-4 h-4"></i>
                                     </button>
@@ -362,7 +326,6 @@
             </table>
         </div>
 
-        <!-- Pagination Footer -->
         <div class="px-6 py-5 border-t border-gray-200 bg-gray-50/50 flex flex-col sm:flex-row justify-between items-center gap-4 mt-auto shrink-0">
             <p class="text-xs font-bold text-gray-500">
                 Menampilkan <span class="text-gray-900" x-text="Math.min((currentPage - 1) * itemsPerPage + 1, filteredData.length) || 0"></span> - 
@@ -384,9 +347,6 @@
         </div>
     </div>
 
-    <!-- ====================================================================================
-         4. FLOATING BULK ACTION BAR (BROADCAST ENGINE)
-         ==================================================================================== -->
     <div x-show="selectedIds.length > 0" x-cloak
          class="fixed bottom-8 left-1/2 -translate-x-1/2 z-40 float-enter"
          :class="selectedIds.length > 0 ? 'float-enter' : 'float-leave'">
@@ -414,14 +374,8 @@
         </div>
     </div>
 
-    <!-- ====================================================================================
-         MODALS & OVERLAYS SYSTEM
-         ==================================================================================== -->
-    
-    <!-- Shared Backdrop for Modals -->
     <div x-show="isEditModalOpen || isBulkModalOpen" class="fixed inset-0 bg-gray-900/70 backdrop-blur-sm z-[100] backdrop-enter" @click="closeModals()"></div>
 
-    <!-- 1. EDIT CUSTOMER MODAL -->
     <div x-show="isEditModalOpen" class="fixed inset-0 z-[110] flex items-center justify-center p-4 pointer-events-none">
         <div x-show="isEditModalOpen" class="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden pointer-events-auto modal-enter flex flex-col max-h-[90vh] border border-gray-100">
             
@@ -453,7 +407,6 @@
                     <label class="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-2.5 ml-1">Nama Lengkap (Tampilan) <span class="text-red-500">*</span></label>
                     <div class="relative">
                         <i data-lucide="user" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
-                        <!-- FIX: Inlined glass-input -->
                         <input type="text" name="full_name" x-model="editForm.full_name" required :disabled="editForm.is_mtproto_only" class="w-full px-5 py-3.5 bg-gray-50/80 border border-gray-200 rounded-2xl text-sm font-semibold text-gray-900 focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 outline-none transition-all shadow-sm focus:bg-white pl-12 disabled:opacity-50 disabled:bg-gray-100 disabled:cursor-not-allowed">
                     </div>
                 </div>
@@ -481,53 +434,100 @@
         </div>
     </div>
 
-    <!-- 2. BROADCAST (BULK MESSAGE) MODAL -->
     <div x-show="isBulkModalOpen" class="fixed inset-0 z-[110] flex items-center justify-center p-4 pointer-events-none">
-        <div x-show="isBulkModalOpen" class="w-full max-w-3xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden pointer-events-auto modal-enter flex flex-col max-h-[90vh]">
+        <div x-show="isBulkModalOpen" class="w-full max-w-4xl bg-white rounded-[3.5rem] shadow-2xl overflow-hidden pointer-events-auto modal-enter flex flex-col max-h-[90vh]">
             
-            <div class="px-8 py-8 border-b border-gray-100 bg-gray-900 flex justify-between items-center shrink-0 relative overflow-hidden">
+            <div class="px-10 py-8 border-b border-gray-100 bg-gray-900 flex justify-between items-center shrink-0 relative overflow-hidden">
                 <div class="absolute -left-10 -bottom-10 w-40 h-40 bg-brand-500/20 rounded-full blur-3xl"></div>
-                <div class="flex items-center gap-5 relative z-10">
-                    <div class="w-16 h-16 bg-white/10 text-brand-400 rounded-2xl flex items-center justify-center border border-white/10 shadow-inner"><i data-lucide="radio" class="w-8 h-8"></i></div>
+                <div class="flex items-center gap-6 relative z-10">
+                    <div class="w-16 h-16 bg-white/10 text-brand-400 rounded-2xl flex items-center justify-center border border-white/10 shadow-inner"><i data-lucide="send" class="w-8 h-8"></i></div>
                     <div>
-                        <h2 class="text-2xl font-black text-white tracking-tight">Kirim Pesan Massal</h2>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1.5">Broadcast ke <span class="text-brand-400 text-xs font-black px-1" x-text="selectedIds.length"></span> pelanggan terpilih</p>
+                        <h2 class="text-3xl font-black text-white tracking-tight">Broadcast Commander</h2>
+                        <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1.5">Kirim pesan otomatis ke <span class="text-brand-400 text-xs font-black px-1" x-text="selectedIds.length"></span> pelanggan</p>
                     </div>
                 </div>
                 <button @click="closeModals()" class="text-gray-400 hover:text-white p-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition-colors relative z-10"><i data-lucide="x" class="w-6 h-6"></i></button>
             </div>
             
-            <div class="p-8 md:p-10 space-y-8 overflow-y-auto custom-scrollbar bg-white">
+            <div class="p-10 overflow-y-auto custom-scrollbar space-y-10 bg-white">
                 
-                <div class="bg-blue-50/80 p-6 rounded-[2rem] border border-blue-100 flex gap-5 items-start shadow-sm">
-                    <div class="bg-blue-100 p-3 rounded-2xl shrink-0"><i data-lucide="info" class="w-6 h-6 text-blue-600"></i></div>
-                    <div>
-                        <h4 class="text-base font-black text-blue-900 mb-1.5">Tips Broadcast Professional</h4>
-                        <p class="text-xs text-blue-800 font-medium leading-relaxed">Gunakan bahasa yang natural agar tidak di-flag spam oleh Telegram. Sistem akan mengirim pesan secara bertahap (Delay 1-3 detik antar pesan) untuk menjaga kesehatan akun MTProto Anda.</p>
+                <div class="space-y-6">
+                    <div class="flex justify-between items-center">
+                        <label class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1">1. Pilih Amunisi Pesan <span class="text-red-500">*</span></label>
+                        <a href="/admin/crm/templates" target="_blank" class="text-[10px] font-black text-blue-600 hover:underline uppercase tracking-widest">Manajemen Templates</a>
+                    </div>
+                    
+                    <div class="relative">
+                        <i data-lucide="layout" class="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400"></i>
+                        <select x-model="formBroadcast.template_id" 
+                                class="w-full pl-16 pr-8 py-5 bg-gray-50 border-2 border-gray-100 rounded-[2rem] text-base font-black text-gray-900 outline-none focus:border-gray-900 transition-all appearance-none cursor-pointer">
+                            <option value="">-- Pilih Template Copywriting --</option>
+                            <template x-for="tmp in templates" :key="tmp.id">
+                                <option :value="tmp.id" x-text="tmp.name"></option>
+                            </template>
+                        </select>
+                        <i data-lucide="chevron-down" class="absolute right-6 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400 pointer-events-none"></i>
+                    </div>
+
+                    <div x-show="formBroadcast.template_id" x-transition class="p-6 bg-blue-50/50 rounded-[2rem] border border-blue-100 relative">
+                        <h4 class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-3">Live Preview Pesan:</h4>
+                        <div class="text-sm font-medium text-gray-700 leading-relaxed whitespace-pre-wrap" x-html="parsePreview(getSelectedTemplateContent())"></div>
                     </div>
                 </div>
 
-                <div>
-                    <div class="flex justify-between items-end mb-3 ml-1">
-                        <label class="block text-[11px] font-black text-gray-500 uppercase tracking-widest">Isi Pesan Broadcast <span class="text-red-500">*</span></label>
-                        <span class="text-[10px] font-bold" :class="bulkMessage.length > 500 ? 'text-amber-500' : 'text-gray-400'" x-text="bulkMessage.length + ' karakter'"></span>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div class="space-y-4">
+                        <label class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1">2. Tanggal Pengiriman</label>
+                        <div class="relative">
+                            <i data-lucide="calendar" class="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+                            <input type="date" x-model="formBroadcast.start_date" class="w-full pl-14 pr-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-gray-900/5">
+                        </div>
                     </div>
-                    <!-- FIX: Inlined glass-input -->
-                    <textarea x-model="bulkMessage" rows="8" placeholder="Contoh: Hallo kak gmna kabar nya hari ini? semoga wangi selalu ya^^" class="w-full px-5 py-4 bg-gray-50/80 border border-gray-200 rounded-[2rem] text-sm font-semibold text-gray-900 focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 outline-none transition-all shadow-sm focus:bg-white resize-y custom-scrollbar text-base"></textarea>
+                    <div class="space-y-4">
+                        <label class="block text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Waktu Eksekusi</label>
+                        <div class="relative">
+                            <i data-lucide="clock" class="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"></i>
+                            <input type="time" x-model="formBroadcast.start_time" class="w-full pl-14 pr-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-gray-900/5">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-10 bg-gray-900 rounded-[3rem] text-white space-y-8 relative overflow-hidden">
+                    <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/5 rounded-full"></div>
+                    <div class="flex items-center gap-4 relative z-10">
+                        <div class="w-10 h-10 bg-brand-500 text-gray-900 rounded-full flex items-center justify-center shadow-lg"><i data-lucide="shield-check" class="w-5 h-5"></i></div>
+                        <h4 class="text-sm font-black uppercase tracking-widest">3. Human Behavior Engine</h4>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
+                        <div class="space-y-4">
+                            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Min. Delay (Detik)</label>
+                            <input type="number" x-model="formBroadcast.min_delay" class="w-full px-6 py-3.5 bg-white/10 border border-white/20 rounded-xl text-sm font-bold text-white outline-none focus:border-brand-500">
+                        </div>
+                        <div class="space-y-4">
+                            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Max. Delay (Detik)</label>
+                            <input type="number" x-model="formBroadcast.max_delay" class="w-full px-6 py-3.5 bg-white/10 border border-white/20 rounded-xl text-sm font-bold text-white outline-none focus:border-brand-500">
+                        </div>
+                        <div class="space-y-4">
+                            <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest">Ukuran Batch / Kiriman</label>
+                            <input type="number" x-model="formBroadcast.batch_size" class="w-full px-6 py-3.5 bg-white/10 border border-white/20 rounded-xl text-sm font-bold text-white outline-none focus:border-brand-500">
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-gray-400 font-medium uppercase tracking-widest leading-loose">Sistem akan memberi jeda waktu acak (delay) pada setiap pesan agar akun MTProto tidak terdeteksi bot/spam oleh Telegram.</p>
                 </div>
 
                 <div class="pt-6 flex flex-col sm:flex-row justify-end gap-4 border-t border-gray-100">
                     <button @click="closeModals()" class="w-full sm:w-auto px-10 py-4 text-xs font-bold text-gray-600 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 transition-colors uppercase tracking-widest">Batal</button>
-                    <button @click="sendBulkMessage()" :disabled="isSendingBulk || bulkMessage.trim().length === 0" class="w-full sm:w-auto px-12 py-4 text-xs font-black text-gray-900 uppercase tracking-widest bg-brand-500 rounded-2xl hover:bg-brand-400 shadow-xl shadow-brand-500/20 disabled:opacity-50 transition-all flex items-center justify-center gap-2">
-                        <span x-show="!isSendingBulk" class="flex items-center gap-2"><i data-lucide="send" class="w-4 h-4"></i> Mulai Broadcast</span>
-                        <span x-show="isSendingBulk" x-cloak class="flex items-center gap-2"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Memproses Antrean...</span>
+                    <button @click="launchBroadcastCommander()" :disabled="isSendingBulk || !formBroadcast.template_id" 
+                            class="w-full sm:w-auto px-12 py-4 text-xs font-black text-gray-900 uppercase tracking-widest bg-brand-500 rounded-2xl hover:bg-brand-400 shadow-xl shadow-brand-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2">
+                        <span x-show="!isSendingBulk" class="flex items-center gap-2"><i data-lucide="zap" class="w-4 h-4"></i> Luncurkan Campaign</span>
+                        <span x-show="isSendingBulk" x-cloak class="flex items-center gap-2"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Menyusun Antrean...</span>
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 3. CUSTOMER DETAIL 360 SLIDE-OVER (ENTERPRISE CRM PANEL) -->
     <div x-show="isDetailOpen" class="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[100] backdrop-enter" @click="isDetailOpen = false"></div>
     <div x-show="isDetailOpen" 
          class="fixed inset-y-0 right-0 z-[110] w-full max-w-md bg-white shadow-[0_0_50px_rgba(0,0,0,0.2)] flex flex-col slide-over-enter border-l border-gray-200" x-cloak>
@@ -540,7 +540,6 @@
         <div class="flex-1 overflow-y-auto custom-scrollbar p-6 bg-white">
             <template x-if="activeDetail">
                 <div class="space-y-8">
-                    <!-- Profile Header -->
                     <div class="flex flex-col items-center text-center pb-8 border-b border-gray-100 relative">
                         <div class="absolute inset-0 bg-gradient-to-b from-gray-50 to-white -z-10 rounded-3xl -mx-4 -mt-4"></div>
                         <div class="relative mb-5 mt-4">
@@ -558,7 +557,6 @@
                         </div>
                     </div>
 
-                    <!-- Lifetime Stats -->
                     <div class="grid grid-cols-2 gap-4">
                         <div class="bg-gray-50 rounded-3xl p-6 border border-gray-100 shadow-sm hover:border-blue-200 hover:bg-blue-50/30 transition-colors">
                             <div class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-sm border border-gray-100"><i data-lucide="shopping-bag" class="w-6 h-6 text-blue-500"></i></div>
@@ -572,11 +570,9 @@
                         </div>
                     </div>
 
-                    <!-- Labels & Tags -->
                     <div class="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-sm p-6 flex flex-wrap gap-2">
                         <span class="px-3 py-1.5 rounded-lg bg-gray-100 border border-gray-200 text-gray-600 text-[10px] font-black uppercase tracking-widest shadow-sm" x-text="activeDetail.crm_status"></span>
                         <template x-for="badge in activeDetail.badges" :key="badge">
-                            <!-- FIX: Inlined badge styles -->
                             <span :class="badge === 'BOT' ? 'px-3 py-1.5 bg-blue-50 border border-blue-100 text-blue-600 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-sm' : 'px-3 py-1.5 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-sm'">
                                 <i :data-lucide="badge === 'BOT' ? 'bot' : 'smartphone'" class="w-3 h-3"></i>
                                 <span x-text="badge"></span>
@@ -587,7 +583,6 @@
                         </template>
                     </div>
 
-                    <!-- Contact Info -->
                     <div class="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-sm">
                         <div class="px-6 py-5 bg-gray-50/80 border-b border-gray-100 flex items-center justify-between">
                             <h4 class="text-xs font-black text-gray-600 uppercase tracking-widest">Informasi Kontak</h4>
@@ -614,12 +609,10 @@
 
 </div>
 
-<!-- ====================================================================================
-     ALPINE.JS CONTROLLER ENGINE
-     ==================================================================================== -->
 <script>
     document.addEventListener('alpine:init', () => {
         Alpine.data('customerCrmEngine', () => ({
+            // ORIGINAL DATA STATES
             rawData: [],
             searchQuery: '',
             filterSource: 'ALL',
@@ -635,15 +628,24 @@
             currentPage: 1,
             itemsPerPage: 15,
             
-            // Modals State
+            // ORIGINAL MODALS STATE
             isEditModalOpen: false,
             editForm: { id: '', telegram_id: '', full_name: '', phone: '', address: '', is_mtproto_only: false },
             
+            // NEW: COMMANDER BROADCAST STATE
             isBulkModalOpen: false,
-            bulkMessage: '',
             isSendingBulk: false,
+            templates: [], // Menampung template dari API
+            formBroadcast: {
+                template_id: '',
+                start_date: new Date().toISOString().split('T')[0],
+                start_time: '09:00',
+                min_delay: 2,
+                max_delay: 5,
+                batch_size: 50
+            },
 
-            // Slide-over State
+            // ORIGINAL SLIDE-OVER STATE
             isDetailOpen: false,
             activeDetail: null,
             
@@ -652,8 +654,12 @@
             toasts: [],
             stats: { total: 0, bot: 0, mtproto: 0, vip: 0, revenue: 0 },
 
-            initApp() {
+            async initApp() {
                 this.isLoading = true;
+                
+                // Fetch Template Amunisi secara background
+                this.loadTemplates();
+
                 setTimeout(() => {
                     const raw = window.CUSTOMER_DATA || [];
                     this.rawData = raw.map(c => {
@@ -668,9 +674,7 @@
                         let badges = [];
                         let src = (c.source || 'bot').toLowerCase();
                         
-                        // Jika ada kata bot, jadikan badge BOT
                         if (src.includes('bot')) badges.push('BOT');
-                        // Jika ada kata mtproto, jadikan badge MTPROTO
                         if (src.includes('mtproto')) badges.push('MTPROTO');
                         
                         return { ...c, crm_status: status, badges: badges };
@@ -682,6 +686,21 @@
                 }, 400); // Fake delay for UX smooth transition
             },
 
+            // --- FETCH DATA LOGIC ---
+            async loadTemplates() {
+                try {
+                    const res = await fetch('/admin/crm/templates/list');
+                    const data = await res.json();
+                    if(data.status === 'success') {
+                        // Hanya ambil yang tipe pesan copywriting
+                        this.templates = data.data.filter(t => t.type === 'MESSAGE');
+                    }
+                } catch(e) {
+                    console.error("Gagal memuat template: ", e);
+                }
+            },
+
+            // --- COMPUTED STATES & SORTING (ORIGINAL) ---
             calculateStats() {
                 this.stats.total = this.rawData.length;
                 this.stats.bot = this.rawData.filter(c => c.badges.includes('BOT')).length;
@@ -720,7 +739,6 @@
                         if (b.calc_total_orders !== a.calc_total_orders) {
                             return b.calc_total_orders - a.calc_total_orders;
                         }
-                        // Priority to last_interaction over created_at
                         const dateA = this.parseDateSafe(a.last_interaction || a.created_at).getTime();
                         const dateB = this.parseDateSafe(b.last_interaction || b.created_at).getTime();
                         return dateB - dateA; // Terbaru di atas
@@ -753,7 +771,7 @@
                 return paginated;
             },
 
-            // Sorting Logic
+            // --- UI ACTIONS LOGIC ---
             sortBy(col) {
                 if(this.sortCol === col) {
                     this.sortAsc = !this.sortAsc;
@@ -777,7 +795,6 @@
                 this.currentPage = 1;
             },
 
-            // Checkbox Logic
             toggleSelectAll() {
                 if (this.selectAll) {
                     this.selectedIds = this.filteredData.map(c => c.telegram_id);
@@ -786,14 +803,12 @@
                 }
             },
 
-            // View Details (Slide-over)
             viewCustomerDetail(c) {
                 this.activeDetail = c;
                 this.isDetailOpen = true;
                 setTimeout(() => { if(typeof lucide !== 'undefined') lucide.createIcons(); }, 50);
             },
 
-            // Modals Logic
             openEditModal(c) {
                 let isImported = c.default_address && c.default_address.includes('Diimpor otomatis');
                 let isOnlyMtproto = c.id && c.id.toString().startsWith('mtproto_') || isImported;
@@ -810,8 +825,9 @@
                 setTimeout(() => { if(typeof lucide !== 'undefined') lucide.createIcons(); }, 50);
             },
             
+            // Menggantikan Textarea dengan setup Template di Modal
             openBulkModal() {
-                this.bulkMessage = '';
+                this.formBroadcast.template_id = ''; // Reset pilihan template
                 this.isBulkModalOpen = true;
                 setTimeout(() => { if(typeof lucide !== 'undefined') lucide.createIcons(); }, 50);
             },
@@ -821,58 +837,68 @@
                 this.isBulkModalOpen = false;
             },
 
-            // Telegram Deep Link Generator (SAFE NATIVE & DESKTOP)
+            // --- UTILS (TELEGRAM & DATE) ---
             isValidUsername(uname) {
                 return uname && uname.trim() !== '' && uname.trim().toLowerCase() !== 'no username' && uname.trim().toLowerCase() !== 'null';
             },
             getChatLink(c) {
-                // 1. Prioritas Username
                 if (this.isValidUsername(c.username)) {
                     let cleanUname = c.username.replace('@', '').trim();
                     return `https://t.me/${cleanUname}`;
                 }
-                // 2. Prioritas No HP
                 if (c.phone && c.phone.trim() !== '') {
                     let cleanPhone = c.phone.replace('+', '').trim();
                     return `https://t.me/+${cleanPhone}`;
                 }
-                // 3. Fallback paling aman untuk Desktop/Mobile jika cuma punya ID
                 return `tg://openmessage?user_id=${c.telegram_id}`;
             },
 
-            // API Calling (Broadcast)
-            async sendBulkMessage() {
-                if(this.selectedIds.length === 0) return this.notify('warning', 'Validasi Gagal', 'Pilih minimal 1 pelanggan.');
-                if(!this.bulkMessage.trim()) return this.notify('warning', 'Validasi Gagal', 'Pesan tidak boleh kosong.');
+            // API COMMANDER: Mengirim bulk request ke Engine Dewa (broadcast.py)
+            getSelectedTemplateContent() {
+                const tmp = this.templates.find(t => t.id == this.formBroadcast.template_id);
+                return tmp ? tmp.content : '';
+            },
+
+            async launchBroadcastCommander() {
+                if(this.selectedIds.length === 0) return this.notify('warning', 'Peringatan', 'Pilih minimal 1 pelanggan.');
+                if(!this.formBroadcast.template_id) return this.notify('warning', 'Peringatan', 'Pilih template copywriting.');
                 
                 this.isSendingBulk = true;
                 try {
-                    const res = await fetch('/admin/customers/bulk-message', {
+                    const payload = {
+                        target_ids: this.selectedIds,
+                        template_id: this.formBroadcast.template_id,
+                        schedule_time: `${this.formBroadcast.start_date} ${this.formBroadcast.start_time}`,
+                        settings: {
+                            min_delay: this.formBroadcast.min_delay,
+                            max_delay: this.formBroadcast.max_delay,
+                            batch_size: this.formBroadcast.batch_size
+                        }
+                    };
+
+                    const res = await fetch('/admin/crm/customers/broadcast/bulk', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            telegram_ids: this.selectedIds,
-                            message: this.bulkMessage
-                        })
+                        body: JSON.stringify(payload)
                     });
                     
                     const response = await res.json();
                     if(res.ok && response.status === 'success') {
-                        this.notify('success', 'Broadcast Diinisiasi', response.message);
+                        this.notify('success', 'Broadcast Diinisiasi!', response.message || 'Tugas telah masuk ke antrean Engine.');
                         this.selectedIds = [];
                         this.selectAll = false;
                         this.closeModals();
                     } else {
-                        this.notify('error', 'Broadcast Gagal', response.message || 'Gagal mengirim pesan.');
+                        this.notify('error', 'Gagal Mengeksekusi', response.message || 'Error saat membuat campaign.');
                     }
                 } catch(e) {
-                    this.notify('error', 'Koneksi Terputus', 'Gagal menghubungi server backend.');
+                    this.notify('error', 'Koneksi Terputus', 'Server tidak merespons perintah Broadcast.');
                 } finally {
                     this.isSendingBulk = false;
                 }
             },
 
-            // API Calling (Deep Sync MTProto)
+            // API Calling (Deep Sync MTProto) - Original Maintained
             async syncData() {
                 this.isSyncing = true;
                 try {
@@ -895,13 +921,10 @@
                 }
             },
 
-            // Safe Date Parser (Fix Invalid Date dari Python/Supabase)
             parseDateSafe(dateStr) {
                 if (!dateStr) return new Date(0);
                 try {
-                    // Normalisasi spasi jadi T buat kompatibilitas ISO
                     let clean = dateStr.replace(' ', 'T');
-                    // Jika formatnya hanya yyyy-mm-dd HH:MM:SS tanpa timezone
                     if (!clean.includes('Z') && !clean.includes('+') && !clean.includes('-')) {
                         clean += 'Z'; 
                     }
@@ -912,7 +935,14 @@
                 }
             },
 
-            // Utils & Formatters
+            // Parser Template untuk Preview UI di Dropdown
+            parsePreview(text) {
+                if(!text) return '';
+                return text.replace(/\n/g, '<br>')
+                           .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+                           .replace(/\[NAMA\]/g, '<span class="text-blue-500 font-bold px-1 rounded bg-blue-50">Dika</span>');
+            },
+
             formatNum(n) { return new Intl.NumberFormat('id-ID').format(n || 0); },
             formatCurrency(n) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n || 0); },
             
@@ -928,7 +958,7 @@
                 return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute:'2-digit' }) + ' WIB';
             },
             
-            // Enterprise Export Engine
+            // Enterprise Export Engine - Original Maintained
             exportData(format) {
                 if (format === 'csv') {
                     let csv = ["Badges,Nama Lengkap,Telegram ID,Username,No HP,Total Order,Total Belanja ($),Status CRM,Tanggal Terdaftar"];
