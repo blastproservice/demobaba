@@ -1,13 +1,13 @@
 """
 ====================================================================================
-BABA PARFUME - CRM CUSTOMERS ENGINE (ULTRA ENTERPRISE V11.0)
+BABA PARFUME - CRM CUSTOMERS ENGINE (ULTRA ENTERPRISE V12.0)
 ====================================================================================
 Deskripsi : Arsitektur Backend Skala Besar untuk Manajemen Data Pelanggan.
-Developer : BABA Enterprise Core Team (Dika & AI Partner)
+Developer : BABA Enterprise Core Team
 Fitur     : 
             1. Single Source of Truth (Tabel 'customers' dengan kolom 'source')
             2. Real-Time Telethon Sync & Data Enrichment (Melengkapi data kosong)
-            3. Asynchronous Bulk Broadcast via Background Tasks (Telethon Sender)
+            3. [NEW] Broadcast Commander Integrator -> Delegasi penuh ke broadcast.py
             4. RFM Analytics Engine (Recency, Frequency, Monetary)
             5. Server-Side Export Engine (CSV/JSON generation)
             6. Fault Tolerance & Retry Mechanism (Anti-Crash DB)
@@ -31,7 +31,7 @@ from fastapi import APIRouter, Request, Depends, HTTPException, status, Form, Ba
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field, validator
 
-# Telethon untuk Deep Sync & Broadcast
+# Telethon untuk Deep Sync
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 
@@ -70,7 +70,6 @@ class EnterpriseLogger:
     def audit(self, admin_id: int, action: str, details: str):
         """Mencatat aktivitas admin untuk keperluan Audit Trail keamanan"""
         self.logger.info(f"[AUDIT TRAIL] Admin ID: {admin_id} | Action: {action} | Details: {details}")
-        # Di sistem nyata, ini bisa di-insert ke tabel admin_logs di DB
         if supabase:
             try:
                 supabase.table("admins").update({"last_activity_desc": f"{action}: {details}"}).eq("id", admin_id).execute()
@@ -90,16 +89,17 @@ TELEGRAM_API_HASH = os.getenv("API_HASH", "")
 # ==============================================================================
 # PYDANTIC SCHEMAS (DATA VALIDATION LAYER)
 # ==============================================================================
-class BulkMessagePayload(BaseModel):
-    """Schema Validasi Ketat untuk Eksekusi Broadcast"""
-    telegram_ids: List[int] = Field(..., min_items=1, description="List Telegram ID target broadcast")
-    message: str = Field(..., min_length=5, description="Isi pesan broadcast, minimal 5 karakter")
+class CommanderSettings(BaseModel):
+    min_delay: int
+    max_delay: int
+    batch_size: int
 
-    @validator('message')
-    def validate_message(cls, v):
-        if len(v) > 4096:
-            raise ValueError('Pesan terlalu panjang untuk protokol Telegram (Maks 4096 karakter)')
-        return v
+class CommanderBroadcastPayload(BaseModel):
+    """Schema Validasi Ketat untuk Eksekusi Broadcast Commander V12.0"""
+    target_ids: List[Union[int, str]] = Field(..., min_items=1, description="List Telegram ID target broadcast")
+    template_id: str = Field(..., description="ID Template Copywriting yang sudah diekstrak")
+    schedule_time: str = Field(..., description="Format: YYYY-MM-DD HH:MM")
+    settings: CommanderSettings
 
 class CustomerSyncPayload(BaseModel):
     """Schema untuk API Sinkronisasi Dinamis"""
@@ -237,9 +237,13 @@ class DeepSyncService:
                     full_name = f"{first_name} {last_name}".strip() or f"User {user.id}"
                     
                     last_msg_date = dialog.message.date.isoformat() if dialog.message and dialog.message.date else datetime.now(timezone.utc).isoformat()
+                    
+                    # [TAMBAHAN DEWA 1]: Tangkap Access Hash dari Telethon!
+                    acc_hash = getattr(user, 'access_hash', None)
                         
                     mtproto_users.append({
                         "telegram_id": user.id,
+                        "access_hash": str(acc_hash) if acc_hash else None, # Simpan sebagai string
                         "full_name": full_name,
                         "username": user.username or None,
                         "phone": user.phone or None,
@@ -250,11 +254,11 @@ class DeepSyncService:
             logger.info(f"Berhasil menarik {len(mtproto_users)} entitas manusia dari Telegram.")
 
             # 4. CROSS-CHECK DENGAN MASTER TABLE CUSTOMERS
+            # [TAMBAHAN DEWA 2]: Tambahkan 'access_hash' ke dalam list select DB
             customers_res = await execute_with_retry(
-                lambda: supabase.table("customers").select("id, telegram_id, source, username, phone").execute()
+                lambda: supabase.table("customers").select("id, telegram_id, source, username, phone, access_hash").execute()
             )
             
-            # Buat Map untuk mempercepat pencarian (O(1) lookup)
             existing_cust_map = {int(c["telegram_id"]): c for c in (customers_res.data or [])}
 
             # 5. FILTERING, BATCHING, & DATA ENRICHMENT
@@ -266,9 +270,10 @@ class DeepSyncService:
                 tid = int(u["telegram_id"])
                 
                 if tid not in existing_cust_map:
-                    # PENGGUNA BARU: Murni dari MTProto
+                    # PENGGUNA BARU
                     new_customers.append({
                         "telegram_id": tid,
+                        "access_hash": u["access_hash"], # [TAMBAHAN DEWA 3]: Suntik Hash untuk User Baru
                         "full_name": u["full_name"],
                         "username": u["username"],
                         "phone": u["phone"],
@@ -280,19 +285,17 @@ class DeepSyncService:
                         "updated_at": current_time
                     })
                 else:
-                    # PENGGUNA LAMA (Mungkin Bot User): Lakukan Enrichment
+                    # PENGGUNA LAMA -> ENRICHMENT
                     db_user = existing_cust_map[tid]
                     current_source = db_user.get("source") or "bot"
                     
                     needs_update = False
                     update_payload = {"last_interaction": u["last_interaction"]}
                     
-                    # Cek apakah sumber MTProto sudah dicatat
                     if "mtproto" not in current_source.lower():
                         update_payload["source"] = f"{current_source}, mtproto"
                         needs_update = True
                         
-                    # DATA ENRICHMENT: Lengkapi username/phone di DB jika kosong tapi di Telegram ada
                     if not db_user.get("username") and u["username"]:
                         update_payload["username"] = u["username"]
                         needs_update = True
@@ -301,7 +304,12 @@ class DeepSyncService:
                         update_payload["phone"] = u["phone"]
                         needs_update = True
                         
-                    # Selalu update last_interaction jika data ditarik
+                    # [TAMBAHAN DEWA 4]: Update Hash jika di DB kosong atau berubah
+                    if u["access_hash"] and str(db_user.get("access_hash")) != str(u["access_hash"]):
+                        update_payload["access_hash"] = u["access_hash"]
+                        needs_update = True
+                        
+                    # Selalu update last_interaction
                     needs_update = True 
                         
                     if needs_update:
@@ -341,100 +349,6 @@ class DeepSyncService:
             raise e
 
 # ==============================================================================
-# CORE SERVICE 3: ASYNC BROADCAST ENGINE (TELETHON SENDER)
-# ==============================================================================
-class BroadcastService:
-    """Service khusus untuk menangani pengiriman pesan massal secara asinkron"""
-
-    @staticmethod
-    async def process_campaign(campaign_id: str, telegram_ids: List[int], message: str, admin_id: int):
-        """Worker background yang tidak memblokir server"""
-        logger.info(f"[BROADCAST WORKER] Menginisiasi kampanye {campaign_id} ke {len(telegram_ids)} target.")
-        success_count = 0
-        failed_count = 0
-
-        if not supabase: return
-
-        client = None
-        try:
-            # AUTENTIKASI TELETHON
-            session_res = await execute_with_retry(
-                lambda: supabase.table("crm_telegram_sessions").select("session_string").eq("admin_id", admin_id).eq("status", "active").execute()
-            )
-            
-            if session_res.data:
-                session_string = session_res.data[0]["session_string"]
-                client = TelegramClient(StringSession(session_string), TELEGRAM_API_ID, TELEGRAM_API_HASH)
-                await client.connect()
-                
-                if not await client.is_user_authorized():
-                    logger.error("Broadcast Aborted: Sesi Telegram tidak terotorisasi.")
-                    await client.disconnect()
-                    client = None
-            else:
-                logger.warning("Sesi MTProto tidak aktif. Broadcast dibatalkan.")
-                return
-
-            # EKSEKUSI PENGIRIMAN MASSAL DENGAN ANTI-SPAM JITTER
-            for tele_id in telegram_ids:
-                log_entry_id = None
-                try:
-                    log_data = {"campaign_id": campaign_id, "target_id": str(tele_id), "status": "PENDING"}
-                    log_res = supabase.table("crm_blast_logs").insert(log_data).execute()
-                    log_entry_id = log_res.data[0]['id'] if log_res.data else None
-                except Exception as log_e:
-                    logger.warning(f"Gagal mencatat log untuk ID {tele_id}: {log_e}")
-
-                is_sent = False
-                error_msg = None
-
-                if client:
-                    try:
-                        # Jitter natural delay untuk menghindari blokir Telegram
-                        delay = random.uniform(1.8, 4.5)
-                        await asyncio.sleep(delay)
-                        
-                        await client.send_message(tele_id, message)
-                        is_sent = True
-                        logger.info(f"[BROADCAST] Berhasil mengirim ke {tele_id}")
-                        
-                        # Update last_interaction di database
-                        supabase.table("customers").update({
-                            "last_interaction": datetime.now(timezone.utc).isoformat()
-                        }).eq("telegram_id", tele_id).execute()
-                        
-                    except Exception as e:
-                        error_msg = str(e)
-                        logger.error(f"[BROADCAST] Gagal mengirim ke {tele_id}: {error_msg}")
-                else:
-                    error_msg = "MTProto Client Disconnected"
-
-                # UPDATE FINAL LOG
-                if log_entry_id:
-                    try:
-                        supabase.table("crm_blast_logs").update({
-                            "status": "SENT" if is_sent else "FAILED",
-                            "error_message": error_msg,
-                            "sent_at": datetime.now(timezone.utc).isoformat()
-                        }).eq("id", log_entry_id).execute()
-                    except Exception as upd_e:
-                        pass
-
-                if is_sent: success_count += 1
-                else: failed_count += 1
-
-        except Exception as fatal_e:
-            logger.critical(f"[BROADCAST FATAL ERROR] Kampanye {campaign_id} hancur: {fatal_e}")
-            
-        finally:
-            if client: await client.disconnect()
-            try:
-                supabase.table("crm_campaigns").update({"status": "COMPLETED"}).eq("id", campaign_id).execute()
-            except Exception as e: pass
-
-            logger.info(f"🚀 [BROADCAST WORKER] Kampanye {campaign_id} SELESAI. Sukses: {success_count}, Gagal: {failed_count}.")
-
-# ==============================================================================
 # FASTAPI ROUTE HANDLERS (WEB & API CONTROLLERS)
 # ==============================================================================
 
@@ -442,24 +356,20 @@ class BroadcastService:
 async def admin_customers(request: Request, admin=Depends(get_current_admin)):
     """
     Rute Utama untuk merender halaman Data Pelanggan.
-    Karena database sudah Single Source of Truth, performa fetching maksimal.
     """
     pelanggan_final = []
     
     if supabase:
         try:
-            # Ambil semua pelanggan, diurutkan berdasarkan interaksi terbaru
             res_cust = await execute_with_retry(
                 lambda: supabase.table("customers").select("*").order("last_interaction", desc=True).execute()
             )
             
-            # Sanitasi data sebelum dilempar ke HTML/Alpine.js
             for c in (res_cust.data or []):
                 c['calc_total_orders'] = c.get('total_orders', 0)
                 c['calc_total_spent'] = float(c.get('total_spent', 0.0))
                 c['username'] = c.get('username') or ''
                 c['phone'] = c.get('phone') or ''
-                # Standardisasi Source String
                 src = c.get('source', 'bot')
                 if not src: src = 'bot'
                 c['source'] = src.upper() 
@@ -533,84 +443,109 @@ async def edit_customer(
         logger.error(f"[EDIT CUSTOMER FATAL ERROR]: {e}")
         raise HTTPException(status_code=500, detail="Gagal memperbarui data pelanggan.")
 
-@router.post("/customers/bulk-message")
-async def bulk_message_customers(
-    payload: BulkMessagePayload, 
-    bg_tasks: BackgroundTasks, 
+
+# ==============================================================================
+# MAGIC BRIDGE: BROADCAST COMMANDER (DELIVER TO ENGINE DEWA)
+# Rute diubah menyesuaikan frontend baru (/crm/customers/broadcast/bulk)
+# ==============================================================================
+@router.post("/crm/customers/broadcast/bulk")
+async def bulk_broadcast_commander(
+    payload: CommanderBroadcastPayload,
+    bg_tasks: BackgroundTasks, # KUNCI 1: Harus ada bg_tasks untuk eksekusi instan
     admin=Depends(get_current_admin)
 ):
-    """
-    API Broadcast Skala Enterprise.
-    Menerima request, mencatat ke DB, dan mendelegasikan pengiriman ke Background Task.
-    """
+    """API Broadcast yang sudah 100% nyambung dengan Watchdog Engine V15"""
     if not supabase: 
         return api_error("Database Offline - Broadcast Dibatalkan", 503)
         
     admin_id = admin.get("admin_id")
     
     try:
-        # 1. Daftarkan Template
-        tpl_msg_res = await execute_with_retry(
-            lambda: supabase.table("crm_templates").insert({
-                "name": f"Broadcast_Msg_{datetime.now().strftime('%Y%m%d_%H%M')}",
-                "type": "MESSAGE", # Pastikan tipenya MESSAGE
-                "content": payload.message,
-                "created_by": admin_id
-            }).execute()
-        )
-        msg_template_id = tpl_msg_res.data[0]['id']
-
-        # 1.5 Daftarkan Template Target (Dari Checkbox Pelanggan)
-        target_list_string = ",".join(map(str, payload.telegram_ids))
+        import pytz
+        from routers.crm.broadcast import execute_broadcast_task, CampaignWatchdog
+        
+        # 1. Bikin Grup Target dari Customer yang dipilih
+        target_list_string = ",".join(map(str, payload.target_ids))
         tpl_tgt_res = await execute_with_retry(
             lambda: supabase.table("crm_templates").insert({
-                "name": f"Bulk_Targets_{len(payload.telegram_ids)}",
-                "type": "TARGET_GROUP", # Pastikan tipenya TARGET
+                "name": f"Commander_Targets_{len(payload.target_ids)}_{int(time.time())}",
+                "type": "TARGET_GROUP", 
                 "content": target_list_string,
                 "created_by": admin_id
             }).execute()
         )
         target_template_id = tpl_tgt_res.data[0]['id']
 
-        # Dapatkan ID Session MTProto
+        # 2. Cek Koneksi Telegram (Session ID)
         session_res = await execute_with_retry(
             lambda: supabase.table("crm_telegram_sessions").select("id").eq("admin_id", admin_id).eq("status", "active").execute()
         )
         mtproto_session_id = session_res.data[0]['id'] if session_res.data else None
 
-        # Insert Campaign
+        # 3. Kunci Timezone ke WIB (Asia/Jakarta)
+        wib_tz = pytz.timezone("Asia/Jakarta")
+        now_wib = datetime.now(wib_tz)
+        
+        try:
+            dt_obj = datetime.strptime(payload.schedule_time, "%Y-%m-%d %H:%M")
+            target_date = wib_tz.localize(dt_obj)
+        except:
+            target_date = now_wib
+            
+        # Toleransi 1 menit: Kalau jadwalnya "sekarang", sistem anggap instan
+        is_scheduled = target_date > now_wib + timedelta(minutes=1)
+
+        # 4. Insert ke Supabase
         camp_res = await execute_with_retry(
             lambda: supabase.table("crm_campaigns").insert({
-                "campaign_name": f"Bulk_Targeted_{len(payload.telegram_ids)}",
+                "campaign_name": f"Bulk_Commander_{len(payload.target_ids)}_{int(time.time())}",
                 "sender_type": "MTPROTO" if mtproto_session_id else "BOT",
                 "session_id": mtproto_session_id,
-                "message_template_id": msg_template_id,   # Masukin ID Pesan
-                "target_template_id": target_template_id, # Masukin ID Target yang bener
-                "status": "PROCESSING",
+                "message_template_id": payload.template_id, 
+                "target_template_id": target_template_id,   
+                "status": "PENDING" if is_scheduled else "PROCESSING", 
+                "start_time": target_date.isoformat(),
+                "scheduled_at": target_date.isoformat(),  # KUNCI 2: Ini yang di-scan sama Watchdog!
+                "frequency": "ONCE",
+                "delay_min": payload.settings.min_delay,
+                "delay_max": payload.settings.max_delay,
+                "batch_size": payload.settings.batch_size,
+                "humanized_config": {
+                    "delay_min": payload.settings.min_delay,
+                    "delay_max": payload.settings.max_delay,
+                    "rest_batch": payload.settings.batch_size,
+                    "rest_duration_min": 5
+                },
                 "created_by": admin_id
             }).execute()
         )
         campaign_id = camp_res.data[0]['id']
 
-        # 2. Delegasi Eksekusi (NON-BLOCKING)
-        bg_tasks.add_task(
-            BroadcastService.process_campaign, 
-            campaign_id, 
-            payload.telegram_ids, 
-            payload.message, 
-            admin_id
-        )
-        
-        logger.audit(admin_id, "TRIGGER_BROADCAST", f"Memulai kampanye {campaign_id} ke {len(payload.telegram_ids)} target.")
+        # 5. Oper ke Engine Dewa (Watchdog / Background Tasks)
+        try:
+            if not is_scheduled:
+                # Kalau jadwal 'sekarang', langsung tembak pake BackgroundTasks
+                bg_tasks.add_task(execute_broadcast_task, str(campaign_id))
+                logger.info(f"⚡ [COMMANDER] Campaign {campaign_id[:8]} diluncurkan INSTAN!")
+            else:
+                # Kalau 'nanti', bangunin Watchdog biar dia yang mantau Supabase
+                await CampaignWatchdog.start()
+                logger.info(f"⏳ [COMMANDER] Campaign dijadwalkan pada {target_date.strftime('%H:%M WIB')}. Watchdog Siaga!")
+                
+        except Exception as sched_e:
+            logger.error(f"⚠️ [BRIDGE] Gagal meluncurkan ke Engine: {sched_e}")
+
+        logger.audit(admin_id, "COMMANDER_BROADCAST", f"Membuat campaign bulk ke {len(payload.target_ids)} target.")
         
         return api_success(
-            message=f"Mantap! Pesan massal mulai diproses ke {len(payload.telegram_ids)} pelanggan di latar belakang.",
-            data={"campaign_id": campaign_id, "queued_count": len(payload.telegram_ids)}
+            message=f"Mantap! Campaign dijadwalkan ke {len(payload.target_ids)} pelanggan.",
+            data={"campaign_id": campaign_id, "queued_count": len(payload.target_ids)}
         )
         
     except Exception as e:
-        logger.error(f"[BULK MESSAGE RTO/CRASH]: {e}")
-        return api_error("Gagal memulai kampanye broadcast. Harap cek log server.", 500)
+        logger.error(f"[COMMANDER BROADCAST FATAL]: {e}")
+        return api_error("Gagal memulai kampanye broadcast.", 500)
+
 
 # ==============================================================================
 # SERVER-SIDE EXPORT ENGINE (API)
