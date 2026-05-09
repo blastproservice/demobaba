@@ -7,244 +7,242 @@
 {% block content %}
 <style>
     /* ==========================================================================
-       ENTERPRISE COMMANDER DESIGN SYSTEM V6.0 (ANTI-BUG)
+       ENTERPRISE COMMANDER DESIGN SYSTEM V15.0 (ULTIMATE EDITION)
        ========================================================================== */
-    .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+    :root {
+        --primary-glow: rgba(52, 211, 153, 0.7);
+        --secondary-glow: rgba(56, 189, 248, 0.5);
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 12px; border: 2px solid transparent; background-clip: padding-box; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
     
     @keyframes pulse-ring {
-        0% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); }
-        70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(52, 211, 153, 0); }
+        0% { transform: scale(0.8); box-shadow: 0 0 0 0 var(--primary-glow); }
+        70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(52, 211, 153, 0); }
         100% { transform: scale(0.8); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
     }
-    .status-running { animation: pulse-ring 2s infinite; }
+    .status-running { animation: pulse-ring 2s infinite cubic-bezier(0.4, 0, 0.2, 1); }
 
-    /* Modern Stepper */
-    .step-line { height: 3px; flex: 1; background: #f1f5f9; margin: 0 16px; border-radius: 4px; transition: all 0.5s ease-in-out; position: relative; overflow: hidden; }
+    /* Modern Stepper Animations */
+    .step-line { height: 4px; flex: 1; background: #e2e8f0; margin: 0 16px; border-radius: 4px; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden; }
     .step-line.active { background: #111827; }
     .step-line.active::after {
         content: ''; position: absolute; top: 0; left: 0; height: 100%; width: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
         animation: shimmer 1.5s infinite;
     }
     @keyframes shimmer { 100% { transform: translateX(100%); } }
+
+    /* Glassmorphism utilities */
+    .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    .glass-dark { background: rgba(17, 24, 39, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 </style>
 
-<!-- MAIN ALPINE WRAPPER -->
 <div x-data="broadcastCommander()" x-init="initApp()" class="pb-16 space-y-8" x-cloak>
 
-    <!-- ====================================================================================
-         GLOBAL TOAST NOTIFICATION SYSTEM
-         ==================================================================================== -->
     <div class="fixed top-5 right-5 z-[9999] flex flex-col gap-3 pointer-events-none">
         <template x-for="toast in toasts" :key="toast.id">
             <div x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 sm:scale-100" x-transition:leave-end="opacity-0 sm:scale-95"
-                 class="min-w-[320px] max-w-md p-5 rounded-2xl shadow-2xl border flex items-start gap-4 pointer-events-auto bg-white/95 backdrop-blur-xl" 
+                 class="min-w-[320px] max-w-md p-5 rounded-[1.5rem] shadow-2xl border flex items-start gap-4 pointer-events-auto bg-white/95 backdrop-blur-xl" 
                  :class="toast.type === 'success' ? 'border-emerald-500' : (toast.type === 'warning' ? 'border-amber-500' : 'border-red-500')">
                 <div :class="toast.type === 'success' ? 'text-emerald-500' : (toast.type === 'warning' ? 'text-amber-500' : 'text-red-500')">
-                    <i :data-lucide="toast.type === 'success' ? 'check-circle-2' : (toast.type === 'warning' ? 'alert-triangle' : 'alert-octagon')" class="w-6 h-6"></i>
+                    <i :data-lucide="toast.type === 'success' ? 'check-circle-2' : (toast.type === 'warning' ? 'alert-triangle' : 'alert-octagon')" class="w-7 h-7"></i>
                 </div>
                 <div class="flex-1">
                     <h4 class="text-sm font-black text-gray-900 tracking-tight" x-text="toast.type === 'success' ? 'Berhasil' : (toast.type === 'warning' ? 'Perhatian' : 'Gagal')"></h4>
                     <p class="text-xs text-gray-600 mt-1.5 leading-relaxed font-medium" x-text="toast.msg"></p>
                 </div>
-                <button @click="removeToast(toast.id)" class="text-gray-400 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 p-1.5 rounded-lg transition-colors">
+                <button @click="removeToast(toast.id)" class="text-gray-400 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 p-2 rounded-xl transition-colors">
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
             </div>
         </template>
     </div>
 
-    <!-- ====================================================================================
-         ANALYTIC OVERVIEW (TOP WIDGETS)
-         ==================================================================================== -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <!-- Widget 1: Engine Master -->
-        <div class="bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-[2rem] p-8 text-white shadow-2xl relative overflow-hidden group">
+        <div class="bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden group">
             <div class="absolute -right-10 -bottom-10 w-48 h-48 bg-yellow-500 opacity-20 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
             <i data-lucide="radar" class="absolute -right-4 -bottom-4 w-32 h-32 text-white opacity-[0.03] group-hover:rotate-45 transition-transform duration-700"></i>
             <div class="relative z-10">
                 <div class="flex justify-between items-start mb-6">
                     <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Kampanye</p>
-                    <span class="w-2 h-2 bg-emerald-400 rounded-full shadow-[0_0_8px_#34d399] status-running"></span>
+                    <span class="w-2.5 h-2.5 bg-emerald-400 rounded-full shadow-[0_0_12px_#34d399] status-running"></span>
                 </div>
                 <h2 class="text-5xl font-black tracking-tighter" x-text="campaigns.length">0</h2>
-                <div class="mt-5 flex items-center gap-2 text-[10px] font-bold text-yellow-400 uppercase tracking-widest bg-yellow-400/10 w-fit px-3 py-1.5 rounded-xl border border-yellow-400/20">
+                <div class="mt-5 flex items-center gap-2 text-[10px] font-bold text-yellow-400 uppercase tracking-widest bg-yellow-400/10 w-fit px-3 py-1.5 rounded-xl border border-yellow-400/20 backdrop-blur-sm">
                     <i data-lucide="zap" class="w-3.5 h-3.5"></i> Engine Live
                 </div>
             </div>
         </div>
 
-        <!-- Widget 2: Sukses -->
-        <div class="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
-            <div class="flex justify-between items-start mb-6">
+        <div class="bg-white border border-gray-100 rounded-[2.5rem] p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+            <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-emerald-500 opacity-5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+            <div class="flex justify-between items-start mb-6 relative z-10">
                 <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Pesan Tembus</p>
-                <div class="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center border border-emerald-100"><i data-lucide="check-check" class="w-5 h-5 text-emerald-500"></i></div>
+                <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center border border-emerald-100 group-hover:bg-emerald-500 group-hover:text-white transition-colors duration-300"><i data-lucide="check-check" class="w-6 h-6 text-emerald-500 group-hover:text-white transition-colors"></i></div>
             </div>
-            <h2 class="text-4xl font-black text-gray-900 tracking-tighter" x-text="formatNum(stats.total_sent)">0</h2>
-            <div class="w-full bg-gray-100 h-2 rounded-full mt-5 overflow-hidden">
-                <div class="bg-gradient-to-r from-emerald-400 to-emerald-600 h-full rounded-full w-[100%]"></div>
+            <h2 class="text-4xl font-black text-gray-900 tracking-tighter relative z-10" x-text="formatNum(stats.total_sent)">0</h2>
+            <div class="w-full bg-gray-50 h-2.5 rounded-full mt-6 overflow-hidden relative z-10 border border-gray-100">
+                <div class="bg-gradient-to-r from-emerald-400 to-emerald-600 h-full rounded-full w-[100%] shadow-[0_0_10px_rgba(52,211,153,0.5)]"></div>
             </div>
         </div>
 
-        <!-- Widget 3: Gagal -->
-        <div class="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
-            <div class="flex justify-between items-start mb-6">
+        <div class="bg-white border border-gray-100 rounded-[2.5rem] p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+            <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-red-500 opacity-5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+            <div class="flex justify-between items-start mb-6 relative z-10">
                 <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Gagal / Mental</p>
-                <div class="w-10 h-10 rounded-2xl bg-red-50 flex items-center justify-center border border-red-100"><i data-lucide="shield-alert" class="w-5 h-5 text-red-500"></i></div>
+                <div class="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center border border-red-100 group-hover:bg-red-500 transition-colors duration-300"><i data-lucide="shield-alert" class="w-6 h-6 text-red-500 group-hover:text-white transition-colors"></i></div>
             </div>
-            <h2 class="text-4xl font-black text-red-600 tracking-tighter" x-text="formatNum(stats.total_failed)">0</h2>
-            <p class="mt-5 text-[10px] font-bold text-gray-400 flex items-center gap-1.5 uppercase tracking-widest">
-                <i data-lucide="user-x" class="w-3.5 h-3.5"></i> Restrict / Banned
+            <h2 class="text-4xl font-black text-red-600 tracking-tighter relative z-10" x-text="formatNum(stats.total_failed)">0</h2>
+            <p class="mt-6 text-[10px] font-bold text-gray-400 flex items-center gap-1.5 uppercase tracking-widest relative z-10">
+                <i data-lucide="user-x" class="w-4 h-4"></i> Restrict / Banned
             </p>
         </div>
 
-        <!-- Widget 4: Queue -->
-        <div class="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
-            <div class="flex justify-between items-start mb-6">
+        <div class="bg-white border border-gray-100 rounded-[2.5rem] p-8 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+            <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-blue-500 opacity-5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+            <div class="flex justify-between items-start mb-6 relative z-10">
                 <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Antrean Server</p>
-                <div class="w-10 h-10 rounded-2xl bg-blue-50 flex items-center justify-center border border-blue-100"><i data-lucide="cpu" class="w-5 h-5 text-blue-500"></i></div>
+                <div class="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center border border-blue-100 group-hover:bg-blue-500 transition-colors duration-300"><i data-lucide="cpu" class="w-6 h-6 text-blue-500 group-hover:text-white transition-colors"></i></div>
             </div>
-            <h2 class="text-4xl font-black text-blue-600 tracking-tighter" x-text="stats.in_queue">0</h2>
-            <p class="mt-5 text-[10px] font-bold text-blue-600 flex items-center gap-2 bg-blue-50 w-fit px-3 py-1.5 rounded-xl border border-blue-100 uppercase tracking-widest">
-                <i data-lucide="clock" class="w-3.5 h-3.5"></i> Task Pending
+            <h2 class="text-4xl font-black text-blue-600 tracking-tighter relative z-10" x-text="stats.in_queue">0</h2>
+            <p class="mt-6 text-[10px] font-bold text-blue-600 flex items-center gap-2 bg-blue-50 w-fit px-3 py-2 rounded-xl border border-blue-100 uppercase tracking-widest relative z-10">
+                <i data-lucide="clock" class="w-4 h-4 animate-spin-slow"></i> Task Pending
             </p>
         </div>
     </div>
 
-    <!-- ====================================================================================
-         MAIN COMMANDER TABLE (LIST KAMPANYE)
-         ==================================================================================== -->
-    <div class="bg-white border border-gray-100 rounded-[3rem] shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+    <div class="bg-white border border-gray-100 rounded-[3rem] shadow-sm overflow-hidden flex flex-col min-h-[600px] relative">
         
-        <div class="p-8 border-b border-gray-100 bg-gray-50/50 flex flex-col lg:flex-row justify-between lg:items-center gap-6">
+        <div class="p-8 md:p-10 border-b border-gray-100 bg-gray-50/50 flex flex-col lg:flex-row justify-between lg:items-center gap-6 relative z-20">
             <div>
-                <h2 class="text-2xl font-black text-gray-900 tracking-tight">Daftar Eksekusi Kampanye</h2>
-                <p class="text-sm text-gray-500 font-medium mt-1.5">Pantau status, siklus interval, dan kelola aktivitas Broadcast Anda secara Real-time.</p>
+                <h2 class="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3"><i data-lucide="list-video" class="w-6 h-6 text-blue-600"></i> Daftar Eksekusi Kampanye</h2>
+                <p class="text-sm text-gray-500 font-medium mt-2 leading-relaxed">Pantau status, siklus interval, dan kelola aktivitas Broadcast Engine secara Real-time dari Command Center ini.</p>
             </div>
             <div class="flex items-center gap-3 w-full lg:w-auto">
-                <button @click="initApp()" class="p-4 bg-white border border-gray-200 text-gray-600 hover:text-blue-600 hover:border-blue-200 rounded-2xl transition-all shadow-sm" title="Refresh Data">
-                    <i data-lucide="refresh-cw" class="w-5 h-5" :class="isLoading ? 'animate-spin' : ''"></i>
+                <button @click="initApp()" class="p-4 bg-white border border-gray-200 text-gray-600 hover:text-blue-600 hover:border-blue-300 hover:shadow-md rounded-2xl transition-all" title="Refresh Data">
+                    <i data-lucide="refresh-cw" class="w-5 h-5" :class="isLoading ? 'animate-spin text-blue-600' : ''"></i>
                 </button>
-                <button @click="openModal()" class="flex-1 lg:flex-none px-8 py-4 bg-gray-900 hover:bg-black text-yellow-400 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-gray-900/20 transition-all active:scale-95 flex items-center justify-center gap-2">
-                    <i data-lucide="plus-circle" class="w-5 h-5"></i> Rancang Blast Baru
+                <button @click="openModal()" class="flex-1 lg:flex-none px-8 py-4 bg-gray-900 hover:bg-black text-yellow-400 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-gray-900/20 transition-all active:scale-95 flex items-center justify-center gap-2 hover:shadow-2xl hover:-translate-y-0.5">
+                    <i data-lucide="rocket" class="w-5 h-5"></i> Rancang Blast Baru
                 </button>
             </div>
         </div>
 
-        <div class="overflow-x-auto custom-scrollbar flex-1 relative">
-            <!-- Table Skeleton Loading -->
-            <div x-show="isLoading" class="absolute inset-0 bg-white/90 backdrop-blur-sm z-10 flex flex-col items-center justify-center">
-                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4 border-4 border-white shadow-xl animate-bounce">
-                    <i data-lucide="loader-2" class="w-8 h-8 text-gray-900 animate-spin"></i>
+        <div class="overflow-x-auto custom-scrollbar flex-1 relative z-10 pb-10">
+            <div x-show="isLoading" class="absolute inset-0 bg-white/90 backdrop-blur-sm z-30 flex flex-col items-center justify-center transition-opacity duration-300">
+                <div class="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center mb-6 border border-gray-100 shadow-2xl relative">
+                    <div class="absolute inset-0 border-4 border-blue-500 border-t-transparent rounded-3xl animate-spin"></div>
+                    <i data-lucide="satellite" class="w-8 h-8 text-blue-600 animate-pulse"></i>
                 </div>
-                <p class="text-sm font-black text-gray-900 uppercase tracking-widest">Sinkronisasi Server...</p>
+                <h3 class="text-lg font-black text-gray-900 tracking-tight mb-1">Menyinkronkan Server</h3>
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Engine Dewa V15.0</p>
             </div>
 
             <table class="w-full text-left whitespace-nowrap">
                 <thead>
                     <tr class="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b-2 border-gray-100 bg-white">
-                        <th class="px-8 py-6">Nama Kampanye & Engine</th>
-                        <th class="px-6 py-6">Siklus & Target</th>
-                        <th class="px-6 py-6">Progres Pengiriman</th>
-                        <th class="px-6 py-6 text-center">Status</th>
-                        <th class="px-8 py-6 text-right">Aksi Control</th>
+                        <th class="px-10 py-6 w-1/4">Nama Kampanye & Engine</th>
+                        <th class="px-6 py-6 w-1/4">Siklus & Target Audiens</th>
+                        <th class="px-6 py-6 w-1/4">Progres Pengiriman</th>
+                        <th class="px-6 py-6 text-center w-1/6">Status Engine</th>
+                        <th class="px-10 py-6 text-right w-1/12">Control</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50 text-sm">
                     <template x-if="!isLoading && campaigns.length === 0">
                         <tr>
                             <td colspan="5" class="py-32 text-center">
-                                <div class="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-gray-100 shadow-inner">
-                                    <i data-lucide="send-to-back" class="w-10 h-10 text-gray-300"></i>
+                                <div class="w-32 h-32 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-dashed border-gray-200 shadow-inner relative">
+                                    <i data-lucide="wind" class="w-12 h-12 text-gray-300"></i>
+                                    <div class="absolute top-0 right-0 w-4 h-4 bg-red-400 rounded-full animate-ping"></div>
                                 </div>
-                                <p class="text-base font-black text-gray-900 uppercase tracking-widest">Belum Ada Sinyal Broadcast</p>
-                                <p class="text-sm text-gray-400 mt-2 font-medium">Klik tombol 'Rancang Blast Baru' untuk memulai setup.</p>
+                                <h3 class="text-xl font-black text-gray-900 tracking-tight mb-2">Radar Kosong</h3>
+                                <p class="text-sm text-gray-500 font-medium max-w-md mx-auto leading-relaxed">Belum ada sinyal broadcast yang terdeteksi di server. Klik tombol <span class="font-bold text-gray-900">Rancang Blast Baru</span> untuk memulai operasi massal.</p>
                             </td>
                         </tr>
                     </template>
 
                     <template x-for="c in campaigns" :key="c.id">
-                        <tr class="hover:bg-blue-50/30 transition-colors group">
-                            <!-- Column 1: Info -->
-                            <td class="px-8 py-6">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-12 h-12 rounded-2xl flex items-center justify-center border shadow-sm shrink-0 transition-transform group-hover:scale-110"
-                                         :class="c.sender_type === 'MTPROTO' ? 'bg-indigo-50 border-indigo-100 text-indigo-600' : 'bg-sky-50 border-sky-100 text-sky-600'">
+                        <tr class="hover:bg-sky-50/40 transition-colors duration-200 group">
+                            <td class="px-10 py-6">
+                                <div class="flex items-center gap-5">
+                                    <div class="w-14 h-14 rounded-2xl flex items-center justify-center border shadow-sm shrink-0 transition-transform group-hover:scale-110"
+                                         :class="c.sender_type === 'MTPROTO' ? 'bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-100 text-indigo-600' : 'bg-gradient-to-br from-sky-50 to-blue-50 border-sky-100 text-sky-600'">
                                         <i :data-lucide="c.sender_type === 'MTPROTO' ? 'user-check' : 'bot'" class="w-6 h-6"></i>
                                     </div>
-                                    <div>
+                                    <div class="flex flex-col">
                                         <p class="font-black text-gray-900 text-base tracking-tight truncate max-w-[250px]" x-text="c.campaign_name"></p>
-                                        <span class="inline-block mt-1.5 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border" :class="c.sender_type === 'MTPROTO' ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-sky-100 text-sky-700 border-sky-200'" x-text="c.sender_type"></span>
+                                        <div class="flex items-center gap-2 mt-2">
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border" :class="c.sender_type === 'MTPROTO' ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'bg-sky-100 text-sky-700 border-sky-200'">
+                                                <i :data-lucide="c.sender_type === 'MTPROTO' ? 'smartphone' : 'server'" class="w-3 h-3"></i>
+                                                <span x-text="c.sender_type"></span>
+                                            </span>
+                                            <span class="text-[10px] text-gray-400 font-bold" x-text="c.created_at ? c.created_at.substring(0,10) : ''"></span>
+                                        </div>
                                     </div>
                                 </div>
                             </td>
                             
-                            <!-- Column 2: Target & Frequency -->
                             <td class="px-6 py-6">
-                                <div class="space-y-2.5">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-6 h-6 rounded bg-emerald-50 flex items-center justify-center border border-emerald-100 shrink-0"><i data-lucide="target" class="w-3.5 h-3.5 text-emerald-600"></i></div>
-                                        <span class="text-xs font-bold text-gray-700 truncate max-w-[200px]" x-text="c.target_desc"></span>
+                                <div class="space-y-3">
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center border border-emerald-100 shrink-0"><i data-lucide="target" class="w-4 h-4 text-emerald-600"></i></div>
+                                        <span class="text-xs font-bold text-gray-700 truncate max-w-[200px]" x-text="c.target_desc" :title="c.target_desc"></span>
                                     </div>
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-6 h-6 rounded bg-purple-50 flex items-center justify-center border border-purple-100 shrink-0"><i data-lucide="repeat" class="w-3.5 h-3.5 text-purple-600"></i></div>
+                                    <div class="flex items-center gap-2.5">
+                                        <div class="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center border border-purple-100 shrink-0"><i data-lucide="repeat" class="w-4 h-4 text-purple-600"></i></div>
                                         <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest" x-text="formatFrequency(c)"></span>
                                     </div>
                                 </div>
                             </td>
                             
-                            <!-- Column 3: Progress Bar -->
-                            <td class="px-6 py-6 w-72">
-                                <div class="flex items-center gap-3 mb-2">
-                                    <div class="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden shadow-inner relative">
-                                        <div class="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-gray-800 to-black rounded-full transition-all duration-1000 ease-out" :style="`width: ${c.progress}%`">
-                                            <div class="absolute inset-0 bg-white/20 animate-[pulse_2s_linear_infinite]" x-show="c.status === 'RUNNING'"></div>
+                            <td class="px-6 py-6">
+                                <div class="flex items-center gap-4 mb-2.5">
+                                    <div class="flex-1 h-3.5 bg-gray-100 rounded-full overflow-hidden shadow-inner relative border border-gray-200/50">
+                                        <div class="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-gray-800 via-gray-700 to-black rounded-full transition-all duration-1000 ease-out flex items-center justify-end pr-2" :style="`width: ${c.progress}%`">
+                                            <div class="absolute inset-0 bg-white/20 animate-[pulse_1.5s_linear_infinite]" x-show="c.status === 'RUNNING' || c.status === 'PROCESSING'"></div>
+                                            <div class="w-1.5 h-1.5 bg-white rounded-full shadow-[0_0_5px_white]" x-show="c.progress > 5"></div>
                                         </div>
                                     </div>
-                                    <span class="text-xs font-black text-gray-900 w-10 text-right" x-text="c.progress + '%'"></span>
+                                    <span class="text-sm font-black text-gray-900 w-12 text-right" x-text="c.progress + '%'"></span>
                                 </div>
-                                <div class="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                    <span>Dikirim: <span class="text-gray-900" x-text="formatNum(c.sent_count)"></span></span>
-                                    <!-- Fallback pintar buat target 100 default -->
-                                    <span x-text="'Target: ' + (c.target_desc.includes('Follow-Up') ? 'Dynamic' : formatNum(c.total_target))"></span>
+                                <div class="flex justify-between items-center text-[10px] font-bold text-gray-500 uppercase tracking-widest bg-gray-50 p-2 rounded-lg border border-gray-100">
+                                    <span class="flex items-center gap-1"><i data-lucide="send" class="w-3 h-3 text-emerald-500"></i> <span class="text-gray-900" x-text="formatNum(c.sent_count)"></span> Terkirim</span>
+                                    <span class="flex items-center gap-1"><i data-lucide="users" class="w-3 h-3 text-blue-500"></i> <span x-text="c.target_desc.includes('Follow-Up') ? 'Dinamic' : formatNum(c.total_target)"></span> Target</span>
                                 </div>
                             </td>
                             
-                            <!-- Column 4: Status -->
                             <td class="px-6 py-6 text-center">
-                                <span class="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-sm inline-flex items-center gap-2"
+                                <span class="px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border shadow-sm inline-flex items-center gap-2 transition-all"
                                       :class="{
-                                          'bg-blue-50 text-blue-700 border-blue-200': c.status === 'RUNNING',
+                                          'bg-blue-50 text-blue-700 border-blue-200': c.status === 'RUNNING' || c.status === 'PROCESSING',
                                           'bg-amber-50 text-amber-700 border-amber-200': c.status === 'RESTING',
                                           'bg-emerald-50 text-emerald-700 border-emerald-200': c.status === 'COMPLETED',
-                                          'bg-gray-100 text-gray-600 border-gray-200': c.status === 'PENDING',
+                                          'bg-gray-100 text-gray-600 border-gray-200': c.status === 'PENDING' || c.status === 'SCHEDULED',
                                           'bg-red-50 text-red-700 border-red-200': c.status === 'FAILED',
-                                          'bg-gray-800 text-white border-gray-900': c.status === 'STOPPED'
+                                          'bg-gray-800 text-white border-gray-900': c.status === 'STOPPED' || c.status === 'PAUSED'
                                       }">
-                                      <i :data-lucide="c.status === 'RUNNING' ? 'loader-2' : (c.status === 'RESTING' ? 'coffee' : (c.status === 'COMPLETED' ? 'check-circle' : (c.status === 'STOPPED' ? 'square' : (c.status === 'PENDING' ? 'clock' : 'alert-circle'))))" 
-                                         class="w-4 h-4" :class="c.status === 'RUNNING' ? 'animate-spin' : ''"></i>
-                                      <span x-text="c.status"></span>
+                                      <i :data-lucide="['RUNNING', 'PROCESSING'].includes(c.status) ? 'loader-2' : (c.status === 'RESTING' ? 'coffee' : (c.status === 'COMPLETED' ? 'check-circle' : (['STOPPED', 'PAUSED'].includes(c.status) ? 'square' : (['PENDING', 'SCHEDULED'].includes(c.status) ? 'clock' : 'alert-circle'))))" 
+                                         class="w-4 h-4" :class="['RUNNING', 'PROCESSING'].includes(c.status) ? 'animate-spin' : ''"></i>
+                                      <span x-text="c.status === 'PROCESSING' ? 'RUNNING' : c.status"></span>
                                 </span>
                             </td>
                             
-                            <!-- Column 5: Actions -->
-                            <td class="px-8 py-6 text-right">
-                                <div class="flex justify-end gap-2.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <!-- Tombol Stop -->
-                                    <button x-show="['RUNNING', 'RESTING', 'PENDING'].includes(c.status)" @click="toggleStatus(c.id, 'STOPPED')" class="p-3 text-gray-500 hover:text-white bg-white hover:bg-gray-900 border border-gray-200 hover:border-gray-900 rounded-xl hover:shadow-lg transition-all" title="Hentikan Paksa">
+                            <td class="px-10 py-6 text-right">
+                                <div class="flex justify-end gap-3 opacity-20 group-hover:opacity-100 transition-opacity duration-300">
+                                    <button x-show="['RUNNING', 'PROCESSING', 'RESTING', 'PENDING', 'SCHEDULED'].includes(c.status)" @click="toggleStatus(c.id, 'STOPPED')" class="p-3 text-gray-400 hover:text-white bg-white hover:bg-gray-900 border border-gray-200 hover:border-gray-900 rounded-xl hover:shadow-lg transition-all" title="Hentikan Paksa Engine">
                                         <i data-lucide="power" class="w-4 h-4"></i>
                                     </button>
 
-                                    <!-- Tombol Play / Resume -->
-                                    <button x-show="['STOPPED', 'FAILED'].includes(c.status)" @click="toggleStatus(c.id, 'PENDING')" class="p-3 text-gray-500 hover:text-white bg-white hover:bg-emerald-600 border border-gray-200 hover:border-emerald-600 rounded-xl hover:shadow-lg transition-all" title="Lanjutkan Kampanye">
+                                    <button x-show="['STOPPED', 'PAUSED', 'FAILED'].includes(c.status)" @click="toggleStatus(c.id, 'PENDING')" class="p-3 text-gray-400 hover:text-white bg-white hover:bg-emerald-600 border border-gray-200 hover:border-emerald-600 rounded-xl hover:shadow-lg transition-all" title="Lanjutkan Eksekusi">
                                         <i data-lucide="play" class="w-4 h-4"></i>
                                     </button>
 
-                                    <!-- Tombol Delete -->
-                                    <button @click="deleteCampaign(c.id)" class="p-3 text-gray-500 hover:text-white bg-white hover:bg-red-600 border border-gray-200 hover:border-red-600 rounded-xl hover:shadow-lg transition-all" title="Hapus Permanen">
+                                    <button @click="deleteCampaign(c.id)" class="p-3 text-gray-400 hover:text-white bg-white hover:bg-red-600 border border-gray-200 hover:border-red-600 rounded-xl hover:shadow-lg transition-all" title="Hapus Riwayat Permanen">
                                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                                     </button>
                                 </div>
@@ -256,286 +254,410 @@
         </div>
     </div>
 
-    <!-- ====================================================================================
-         MODAL: RANCANG KAMPANYE (4-STEP ADVANCED WIZARD)
-         ==================================================================================== -->
     <div x-show="isModalOpen" style="display: none;" class="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4">
-        <!-- Backdrop -->
         <div class="absolute inset-0 bg-gray-900/90 backdrop-blur-md" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" @click="closeModal()"></div>
         
-        <!-- Modal Content -->
-        <div x-show="isModalOpen" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-95 translate-y-8" x-transition:enter-end="opacity-100 scale-100 translate-y-0" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100 translate-y-0" x-transition:leave-end="opacity-0 scale-95 translate-y-8" 
+        <div x-show="isModalOpen" x-transition:enter="transition ease-out duration-400 cubic-bezier(0.4, 0, 0.2, 1)" x-transition:enter-start="opacity-0 scale-95 translate-y-10" x-transition:enter-end="opacity-100 scale-100 translate-y-0" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100 translate-y-0" x-transition:leave-end="opacity-0 scale-95 translate-y-10" 
              class="relative w-full max-w-5xl bg-white rounded-[3rem] shadow-2xl flex flex-col max-h-[95vh] overflow-hidden border border-gray-100">
             
-            <!-- Modal Header & Stepper -->
             <div class="px-8 md:px-12 py-8 border-b border-gray-100 bg-white flex flex-col gap-10 shrink-0 z-20 shadow-[0_10px_30px_rgba(0,0,0,0.02)]">
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-5">
                         <div class="w-14 h-14 bg-gray-900 text-yellow-400 rounded-2xl flex items-center justify-center shadow-lg"><i data-lucide="megaphone" class="w-7 h-7"></i></div>
                         <div>
                             <h2 class="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">Rancang Kampanye Blast</h2>
-                            <p class="text-xs text-gray-500 font-medium mt-1">Sistem Anti-Banned & Humanized Delay Support.</p>
+                            <p class="text-xs text-gray-500 font-medium mt-1">Setup Engine, Targeting, dan Algoritma Humanized secara presisi.</p>
                         </div>
                     </div>
                     <button @click="closeModal()" class="text-gray-400 hover:text-red-500 p-2 rounded-xl hover:bg-red-50 transition-colors"><i data-lucide="x" class="w-6 h-6"></i></button>
                 </div>
 
-                <!-- Progress Steps Bar -->
-                <div class="flex items-center justify-between w-full relative">
-                    <template x-for="i in 4" :key="i">
+                <div class="flex items-center justify-between w-full relative px-2">
+                    <template x-for="i in 5" :key="i">
                         <div class="flex items-center w-full first:w-auto last:w-auto">
                             <div class="flex flex-col items-center gap-3 relative z-10">
-                                <div class="w-12 h-12 rounded-full flex items-center justify-center text-sm font-black border-[3px] transition-all duration-500 cursor-pointer hover:scale-110" 
-                                     @click="if(step > i) step = i"
-                                     :class="step >= i ? 'bg-gray-900 text-yellow-400 border-gray-900 shadow-xl' : 'bg-white border-gray-200 text-gray-300'">
+                                <div class="w-12 h-12 rounded-full flex items-center justify-center text-sm font-black border-[3px] transition-all duration-500" 
+                                     :class="step >= i ? 'bg-gray-900 text-yellow-400 border-gray-900 shadow-[0_0_15px_rgba(17,24,39,0.3)]' : 'bg-white border-gray-200 text-gray-300'">
                                      <span x-show="step > i"><i data-lucide="check" class="w-6 h-6"></i></span>
                                      <span x-show="step <= i" x-text="i"></span>
                                 </div>
                                 <span class="text-[10px] font-black uppercase tracking-widest absolute -bottom-7 w-24 text-center" 
                                       :class="step >= i ? 'text-gray-900' : 'text-gray-400'" 
-                                      x-text="['Setup', 'Audiens', 'Pesan', 'Jadwal'][i-1]"></span>
+                                      x-text="['Setup Engine', 'Audiens', 'Copywriting', 'Jadwal & AI', 'Konfirmasi'][i-1]"></span>
                             </div>
-                            <div x-show="i < 4" class="step-line" :class="step > i ? 'active' : ''"></div>
+                            <div x-show="i < 5" class="step-line" :class="step > i ? 'active' : ''"></div>
                         </div>
                     </template>
                 </div>
             </div>
 
-            <!-- Modal Content Body -->
             <div class="flex-1 overflow-y-auto custom-scrollbar p-8 md:p-12 bg-gray-50/50">
                 
-                <!-- ==================== STEP 1: SETUP ENGINE ==================== -->
                 <div x-show="step === 1" x-transition:enter="transition ease-out duration-300 delay-100" x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0" class="space-y-8">
-                    <div class="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
-                        <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Nama Kampanye <span class="text-red-500">*</span></label>
-                        <input type="text" x-model="form.name" placeholder="Cth: Follow Up VIP 15 Hari" class="w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-black text-gray-900 focus:ring-4 focus:ring-yellow-400/20 focus:border-yellow-400 outline-none transition-all focus:bg-white text-lg">
+                    
+                    <div class="bg-white p-8 md:p-10 rounded-[2.5rem] border border-gray-100 shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-yellow-400/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                        <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 ml-1">Nama Kampanye Operasional <span class="text-red-500">*</span></label>
+                        <input type="text" x-model="form.name" placeholder="Cth: Promo Ramadhan VIP 15 Hari" class="w-full px-6 py-4 bg-gray-50 border border-gray-200 rounded-[1.5rem] text-sm font-black text-gray-900 focus:ring-4 focus:ring-yellow-400/20 focus:border-yellow-400 outline-none transition-all focus:bg-white text-lg placeholder:text-gray-300">
                     </div>
 
-                    <div class="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
-                        <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-5 ml-1">Pilih Mesin Pengirim (Engine) <span class="text-red-500">*</span></label>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <!-- MTProto Card -->
+                    <div class="bg-white p-8 md:p-10 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                        <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-1">Pilih Mesin Pengirim Utama (Engine) <span class="text-red-500">*</span></label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            
                             <button @click="form.sender_type = 'MTPROTO'" type="button" 
-                                    class="p-6 rounded-3xl border-2 transition-all flex flex-col gap-4 text-left group relative overflow-hidden"
-                                    :class="form.sender_type === 'MTPROTO' ? 'border-indigo-600 bg-indigo-50/50 shadow-md' : 'border-gray-100 hover:border-indigo-200 bg-white'">
-                                <div class="absolute top-0 right-0 p-5 opacity-0 transition-opacity" :class="form.sender_type === 'MTPROTO' ? 'opacity-100' : ''"><i data-lucide="check-circle-2" class="w-6 h-6 text-indigo-600"></i></div>
-                                <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm transition-transform group-hover:scale-110" :class="form.sender_type === 'MTPROTO' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-400'">
-                                    <i data-lucide="user-check"></i>
+                                    class="p-8 rounded-[2rem] border-2 transition-all flex flex-col gap-5 text-left group relative overflow-hidden"
+                                    :class="form.sender_type === 'MTPROTO' ? 'border-indigo-500 bg-indigo-50/30 shadow-lg scale-[1.02]' : 'border-gray-100 hover:border-indigo-200 bg-white hover:bg-gray-50'">
+                                <div class="absolute top-0 right-0 p-6 opacity-0 transition-opacity duration-300" :class="form.sender_type === 'MTPROTO' ? 'opacity-100' : ''"><i data-lucide="check-circle-2" class="w-8 h-8 text-indigo-500 drop-shadow-md"></i></div>
+                                <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-indigo-500/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                                
+                                <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-sm transition-transform duration-500 group-hover:-translate-y-1" :class="form.sender_type === 'MTPROTO' ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-indigo-500/30' : 'bg-gray-100 text-gray-400'">
+                                    <i data-lucide="smartphone"></i>
                                 </div>
                                 <div>
-                                    <p class="font-black text-base" :class="form.sender_type === 'MTPROTO' ? 'text-indigo-900' : 'text-gray-900'">Akun Admin (Userbot)</p>
-                                    <p class="text-[11px] text-gray-500 font-medium mt-2 leading-relaxed">Gunakan akun asli untuk pengiriman yang natural & humanis. Wajib untuk Follow-Up User.</p>
+                                    <p class="font-black text-xl tracking-tight" :class="form.sender_type === 'MTPROTO' ? 'text-indigo-950' : 'text-gray-900'">Akun Admin (Userbot)</p>
+                                    <p class="text-xs text-gray-500 font-medium mt-2 leading-relaxed">Gunakan nomor Telegram asli untuk pengiriman yang sangat natural, humanis, dan kebal blokir. Wajib untuk menyisir grup/forum.</p>
                                 </div>
                             </button>
                             
-                            <!-- Bot Card -->
                             <button @click="form.sender_type = 'BOT'" type="button" 
-                                    class="p-6 rounded-3xl border-2 transition-all flex flex-col gap-4 text-left group relative overflow-hidden"
-                                    :class="form.sender_type === 'BOT' ? 'border-sky-600 bg-sky-50/50 shadow-md' : 'border-gray-100 hover:border-sky-200 bg-white'">
-                                <div class="absolute top-0 right-0 p-5 opacity-0 transition-opacity" :class="form.sender_type === 'BOT' ? 'opacity-100' : ''"><i data-lucide="check-circle-2" class="w-6 h-6 text-sky-600"></i></div>
-                                <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm transition-transform group-hover:scale-110" :class="form.sender_type === 'BOT' ? 'bg-sky-600 text-white' : 'bg-gray-100 text-gray-400'">
+                                    class="p-8 rounded-[2rem] border-2 transition-all flex flex-col gap-5 text-left group relative overflow-hidden"
+                                    :class="form.sender_type === 'BOT' ? 'border-sky-500 bg-sky-50/30 shadow-lg scale-[1.02]' : 'border-gray-100 hover:border-sky-200 bg-white hover:bg-gray-50'">
+                                <div class="absolute top-0 right-0 p-6 opacity-0 transition-opacity duration-300" :class="form.sender_type === 'BOT' ? 'opacity-100' : ''"><i data-lucide="check-circle-2" class="w-8 h-8 text-sky-500 drop-shadow-md"></i></div>
+                                <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-sky-500/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+
+                                <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-sm transition-transform duration-500 group-hover:-translate-y-1" :class="form.sender_type === 'BOT' ? 'bg-gradient-to-br from-sky-400 to-blue-600 text-white shadow-sky-500/30' : 'bg-gray-100 text-gray-400'">
                                     <i data-lucide="bot"></i>
                                 </div>
                                 <div>
-                                    <p class="font-black text-base" :class="form.sender_type === 'BOT' ? 'text-sky-900' : 'text-gray-900'">Official Bot API</p>
-                                    <p class="text-[11px] text-gray-500 font-medium mt-2 leading-relaxed">Pengiriman massal super cepat melalui server Telegram. Cocok untuk Broadcast Subscriber Grup.</p>
+                                    <p class="font-black text-xl tracking-tight" :class="form.sender_type === 'BOT' ? 'text-sky-950' : 'text-gray-900'">Official Bot API</p>
+                                    <p class="text-xs text-gray-500 font-medium mt-2 leading-relaxed">Pengiriman massal super cepat melalui server Telegram. Sangat cocok untuk Re-Targeting database pelanggan yang pernah chat bot.</p>
                                 </div>
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <!-- ==================== STEP 2: AUDIENS (TARGETING) ==================== -->
                 <div x-show="step === 2" style="display: none;" x-transition:enter="transition ease-out duration-300 delay-100" x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0" class="space-y-8">
                     
-                    <div class="bg-gray-200/50 p-2 rounded-2xl flex max-w-md mx-auto">
-                        <button type="button" @click="setTargetMode('folder')" class="flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2" :class="form.target_mode === 'folder' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'">
+                    <div class="bg-gray-200/60 p-2.5 rounded-[1.5rem] flex max-w-lg mx-auto shadow-inner">
+                        <button type="button" @click="setTargetMode('folder')" class="flex-1 py-3.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2" :class="form.target_mode === 'folder' ? 'bg-white shadow-sm text-gray-900 scale-105' : 'text-gray-500 hover:text-gray-700'">
                             <i data-lucide="folder" class="w-4 h-4"></i> Folder List
                         </button>
-                        <button type="button" @click="setTargetMode('followup')" class="flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2" :class="form.target_mode === 'followup' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'">
-                            <i data-lucide="history" class="w-4 h-4"></i> Auto Follow-Up
+                        <button type="button" @click="setTargetMode('followup')" class="flex-1 py-3.5 text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2" :class="form.target_mode === 'followup' ? 'bg-white shadow-sm text-gray-900 scale-105' : 'text-gray-500 hover:text-gray-700'">
+                            <i data-lucide="radar" class="w-4 h-4"></i> Auto Follow-Up
                         </button>
                     </div>
 
-                    <!-- FOLDER TARGET -->
-                    <div x-show="form.target_mode === 'folder'" x-collapse class="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
-                        <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-1">Pilih Folder Target <span class="text-red-500">*</span></label>
+                    <div x-show="form.target_mode === 'folder'" x-collapse class="bg-white p-8 md:p-10 rounded-[3rem] border border-gray-100 shadow-sm relative">
                         
-                        <template x-if="dbTargets.length === 0">
-                            <div class="p-10 text-center border-2 border-dashed border-gray-200 rounded-[2rem] bg-gray-50">
-                                <i data-lucide="database" class="w-10 h-10 text-gray-300 mx-auto mb-3"></i>
-                                <p class="text-sm font-black text-gray-600 uppercase tracking-widest">Database Kosong</p>
-                                <p class="text-xs text-gray-400 mt-2">Buat folder grup di menu Template & Target terlebih dahulu.</p>
-                            </div>
-                        </template>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
-                            <template x-for="tgt in dbTargets" :key="tgt.id">
-                                <div @click="form.target_template_id = tgt.id" 
-                                     class="p-6 border-2 rounded-[1.5rem] cursor-pointer transition-all hover:bg-gray-50 flex items-center justify-between group"
-                                     :class="form.target_template_id === tgt.id ? 'border-emerald-500 bg-emerald-50/50 shadow-md' : 'border-gray-100'">
-                                    <div class="flex items-center gap-5">
-                                        <div class="w-12 h-12 rounded-xl flex items-center justify-center transition-colors" :class="form.target_template_id === tgt.id ? 'bg-emerald-500 text-white shadow-md' : 'bg-gray-100 text-gray-400 group-hover:bg-emerald-100 group-hover:text-emerald-600'"><i data-lucide="users-2" class="w-6 h-6"></i></div>
-                                        <div>
-                                            <p class="text-base font-black text-gray-900 tracking-tight" x-text="tgt.name"></p>
-                                            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1" x-text="countIDs(tgt.content) + ' Target'"></p>
-                                        </div>
+                        <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-2 flex items-center gap-2">
+                            <i data-lucide="crosshair" class="w-4 h-4"></i>
+                            <span x-text="form.sender_type === 'MTPROTO' ? 'Pilih Folder Target Grup / Forum' : 'Pilih Target Database Pelanggan'"></span>
+                        </label>
+                        
+                        <div x-show="form.sender_type === 'MTPROTO'">
+                            <template x-if="dbTargets.length === 0">
+                                <div class="p-12 text-center border-2 border-dashed border-gray-200 rounded-[2rem] bg-gray-50">
+                                    <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100">
+                                        <i data-lucide="folder-open" class="w-10 h-10 text-gray-300"></i>
                                     </div>
-                                    <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center" :class="form.target_template_id === tgt.id ? 'border-emerald-500 bg-emerald-500' : 'border-gray-200'">
-                                        <div class="w-2.5 h-2.5 rounded-full bg-white" x-show="form.target_template_id === tgt.id"></div>
-                                    </div>
+                                    <p class="text-base font-black text-gray-900 tracking-tight">Belum Ada Folder</p>
+                                    <p class="text-xs text-gray-400 mt-2 font-medium">Buat folder target audiens di menu Template & Target terlebih dahulu.</p>
                                 </div>
                             </template>
-                        </div>
-                    </div>
-
-                    <!-- SMART FOLLOW-UP -->
-                    <div x-show="form.target_mode === 'followup'" x-collapse>
-                        <div class="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 rounded-[2.5rem] p-8 md:p-10 relative overflow-hidden shadow-sm">
-                            <i data-lucide="brain-circuit" class="absolute -right-4 -bottom-4 w-40 h-40 text-purple-200 opacity-40"></i>
-                            <div class="relative z-10 space-y-8">
-                                <div>
-                                    <h4 class="text-2xl font-black text-purple-900 flex items-center gap-3 mb-3"><i data-lucide="radar" class="w-7 h-7"></i> Auto-Fetch Interaksi Terlama</h4>
-                                    <p class="text-sm text-purple-700 font-medium leading-relaxed max-w-2xl">Sistem akan menyisir riwayat chat MTProto lu dan otomatis ngirim pesan ke user/grup yang udah lama gak interaksi. Cocok banget buat Follow-Up pasca pembelian (H+15).</p>
-                                </div>
-                                
-                                <div class="bg-white p-6 rounded-[1.5rem] shadow-sm border border-purple-100 flex flex-col sm:flex-row items-center justify-between gap-6">
-                                    <div>
-                                        <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Jumlah Target Maksimal</label>
-                                        <p class="text-base font-bold text-gray-900">Batasi jumlah user yang akan ditarik:</p>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 max-h-[380px] overflow-y-auto custom-scrollbar pr-3 pb-2">
+                                <template x-for="tgt in dbTargets" :key="tgt.id">
+                                    <div @click="form.target_template_id = tgt.id" 
+                                         class="p-6 border-2 rounded-[1.5rem] cursor-pointer transition-all flex items-center justify-between group relative overflow-hidden"
+                                         :class="form.target_template_id === tgt.id ? 'border-indigo-500 bg-indigo-50/50 shadow-md' : 'border-gray-100 hover:border-indigo-200 hover:bg-gray-50'">
+                                        
+                                        <div class="flex items-center gap-5 relative z-10">
+                                            <div class="w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-300" :class="form.target_template_id === tgt.id ? 'bg-indigo-500 text-white shadow-md' : 'bg-gray-100 text-gray-400 group-hover:bg-indigo-100 group-hover:text-indigo-600'"><i data-lucide="users-2" class="w-6 h-6"></i></div>
+                                            <div>
+                                                <p class="text-base font-black text-gray-900 tracking-tight truncate max-w-[200px]" x-text="tgt.name"></p>
+                                                <div class="flex items-center gap-2 mt-1.5">
+                                                    <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest border border-gray-200 bg-white text-gray-500 flex items-center gap-1"><i data-lucide="users" class="w-3 h-3"></i> <span x-text="(tgt.content ? tgt.content.split(',').length : 0)"></span> Target</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 relative z-10 transition-colors" :class="form.target_template_id === tgt.id ? 'border-indigo-500 bg-indigo-500' : 'border-gray-200'">
+                                            <div class="w-3 h-3 rounded-full bg-white transition-transform scale-0" :class="form.target_template_id === tgt.id ? 'scale-100' : ''"></div>
+                                        </div>
                                     </div>
-                                    <div class="flex items-center gap-3 w-full sm:w-auto">
-                                        <input type="number" x-model="form.followup_limit" min="5" max="1000" class="flex-1 sm:w-32 px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl text-xl font-black text-center text-purple-700 focus:ring-4 focus:ring-purple-400/20 focus:border-purple-500 outline-none transition-all">
-                                        <span class="text-sm font-bold text-gray-500">Akun</span>
-                                    </div>
-                                </div>
-                                
-                                <div x-show="form.sender_type !== 'MTPROTO'" x-collapse>
-                                    <p class="text-xs font-bold text-red-600 bg-red-50 p-4 rounded-xl border border-red-100 flex items-center gap-2">
-                                        <i data-lucide="alert-circle" class="w-5 h-5"></i> Error: Mode ini WAJIB menggunakan Engine MTProto. Silakan ubah di Step 1.
-                                    </p>
-                                </div>
+                                </template>
                             </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- ==================== STEP 3: COPYWRITING (PESAN) ==================== -->
-                <div x-show="step === 3" style="display: none;" x-transition:enter="transition ease-out duration-300 delay-100" x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0" class="space-y-6">
-                    <div class="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
-                        <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-1">Pilih Template Pesan <span class="text-red-500">*</span></label>
-                        
-                        <template x-if="dbMessages.length === 0">
-                            <div class="p-10 text-center border-2 border-dashed border-gray-200 rounded-[2rem] bg-gray-50">
-                                <i data-lucide="feather" class="w-10 h-10 text-gray-300 mx-auto mb-3"></i>
-                                <p class="text-sm font-black text-gray-600 uppercase tracking-widest">Belum ada Copywriting</p>
-                                <p class="text-xs text-gray-400 mt-2">Buat teks promosi di menu Template terlebih dahulu.</p>
+                        <div x-show="form.sender_type === 'BOT'">
+                            
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5">
+                                <div class="relative w-full sm:w-64">
+                                    <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                                    <input type="text" x-model="searchBot" placeholder="Cari nama / username..." class="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all placeholder:text-gray-400 placeholder:font-medium">
+                                </div>
+                                <label class="flex items-center gap-2.5 cursor-pointer text-xs font-black text-sky-700 bg-sky-50 px-4 py-2.5 rounded-xl border border-sky-200 hover:bg-sky-100 hover:shadow-sm transition-all select-none">
+                                    <input type="checkbox" @change="toggleAllBotCustomers($event)" class="w-4 h-4 rounded border-sky-300 text-sky-600 focus:ring-sky-500 cursor-pointer">
+                                    PILIH SEMUA DATA
+                                </label>
                             </div>
-                        </template>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-                            <template x-for="tpl in dbMessages" :key="tpl.id">
-                                <div @click="form.msg_template_id = tpl.id" 
-                                     class="p-6 border-2 rounded-[1.5rem] cursor-pointer transition-all hover:bg-gray-50 flex flex-col justify-between group h-full relative overflow-hidden"
-                                     :class="form.msg_template_id === tpl.id ? 'border-blue-500 bg-blue-50/50 shadow-md' : 'border-gray-100'">
+                            <div class="border border-gray-200 rounded-3xl overflow-hidden bg-white shadow-inner relative">
+                                <div class="grid grid-cols-12 gap-4 px-6 py-3 bg-gray-50 border-b border-gray-200 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                    <div class="col-span-1 text-center">Pilih</div>
+                                    <div class="col-span-7">Informasi Pelanggan</div>
+                                    <div class="col-span-4 text-right">Sumber</div>
+                                </div>
+
+                                <div class="max-h-[320px] overflow-y-auto custom-scrollbar">
+                                    <template x-if="botCustomers.length === 0">
+                                        <div class="py-16 text-center">
+                                            <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                                                <i data-lucide="bot-off" class="w-8 h-8 text-gray-300"></i>
+                                            </div>
+                                            <p class="text-base font-black text-gray-900 tracking-tight mb-1">Database Bot Kosong</p>
+                                            <p class="text-xs font-medium text-gray-400">Pastikan ada user yang pernah berinteraksi (Start) dengan bot Anda.</p>
+                                        </div>
+                                    </template>
+
+                                    <template x-for="cust in filteredBotCustomers" :key="cust.telegram_id">
+                                        <label class="grid grid-cols-12 gap-4 px-6 py-4 items-center bg-white border-b border-gray-50 hover:bg-sky-50/50 cursor-pointer transition-colors group">
+                                            <div class="col-span-1 flex justify-center">
+                                                <input type="checkbox" :value="cust.telegram_id" x-model="selectedBotCustomers" class="w-5 h-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500 cursor-pointer transition-transform group-active:scale-90">
+                                            </div>
+                                            <div class="col-span-7 flex flex-col justify-center">
+                                                <p class="text-sm font-black text-gray-900 truncate" x-text="cust.full_name"></p>
+                                                <p class="text-[11px] font-bold text-gray-400 mt-1 flex items-center gap-1.5 truncate">
+                                                    <i data-lucide="at-sign" class="w-3 h-3 text-sky-400"></i>
+                                                    <span x-text="cust.username ? cust.username : cust.telegram_id"></span>
+                                                </p>
+                                            </div>
+                                            <div class="col-span-4 flex justify-end items-center">
+                                                <span class="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 border border-gray-200 whitespace-nowrap">Bot User</span>
+                                            </div>
+                                        </label>
+                                    </template>
                                     
-                                    <div class="absolute top-0 right-0 p-6 opacity-0 transition-opacity" :class="form.msg_template_id === tpl.id ? 'opacity-100' : ''"><i data-lucide="check-circle-2" class="w-6 h-6 text-blue-500"></i></div>
-
-                                    <div>
-                                        <div class="flex justify-between items-start mb-4">
-                                            <div class="w-12 h-12 rounded-xl flex items-center justify-center transition-colors" :class="form.msg_template_id === tpl.id ? 'bg-blue-500 text-white shadow-md' : 'bg-gray-100 text-gray-400 group-hover:bg-blue-100 group-hover:text-blue-600'"><i data-lucide="message-square" class="w-5 h-5"></i></div>
+                                    <template x-if="botCustomers.length > 0 && filteredBotCustomers.length === 0">
+                                        <div class="py-12 text-center text-gray-400 text-sm font-bold">
+                                            Pencarian "<span x-text="searchBot" class="text-gray-900"></span>" tidak ditemukan.
                                         </div>
-                                        <h4 class="text-base font-black text-gray-900 mb-2 tracking-tight" x-text="tpl.name"></h4>
-                                        <div class="bg-white/50 border border-gray-100 p-3 rounded-xl mt-2">
-                                            <p class="text-[11px] text-gray-500 font-medium line-clamp-3 leading-relaxed" x-text="tpl.content"></p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ==================== STEP 4: BEHAVIOR & PENJADWALAN ==================== -->
-                <div x-show="step === 4" style="display: none;" x-transition:enter="transition ease-out duration-300 delay-100" x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0" class="space-y-8">
-                    
-                    <!-- SIKLUS FREKUENSI (CRON) -->
-                    <div class="bg-gray-900 rounded-[2.5rem] p-8 md:p-10 text-white shadow-xl relative overflow-hidden">
-                        <i data-lucide="calendar-clock" class="absolute -right-10 -top-10 w-64 h-64 text-white opacity-5"></i>
-                        <div class="relative z-10">
-                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-                                <div>
-                                    <h3 class="text-2xl font-black tracking-tight flex items-center gap-3"><i data-lucide="repeat" class="w-6 h-6 text-yellow-400"></i> Siklus Pengiriman (Cron)</h3>
-                                    <p class="text-sm text-gray-400 font-medium mt-1.5">Kapan & seberapa sering blast ini diulang secara otomatis?</p>
-                                </div>
-                                <select x-model="form.frequency" class="px-5 py-3.5 bg-white/10 border border-white/20 rounded-xl text-sm font-black text-white outline-none focus:ring-4 focus:ring-yellow-400/20 focus:border-yellow-400 transition-all [&>option]:text-gray-900 cursor-pointer">
-                                    <option value="ONCE">Sekali Jalan (Langsung/Terjadwal)</option>
-                                    <option value="DAILY">Setiap Hari (Looping)</option>
-                                    <option value="INTERVAL">Berkala (Setiap X Hari)</option>
-                                </select>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-800">
-                                <div>
-                                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">Tanggal Mulai (Opsional jika Now)</label>
-                                    <!-- FIX WARNA TANGGAL: Menggunakan class Tailwind murni -->
-                                    <input type="date" x-model="form.schedule_date" class="w-full px-5 py-4 bg-gray-800/50 border border-gray-700 rounded-2xl text-sm font-black text-white focus:ring-2 focus:ring-yellow-400 outline-none transition-all" style="color-scheme: dark;">
-                                </div>
-                                <div>
-                                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 ml-1">Jam Eksekusi (Server Time)</label>
-                                    <!-- FIX WARNA JAM -->
-                                    <input type="time" x-model="form.schedule_time" class="w-full px-5 py-4 bg-gray-800/50 border border-gray-700 rounded-2xl text-sm font-black text-white focus:ring-2 focus:ring-yellow-400 outline-none transition-all" style="color-scheme: dark;">
-                                </div>
-
-                                <div x-show="form.frequency === 'INTERVAL'" x-collapse class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                                    <div>
-                                        <label class="block text-[10px] font-black text-yellow-400 uppercase tracking-widest mb-2 ml-1">Jeda Interval Hari</label>
-                                        <div class="relative">
-                                            <input type="number" x-model="form.interval_days" min="2" class="w-full px-5 py-4 bg-gray-800/50 border border-gray-700 rounded-2xl text-lg font-black text-yellow-400 focus:ring-2 focus:ring-yellow-400 outline-none transition-all pl-5 pr-16">
-                                            <span class="absolute right-5 top-1/2 -translate-y-1/2 text-xs font-black text-gray-400 uppercase">Hari</span>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label class="block text-[10px] font-black text-yellow-400 uppercase tracking-widest mb-2 ml-1">Batas Maksimal Siklus</label>
-                                        <div class="relative">
-                                            <input type="number" x-model="form.max_cycles" min="1" class="w-full px-5 py-4 bg-gray-800/50 border border-gray-700 rounded-2xl text-lg font-black text-yellow-400 focus:ring-2 focus:ring-yellow-400 outline-none transition-all pl-5 pr-16">
-                                            <span class="absolute right-5 top-1/2 -translate-y-1/2 text-xs font-black text-gray-400 uppercase">Kali</span>
-                                        </div>
-                                        <p class="text-[10px] text-gray-500 mt-2 font-medium">Contoh: Interval 2 hari, Max 7 kali = Follow-up berjalan 14 hari penuh.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Humanized Setting -->
-                    <div class="bg-white border border-gray-200 shadow-sm rounded-[2.5rem] p-8 md:p-10">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                            <div>
-                                <h4 class="text-xl font-black text-gray-900 flex items-center gap-2"><i data-lucide="shield-check" class="w-6 h-6 text-emerald-500"></i> Humanized & Anti-Banned</h4>
-                                <p class="text-xs text-gray-500 font-medium mt-1">Sistem otomatis menyesuaikan jeda agar terlihat seperti manusia mengetik.</p>
-                            </div>
-                            <span class="px-4 py-1.5 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-xl border border-emerald-100 flex items-center gap-1.5"><span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> Safe Mode</span>
-                        </div>
-                        
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            <div class="space-y-3 bg-gray-50 p-6 rounded-3xl border border-gray-100">
-                                <label class="block text-[11px] font-black text-gray-500 uppercase tracking-widest text-center mb-4">Jeda Acak Per Pesan (Detik)</label>
-                                <div class="flex items-center gap-4">
-                                    <input type="number" x-model="form.delay_min" class="w-full px-5 py-4 bg-white border border-gray-200 rounded-2xl text-lg font-black text-center focus:ring-4 focus:ring-gray-900/10 focus:border-gray-900 outline-none transition-all shadow-sm">
-                                    <span class="text-gray-400 font-black text-xl">-</span>
-                                    <input type="number" x-model="form.delay_max" class="w-full px-5 py-4 bg-white border border-gray-200 rounded-2xl text-lg font-black text-center focus:ring-4 focus:ring-gray-900/10 focus:border-gray-900 outline-none transition-all shadow-sm">
+                                    </template>
                                 </div>
                             </div>
                             
-                            <div class="space-y-3 bg-gray-50 p-6 rounded-3xl border border-gray-100">
-                                <label class="block text-[11px] font-black text-gray-500 uppercase tracking-widest text-center mb-4">Istirahat Breathtaking (Menit)</label>
+                            <div class="mt-5 flex justify-between items-center bg-sky-50 p-4 rounded-2xl border border-sky-100">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center border border-sky-100 shadow-sm"><i data-lucide="check-square" class="w-5 h-5 text-sky-600"></i></div>
+                                    <div>
+                                        <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-0.5">Target Terpilih</p>
+                                        <p class="text-lg font-black text-sky-700 leading-none"><span x-text="selectedBotCustomers.length"></span> <span class="text-sm text-sky-600/70 font-bold">/ <span x-text="botCustomers.length"></span> Total</span></p>
+                                    </div>
+                                </div>
+                                <div x-show="form.target_mode === 'folder' && selectedBotCustomers.length === 0" class="text-[10px] font-black text-red-500 bg-red-100 px-3 py-1.5 rounded-lg flex items-center gap-1.5 animate-pulse">
+                                    <i data-lucide="alert-circle" class="w-3 h-3"></i> Wajib Centang Target
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div x-show="form.target_mode === 'followup'" x-collapse>
+                        <div class="bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 border border-indigo-100 rounded-[3rem] p-8 md:p-12 relative overflow-hidden shadow-sm">
+                            <div class="absolute -right-10 -top-10 w-64 h-64 bg-white/40 rounded-full blur-3xl"></div>
+                            <i data-lucide="brain-circuit" class="absolute -right-6 -bottom-6 w-48 h-48 text-indigo-200 opacity-30 drop-shadow-xl"></i>
+                            
+                            <div class="relative z-10 space-y-8">
+                                <div>
+                                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-100 text-indigo-700 text-[10px] font-black uppercase tracking-widest mb-4 border border-indigo-200">
+                                        <i data-lucide="sparkles" class="w-3 h-3"></i> AI Powered
+                                    </div>
+                                    <h4 class="text-2xl md:text-3xl font-black text-indigo-950 flex items-center gap-3 mb-3 tracking-tight">Auto-Fetch Target Terlama</h4>
+                                    <p class="text-sm text-indigo-800/80 font-medium leading-relaxed max-w-2xl" 
+                                       x-text="form.sender_type === 'MTPROTO' ? 'Sistem akan otomatis menyisir riwayat chat akun Telegram pribadi Anda dan menargetkan user/grup yang sudah lama tidak berinteraksi untuk Re-Targeting.' : 'Sistem akan menarik data pelanggan Bot dari database yang interaksinya sudah lama secara otomatis. Cocok untuk promosi ulang.'">
+                                    </p>
+                                </div>
+                                
+                                <div class="bg-white/80 backdrop-blur-md p-6 md:p-8 rounded-[2rem] shadow-sm border border-white flex flex-col sm:flex-row items-center justify-between gap-6 relative group">
+                                    <div class="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-[2rem] opacity-0 group-hover:opacity-5 transition-opacity duration-500"></div>
+                                    <div>
+                                        <label class="block text-[11px] font-black text-indigo-400 uppercase tracking-widest mb-1.5">Kapasitas Maksimal Scraping</label>
+                                        <p class="text-base font-bold text-gray-900">Berapa banyak target yang ingin disisir?</p>
+                                    </div>
+                                    <div class="flex items-center gap-3 w-full sm:w-auto relative">
+                                        <button @click="if(form.followup_limit > 5) form.followup_limit -= 5" type="button" class="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-indigo-600 transition-colors shadow-sm"><i data-lucide="minus" class="w-5 h-5"></i></button>
+                                        
+                                        <input type="number" x-model="form.followup_limit" min="5" max="1000" class="flex-1 sm:w-28 px-4 py-3 bg-white border-2 border-indigo-100 rounded-xl text-2xl font-black text-center text-indigo-600 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-inner">
+                                        
+                                        <button @click="form.followup_limit += 5" type="button" class="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-indigo-600 transition-colors shadow-sm"><i data-lucide="plus" class="w-5 h-5"></i></button>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-xs font-bold text-indigo-600/70">
+                                    <span>Minimal: 5</span>
+                                    <span>Maksimal: 1000</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="step === 3" style="display: none;" x-transition:enter="transition ease-out duration-300 delay-100" x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0" class="space-y-6">
+                    <div class="bg-white p-8 md:p-10 rounded-[3rem] border border-gray-100 shadow-sm relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-40 h-40 bg-blue-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                        <label class="block text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-2 flex items-center gap-2 relative z-10"><i data-lucide="feather" class="w-4 h-4"></i> Amunisi Copywriting <span class="text-red-500">*</span></label>
+                        
+                        <template x-if="dbMessages.length === 0">
+                            <div class="p-12 text-center border-2 border-dashed border-gray-200 rounded-[2.5rem] bg-gray-50 relative z-10">
+                                <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-5 shadow-sm border border-gray-100">
+                                    <i data-lucide="message-square-dashed" class="w-10 h-10 text-gray-300"></i>
+                                </div>
+                                <p class="text-lg font-black text-gray-900 tracking-tight mb-2">Belum ada Copywriting</p>
+                                <p class="text-sm text-gray-500 font-medium max-w-sm mx-auto leading-relaxed">Buat teks promosi atau template pesan di menu <strong>Template Pesan</strong> terlebih dahulu agar dapat digunakan di sini.</p>
+                            </div>
+                        </template>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[450px] overflow-y-auto custom-scrollbar pr-3 pb-2 relative z-10">
+                            <template x-for="tpl in dbMessages" :key="tpl.id">
+                                <div @click="form.msg_template_id = tpl.id" 
+                                     class="p-6 md:p-8 border-2 rounded-[2rem] cursor-pointer transition-all flex flex-col justify-between group h-full relative overflow-hidden"
+                                     :class="form.msg_template_id === tpl.id ? 'border-blue-500 bg-blue-50/50 shadow-lg scale-[1.02]' : 'border-gray-100 hover:border-blue-200 hover:bg-gray-50 hover:shadow-md'">
+                                    
+                                    <div class="absolute top-0 right-0 p-6 opacity-0 transition-opacity duration-300" :class="form.msg_template_id === tpl.id ? 'opacity-100' : ''"><i data-lucide="check-circle-2" class="w-7 h-7 text-blue-500 drop-shadow-md"></i></div>
+
+                                    <div>
+                                        <div class="flex justify-between items-start mb-5">
+                                            <div class="w-14 h-14 rounded-2xl flex items-center justify-center transition-colors duration-300 shadow-sm" :class="form.msg_template_id === tpl.id ? 'bg-blue-500 text-white shadow-blue-500/30' : 'bg-white border border-gray-100 text-gray-400 group-hover:bg-blue-100 group-hover:text-blue-600'"><i data-lucide="message-square" class="w-6 h-6"></i></div>
+                                        </div>
+                                        <h4 class="text-lg font-black text-gray-900 mb-3 tracking-tight" x-text="tpl.name"></h4>
+                                        <div class="bg-white/80 backdrop-blur-sm border border-gray-100 p-4 rounded-2xl mt-2 shadow-inner">
+                                            <p class="text-xs text-gray-600 font-medium line-clamp-4 leading-relaxed" x-text="tpl.content"></p>
+                                        </div>
+                                    </div>
+                                    <div class="mt-4 flex gap-2">
+                                        <span class="px-2.5 py-1 bg-white border border-gray-100 rounded-lg text-[9px] font-black uppercase tracking-widest text-gray-400 group-hover:text-blue-500 transition-colors" x-text="tpl.content.length + ' Karakter'"></span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="step === 4" style="display: none;" x-transition:enter="transition ease-out duration-300 delay-100" x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0" class="space-y-8">
+                    
+                    <div class="bg-gray-900 rounded-[3rem] p-8 md:p-12 text-white shadow-2xl relative overflow-hidden group">
+                        <div class="absolute -right-20 -top-20 w-80 h-80 bg-blue-500 opacity-20 rounded-full blur-[80px] group-hover:scale-125 transition-transform duration-1000"></div>
+                        <i data-lucide="calendar-clock" class="absolute -right-6 -bottom-6 w-56 h-56 text-white opacity-[0.03] group-hover:rotate-12 transition-transform duration-700"></i>
+                        
+                        <div class="relative z-10">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+                                <div>
+                                    <h3 class="text-2xl md:text-3xl font-black tracking-tight flex items-center gap-3"><i data-lucide="repeat" class="w-8 h-8 text-yellow-400"></i> Siklus Penjadwalan</h3>
+                                    <p class="text-sm text-gray-400 font-medium mt-2 leading-relaxed max-w-md">Tentukan kapan mesin dihidupkan dan seberapa sering kampanye ini akan diulang.</p>
+                                </div>
+                                <select x-model="form.frequency" class="px-6 py-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-sm font-black text-white outline-none focus:ring-4 focus:ring-yellow-400/30 focus:border-yellow-400 transition-all [&>option]:text-gray-900 cursor-pointer shadow-lg w-full md:w-auto">
+                                    <option value="ONCE">Sekali Jalan (Instan / Terjadwal)</option>
+                                    <option value="DAILY">Setiap Hari (Looping)</option>
+                                    <option value="INTERVAL">Berkala (Interval Hari)</option>
+                                </select>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-gray-800/80">
+                                <div class="bg-black/20 p-6 rounded-[2rem] border border-white/5">
+                                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-2 flex items-center gap-2"><i data-lucide="calendar" class="w-3.5 h-3.5 text-blue-400"></i> Tanggal Mulai</label>
+                                    <input type="date" x-model="form.schedule_date" class="w-full px-5 py-4 bg-gray-800/80 border border-gray-700 rounded-[1.5rem] text-sm font-black text-white focus:ring-2 focus:ring-yellow-400 outline-none transition-all shadow-inner" style="color-scheme: dark;">
+                                    <p class="text-[10px] text-gray-500 mt-2 ml-2 font-medium">Kosongkan jika ingin segera diluncurkan hari ini.</p>
+                                </div>
+                                <div class="bg-black/20 p-6 rounded-[2rem] border border-white/5">
+                                    <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 ml-2 flex items-center gap-2"><i data-lucide="clock" class="w-3.5 h-3.5 text-blue-400"></i> Jam Eksekusi (WIB)</label>
+                                    <input type="time" x-model="form.schedule_time" class="w-full px-5 py-4 bg-gray-800/80 border border-gray-700 rounded-[1.5rem] text-sm font-black text-white focus:ring-2 focus:ring-yellow-400 outline-none transition-all shadow-inner" style="color-scheme: dark;">
+                                </div>
+
+                                <div x-show="form.frequency === 'INTERVAL'" x-collapse class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8 pt-6">
+                                    <div>
+                                        <label class="block text-[10px] font-black text-yellow-400 uppercase tracking-widest mb-3 ml-2">Jeda Interval Hari</label>
+                                        <div class="relative">
+                                            <input type="number" x-model="form.interval_days" min="2" class="w-full px-5 py-4 bg-gray-800/80 border border-gray-700 rounded-[1.5rem] text-xl font-black text-yellow-400 focus:ring-2 focus:ring-yellow-400 outline-none transition-all pl-6 pr-16 shadow-inner">
+                                            <span class="absolute right-5 top-1/2 -translate-y-1/2 text-xs font-black text-gray-500 uppercase">Hari</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-black text-yellow-400 uppercase tracking-widest mb-3 ml-2">Batas Maksimal Siklus</label>
+                                        <div class="relative">
+                                            <input type="number" x-model="form.max_cycles" min="1" class="w-full px-5 py-4 bg-gray-800/80 border border-gray-700 rounded-[1.5rem] text-xl font-black text-yellow-400 focus:ring-2 focus:ring-yellow-400 outline-none transition-all pl-6 pr-16 shadow-inner">
+                                            <span class="absolute right-5 top-1/2 -translate-y-1/2 text-xs font-black text-gray-500 uppercase">Kali</span>
+                                        </div>
+                                        <p class="text-[10px] text-gray-400 mt-2 ml-2 font-medium">Contoh: Interval 2 hari, Max 7 kali = Berjalan 14 hari penuh.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-gray-200 shadow-sm rounded-[3rem] p-8 md:p-12 relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-full"></div>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-5 mb-10 relative z-10">
+                            <div>
+                                <h4 class="text-xl md:text-2xl font-black text-gray-900 flex items-center gap-3 tracking-tight"><i data-lucide="shield-check" class="w-7 h-7 text-emerald-500"></i> Humanized & Anti-Banned</h4>
+                                <p class="text-xs text-gray-500 font-medium mt-2 leading-relaxed">Sistem otomatis memanipulasi jeda waktu pengiriman agar Telegram menganggap operasi ini dikendalikan oleh manusia asli.</p>
+                            </div>
+                            <span class="px-4 py-2 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest rounded-xl border border-emerald-100 flex items-center gap-2 shadow-sm whitespace-nowrap"><span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_5px_#10b981]"></span> Safe Mode On</span>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
+                            <div class="space-y-4 bg-gray-50 p-8 rounded-[2rem] border border-gray-100">
+                                <label class="block text-[11px] font-black text-gray-500 uppercase tracking-widest text-center mb-5">Jeda Ngetik Acak Per Pesan</label>
+                                <div class="flex items-center gap-4">
+                                    <div class="relative w-full">
+                                        <input type="number" x-model="form.delay_min" class="w-full px-4 py-4 bg-white border border-gray-200 rounded-2xl text-xl font-black text-center focus:ring-4 focus:ring-gray-900/10 focus:border-gray-900 outline-none transition-all shadow-sm">
+                                        <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-gray-400 uppercase">Detik (Min)</span>
+                                    </div>
+                                    <span class="text-gray-300 font-black text-2xl">-</span>
+                                    <div class="relative w-full">
+                                        <input type="number" x-model="form.delay_max" class="w-full px-4 py-4 bg-white border border-gray-200 rounded-2xl text-xl font-black text-center focus:ring-4 focus:ring-gray-900/10 focus:border-gray-900 outline-none transition-all shadow-sm">
+                                        <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-gray-400 uppercase">Detik (Max)</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-4 bg-gray-50 p-8 rounded-[2rem] border border-gray-100">
+                                <label class="block text-[11px] font-black text-gray-500 uppercase tracking-widest text-center mb-5">Istirahat Limitasi (Breathtaking)</label>
                                 <div class="flex items-center justify-center gap-3">
                                     <span class="text-xs font-black text-gray-400 uppercase">Tiap</span>
-                                    <input type="number" x-model="form.rest_batch" class="w-20 px-3 py-4 bg-white border border-gray-200 rounded-2xl text-lg font-black text-center focus:ring-4 focus:ring-gray-900/10 focus:border-gray-900 outline-none transition-all shadow-sm">
+                                    <input type="number" x-model="form.rest_batch" class="w-20 px-3 py-4 bg-white border border-gray-200 rounded-2xl text-xl font-black text-center focus:ring-4 focus:ring-gray-900/10 focus:border-gray-900 outline-none transition-all shadow-sm">
                                     <span class="text-xs font-black text-gray-400 uppercase">Kirim, Rest</span>
-                                    <input type="number" x-model="form.rest_duration_min" class="w-20 px-3 py-4 bg-white border border-gray-200 rounded-2xl text-lg font-black text-center text-emerald-600 focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-sm">
+                                    <input type="number" x-model="form.rest_duration_min" class="w-20 px-3 py-4 bg-white border border-gray-200 rounded-2xl text-xl font-black text-center text-emerald-600 focus:ring-4 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all shadow-sm">
+                                    <span class="text-xs font-black text-gray-400 uppercase">Menit</span>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="step === 5" style="display: none;" x-transition:enter="transition ease-out duration-300 delay-100" x-transition:enter-start="opacity-0 translate-x-8" x-transition:enter-end="opacity-100 translate-x-0" class="space-y-8">
+                    <div class="bg-gray-50 p-10 rounded-[3rem] border border-gray-200 text-center">
+                        <div class="w-24 h-24 bg-yellow-400 text-gray-900 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-yellow-400/20 rotate-12 transition-transform hover:rotate-0 duration-500">
+                            <i data-lucide="rocket" class="w-12 h-12"></i>
+                        </div>
+                        <h3 class="text-3xl font-black text-gray-900 tracking-tight mb-3">Siap Mengorbit!</h3>
+                        <p class="text-sm text-gray-500 font-medium max-w-md mx-auto leading-relaxed">Silakan periksa ringkasan kampanye di bawah ini. Pastikan tidak ada data target atau mesin pengirim yang keliru.</p>
+                        
+                        <div class="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4 text-left">
+                            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                                <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Nama Kampanye</p>
+                                <p class="text-sm font-bold text-gray-900 truncate" x-text="form.name"></p>
+                            </div>
+                            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                                <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Engine / Mesin</p>
+                                <p class="text-sm font-bold truncate" :class="form.sender_type === 'MTPROTO' ? 'text-indigo-600' : 'text-sky-600'" x-text="form.sender_type"></p>
+                            </div>
+                            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                                <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Audiens Target</p>
+                                <p class="text-sm font-bold text-gray-900 truncate" x-text="form.target_mode === 'followup' ? `Followup (${form.followup_limit})` : (form.sender_type === 'BOT' ? `${selectedBotCustomers.length} User` : 'Database Folder')"></p>
+                            </div>
+                            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                                <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Jadwal</p>
+                                <p class="text-sm font-bold text-gray-900 truncate" x-text="form.frequency === 'ONCE' ? 'Sekali Eksekusi' : 'Terjadwal Berulang'"></p>
                             </div>
                         </div>
                     </div>
@@ -543,20 +665,19 @@
 
             </div>
 
-            <!-- Modal Footer Controls -->
-            <div class="px-8 md:px-12 py-8 bg-white border-t border-gray-100 flex flex-col-reverse sm:flex-row justify-between sm:items-center gap-4 shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.02)] z-20">
-                <button x-show="step > 1" @click="step--" class="w-full sm:w-auto px-8 py-4 bg-white border-2 border-gray-100 text-gray-500 hover:text-gray-900 hover:border-gray-300 hover:bg-gray-50 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-sm">Kembali</button>
+            <div class="px-8 md:px-12 py-8 bg-white border-t border-gray-100 flex flex-col-reverse sm:flex-row justify-between sm:items-center gap-4 shrink-0 shadow-[0_-15px_30px_rgba(0,0,0,0.02)] z-20">
+                <button x-show="step > 1" @click="step--" class="w-full sm:w-auto px-10 py-4 bg-white border-2 border-gray-100 text-gray-500 hover:text-gray-900 hover:border-gray-300 hover:bg-gray-50 rounded-[1.5rem] font-black uppercase tracking-widest text-xs transition-all shadow-sm">Kembali</button>
                 <div x-show="step === 1" class="hidden sm:block"></div> 
                 
                 <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                    <button x-show="step === 1" @click="closeModal()" class="w-full sm:w-auto px-8 py-4 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-2xl font-black uppercase tracking-widest text-xs transition-colors">Batal</button>
+                    <button x-show="step === 1" @click="closeModal()" class="w-full sm:w-auto px-8 py-4 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-[1.5rem] font-black uppercase tracking-widest text-xs transition-colors">Batal</button>
                     
-                    <button x-show="step < 4" @click="nextStep()" class="w-full sm:w-auto px-12 py-4 bg-gray-900 hover:bg-black text-yellow-400 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-gray-900/20 transition-all active:scale-95 flex items-center justify-center gap-3">
-                        Lanjut Setup <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                    <button x-show="step < 5" @click="nextStep()" class="w-full sm:w-auto px-12 py-4 bg-gray-900 hover:bg-black text-yellow-400 rounded-[1.5rem] text-xs font-black uppercase tracking-widest shadow-[0_10px_20px_rgba(17,24,39,0.15)] transition-all active:scale-95 hover:-translate-y-1 flex items-center justify-center gap-3">
+                        Lanjut Setup <i data-lucide="arrow-right" class="w-4 h-4"></i>
                     </button>
                     
-                    <button x-show="step === 4" @click="launchCampaign()" :disabled="isSubmitting" class="w-full sm:w-auto px-14 py-4 bg-yellow-400 hover:bg-yellow-500 text-gray-900 rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-yellow-500/30 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3">
-                        <span x-show="!isSubmitting" class="flex items-center gap-2"><i data-lucide="flame" class="w-5 h-5"></i> LUNCURKAN!</span>
+                    <button x-show="step === 5" @click="launchCampaign()" :disabled="isSubmitting" class="w-full sm:w-auto px-16 py-4 bg-yellow-400 hover:bg-yellow-500 text-gray-900 rounded-[1.5rem] text-sm font-black uppercase tracking-widest shadow-[0_10px_25px_rgba(250,204,21,0.3)] transition-all active:scale-95 hover:-translate-y-1 disabled:opacity-50 flex items-center justify-center gap-3">
+                        <span x-show="!isSubmitting" class="flex items-center gap-2"><i data-lucide="rocket" class="w-5 h-5"></i> KLIK LUNCURKAN!</span>
                         <span x-show="isSubmitting" x-cloak class="flex items-center gap-2"><i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Memproses...</span>
                     </button>
                 </div>
@@ -566,9 +687,6 @@
 
 </div>
 
-<!-- ====================================================================================
-     ALPINE JS LOGIC CORE
-     ==================================================================================== -->
 <script>
     document.addEventListener('alpine:init', () => {
         Alpine.data('broadcastCommander', () => ({
@@ -576,6 +694,9 @@
             campaigns: [],
             dbMessages: [],
             dbTargets: [],
+            botCustomers: [],          // Database murni dari Bot User
+            selectedBotCustomers: [],  // Tampungan ID Checkbox yang dicentang
+            searchBot: '',             // Variabel buat Search Box Bot
             stats: { total_sent: 0, total_failed: 0, in_queue: 0 },
             
             isLoading: true,
@@ -591,6 +712,18 @@
                 interval_days: 2, max_cycles: 7
             },
 
+            // Getter List Bot Terfilter (Search Logic)
+            get filteredBotCustomers() {
+                if(this.searchBot === '') return this.botCustomers;
+                const lowerSearch = this.searchBot.toLowerCase();
+                return this.botCustomers.filter(c => {
+                    const fname = (c.full_name || '').toLowerCase();
+                    const uname = (c.username || '').toLowerCase();
+                    const t_id = (c.telegram_id || '').toString();
+                    return fname.includes(lowerSearch) || uname.includes(lowerSearch) || t_id.includes(lowerSearch);
+                });
+            },
+
             async initApp() {
                 this.isLoading = true;
                 try {
@@ -602,6 +735,7 @@
                             this.campaigns = rawData.campaigns || [];
                             this.dbMessages = rawData.messages || [];
                             this.dbTargets = rawData.targets || [];
+                            this.botCustomers = rawData.bot_customers || []; 
                             this.stats = rawData.metrics || this.stats;
                         }
                     }
@@ -622,6 +756,9 @@
                     frequency: 'ONCE', schedule_date: '', schedule_time: '', interval_days: 2, max_cycles: 7
                 };
                 
+                this.searchBot = '';
+                this.selectedBotCustomers = [];
+                
                 const now = new Date();
                 this.form.schedule_date = now.toISOString().split('T')[0];
                 this.form.schedule_time = now.toTimeString().substring(0,5);
@@ -630,15 +767,44 @@
                 setTimeout(() => { if(typeof lucide !== 'undefined') lucide.createIcons(); }, 50);
             },
             closeModal() { this.isModalOpen = false; },
+
+            toggleAllBotCustomers(e) {
+                if(e.target.checked) {
+                    this.selectedBotCustomers = this.filteredBotCustomers.map(c => c.telegram_id);
+                } else {
+                    this.selectedBotCustomers = [];
+                }
+            },
             
             nextStep() {
-                if(this.step === 1 && !this.form.name.trim()) return this.notify('warning', 'Nama Kampanye wajib diisi bre!');
+                // 1. Validasi Nama
+                if(this.step === 1 && !this.form.name.trim()) return this.notify('warning', 'Nama Kampanye Operasional wajib diisi!');
+                
+                // 2. Validasi Target
                 if(this.step === 2) {
-                    if(this.form.target_mode === 'folder' && !this.form.target_template_id) return this.notify('warning', 'Pilih Folder Target dari daftar!');
-                    if(this.form.target_mode === 'followup' && this.form.sender_type !== 'MTPROTO') return this.notify('error', 'Smart Follow-up wajib pakai MTProto. Kembali ke Step 1.');
-                    if(this.form.target_mode === 'followup' && this.form.followup_limit < 1) return this.notify('warning', 'Limit user tidak valid!');
+                    // Validasi MTProto Target
+                    if(this.form.sender_type === 'MTPROTO' && this.form.target_mode === 'folder' && !this.form.target_template_id) {
+                        return this.notify('warning', 'Pilih Folder Target MTProto dari daftar!');
+                    }
+                    // Validasi Bot Target (Checkbox List)
+                    if(this.form.sender_type === 'BOT' && this.form.target_mode === 'folder' && this.selectedBotCustomers.length === 0) {
+                        return this.notify('warning', 'Centang minimal 1 target pelanggan bot!');
+                    }
+                    // Validasi Limit Follow-Up
+                    if(this.form.target_mode === 'followup' && this.form.followup_limit < 1) {
+                        return this.notify('warning', 'Limit kapasitas follow-up tidak valid!');
+                    }
                 }
+
+                // 3. Validasi Amunisi Pesan
                 if(this.step === 3 && !this.form.msg_template_id) return this.notify('warning', 'Pilih Amunisi Copywriting!');
+                
+                // 4. Validasi Jadwal
+                if(this.step === 4) {
+                    if(this.form.frequency !== 'ONCE' && (!this.form.schedule_date || !this.form.schedule_time)) {
+                        return this.notify('warning', 'Pilih tanggal & waktu peluncuran berulang!');
+                    }
+                }
                 
                 this.step++;
             },
@@ -656,8 +822,10 @@
             },
 
             async launchCampaign() {
-                if(this.form.frequency !== 'ONCE' && (!this.form.schedule_date || !this.form.schedule_time)) {
-                    return this.notify('warning', 'Pilih tanggal & waktu peluncuran!');
+                // Susupkan target BOT yang dicentang user
+                const payloadToDewa = { ...this.form };
+                if(this.form.sender_type === 'BOT' && this.form.target_mode === 'folder') {
+                    payloadToDewa.bot_targets = this.selectedBotCustomers; // Kirim Array of ID
                 }
 
                 this.isSubmitting = true;
@@ -665,45 +833,45 @@
                     const res = await fetch('/admin/crm/broadcast/api/launch', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(this.form)
+                        body: JSON.stringify(payloadToDewa)
                     });
                     if(res.ok) {
-                        this.notify('success', 'Kampanye berhasil dikunci ke Server!');
+                        this.notify('success', 'Kampanye berhasil diluncurkan ke Server Engine!');
                         this.closeModal();
                         this.initApp(); 
                     } else {
                         const err = await res.json();
-                        this.notify('error', err.message || 'Terjadi kesalahan server.');
+                        this.notify('error', err.message || 'Terjadi kesalahan sistem.');
                     }
                 } catch(e) { this.notify('error', 'Koneksi ke server komando terputus.'); }
                 finally { this.isSubmitting = false; }
             },
 
             async toggleStatus(id, newStatus) {
-                let msg = newStatus === 'STOPPED' ? "Yakin ingin MENGHENTIKAN campaign ini?" : "Lanjutkan eksekusi campaign ini?";
+                let msg = newStatus === 'STOPPED' ? "Yakin ingin MENGHENTIKAN campaign ini selamanya?" : "Lanjutkan eksekusi engine campaign ini?";
                 if(!confirm(msg)) return;
                 try {
-                    const res = await fetch(`/admin/crm/broadcast/api/toggle/${id}`, { 
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ status: newStatus })
+                    const res = await fetch(`/admin/crm/broadcast/api/action/${newStatus.toLowerCase()}/${id}`, { 
+                        method: 'POST'
                     });
                     if(res.ok) {
                         this.notify('success', `Status berhasil diubah menjadi ${newStatus}.`);
                         this.initApp();
+                    } else {
+                        this.notify('error', 'Gagal merespon perintah engine.');
                     }
                 } catch(e) { this.notify('error', 'Gagal merubah status.'); }
             },
 
             async deleteCampaign(id) {
-                if(!confirm("PERINGATAN: Hapus riwayat kampanye ini secara permanen?")) return;
+                if(!confirm("PERINGATAN: Hapus riwayat kampanye ini beserta lognya secara permanen?")) return;
                 try {
                     const res = await fetch(`/admin/crm/broadcast/api/delete/${id}`, { method: 'DELETE' });
                     if(res.ok) {
-                        this.notify('success', 'Riwayat berhasil dibersihkan.');
+                        this.notify('success', 'Riwayat berhasil dibersihkan dari server.');
                         this.initApp();
                     }
-                } catch(e) { this.notify('error', 'Gagal menghapus data.'); }
+                } catch(e) { this.notify('error', 'Gagal menghapus data riwayat.'); }
             },
 
             formatNum(n) { return new Intl.NumberFormat('id-ID').format(n || 0); },
@@ -719,7 +887,7 @@
             notify(type, msg) {
                 const id = Date.now();
                 this.toasts.push({ id, type, msg });
-                setTimeout(() => this.removeToast(id), 5000);
+                setTimeout(() => this.removeToast(id), 5500);
             }
         }));
     });
